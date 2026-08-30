@@ -13,8 +13,11 @@ from xray.estimator import estimate          # noqa: E402
 from xray.observe import observe             # noqa: E402
 from xray.sim import FOLLOWER, LEADER, run_sim  # noqa: E402
 
-CARS = (LEADER, FOLLOWER)
-SEEDS = (42, 7)
+# X-RAY is pointed at the car AHEAD, which is in clear air. A car that is
+# permanently in someone's wake cannot have its drag calibrated from its own
+# trace at all -- see test_estimator_refuses_a_car_stuck_in_traffic.
+CARS = (LEADER,)
+SEEDS = (42, 7, 13)
 
 
 @pytest.fixture(scope="session")

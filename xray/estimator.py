@@ -91,6 +91,7 @@ class NuisanceFit:
     deploy_frac_hat: float = 0.0   # fitted share of the taper ceiling still in use
     traffic_rejected: int = 0      # window samples dropped for running in a tow
     systematic_rms: float = 0.0    # W, lap-to-lap drift of the model error
+    v3_ref: float = 0.0            # m^3/s^3, mean v^3 in the calibration band
 
 
 @dataclass(frozen=True)
@@ -308,7 +309,7 @@ def fit_nuisance(obs: Observation, track, priors: PublicPriors = PublicPriors(),
         v_wind_hat=v_wind_hat, v_wind_sigma=float(np.sqrt(max(v_wind_var, 1e-12))),
         n_samples=n, residual_rms=float(sigma),
         deploy_frac_hat=phi_em, traffic_rejected=traffic_rejected,
-        systematic_rms=systematic_rms)
+        systematic_rms=systematic_rms, v3_ref=float(np.mean(v ** 3)))
 
 
 # --------------------------------------------- Stage B: power reconstruction
@@ -387,6 +388,17 @@ def powers(kin: Kinematics, cda, v_wind, mass_off, priors: PublicPriors,
     return p_obs, mguk, harv
 
 
+def _mean_brake_duration(kin: Kinematics, dt: float) -> float:
+    """Mean length of a braking event, in seconds, from the observation alone."""
+    b = kin.brake.astype(np.int8)
+    edges = np.diff(np.concatenate([[0], b, [0]]))
+    starts = np.flatnonzero(edges == 1)
+    ends = np.flatnonzero(edges == -1)
+    if len(starts) == 0:
+        return max(dt, 1e-3)
+    return max(float(np.mean(ends - starts)) * dt, dt)
+
+
 def dry_events(kin: Kinematics, mguk_mean: np.ndarray,
                on_w: float = 1.5e5, off_w: float = 2.5e4) -> np.ndarray:
     """Samples where the trace says deployment *stopped* while the car was
@@ -459,12 +471,31 @@ def estimate(obs: Observation, track, priors: PublicPriors = PublicPriors(),
     # the drift dominates; at 3.7 Hz the white term does. The belief band's
     # width is a consequence of this number, not a setting.
     n_laps_seen = max(len(np.unique(obs.lap)), 1)
+    window = smooth_window(obs.sample_rate_hz)
     if deploy_scale_sigma is None:
         n_accel = max(float(np.sum(kin.accel)) / n_laps_seen, 1.0)
-        white = nuisance.residual_rms * dt * np.sqrt(n_accel)
-        syst = nuisance.systematic_rms * dt * n_accel
+        # residual_rms is measured on already-smoothed quantities, so successive
+        # residuals are correlated across one smoothing window: a lap contains
+        # n/window independent error draws, not n.
+        n_eff = max(n_accel / window, 1.0)
+        # Both residual scales were measured in the calibration band, where the
+        # car is doing 330 km/h and drag power is ~450 kW. Over a whole lap it
+        # is mostly at half that speed, and the drag-model error that dominates
+        # both scales with v^3 -- so the same modelling error is worth far fewer
+        # watts for most of the lap. Scale it accordingly.
+        v3_lap = float(np.mean(kin.v[kin.accel] ** 3)) if kin.accel.any() else 1.0
+        band_scale = float(np.clip(v3_lap / max(nuisance.v3_ref, 1.0), 0.05, 1.0))
+        white = nuisance.residual_rms * band_scale * dt * window * np.sqrt(n_eff)
+        syst = nuisance.systematic_rms * band_scale * dt * n_accel
         dep_ref = max(float(np.sum(mguk_pt) * dt) / n_laps_seen, 1.0e5)
         deploy_scale_sigma = float(np.clip(np.hypot(white, syst) / dep_ref, 0.02, 0.40))
+
+    # Recovery is a different kind of estimate and deserves its own error scale.
+    # The 350 kW cap binds through almost every braking event, so recovered
+    # energy is the cap times how long the car was braking -- the error is one
+    # of timing resolution, not of power. One sample of slop at each end of an
+    # event, against the length of the event.
+    harvest_scale_sigma = float(np.clip(dt / _mean_brake_duration(kin, dt), 0.005, 0.40))
 
     # A particle sitting on the floor while the reconstruction shows a trickle
     # of deployment is not describing an impossibility -- it is describing our
@@ -477,7 +508,7 @@ def estimate(obs: Observation, track, priors: PublicPriors = PublicPriors(),
     v_wind = rng.normal(nuisance.v_wind_hat, max(nuisance.v_wind_sigma, 1e-3), Np)
     mass_off = rng.normal(0.0, 3.0, Np)
     dep_scale = np.clip(rng.normal(1.0, deploy_scale_sigma, Np), 0.4, 1.6)
-    har_scale = np.clip(rng.normal(1.0, deploy_scale_sigma, Np), 0.4, 1.6)
+    har_scale = np.clip(rng.normal(1.0, harvest_scale_sigma, Np), 0.4, 1.6)
     tow_k = np.clip(rng.normal(*TOW_K_PRIOR, Np), 0.0, 0.5)
     # the rival's held-back buffer: unknown, and the thing a deployment cut-out
     # actually reveals. Inferring it is inferring one of the four policy
@@ -572,14 +603,16 @@ def estimate(obs: Observation, track, priors: PublicPriors = PublicPriors(),
         E, cda, v_wind, mass_off, dep_scale, har_scale, tow_k, reserve = (
             E[take], cda[take], v_wind[take], mass_off[take], dep_scale[take],
             har_scale[take], tow_k[take], reserve[take])
-        reserve = np.clip(reserve + rng.normal(0.0, 0.05 * RESERVE_MAX_FRAC * E_STORE_MAX, Np),
+        # A driver's buffer is a strategy, not a random walk: jitter it only
+        # enough to keep resampling from collapsing the cloud to one value.
+        reserve = np.clip(reserve + rng.normal(0.0, 0.01 * RESERVE_MAX_FRAC * E_STORE_MAX, Np),
                           0.0, RESERVE_MAX_FRAC * E_STORE_MAX)
         # jitter the nuisance draws slightly so resampling cannot collapse the
         # parameter cloud to a single point over a long stint
         cda = cda + rng.normal(0.0, 0.15 * max(nuisance.cda_sigma, 1e-3), Np)
         dep_scale = np.clip(dep_scale + rng.normal(0.0, 0.15 * deploy_scale_sigma, Np),
                             0.4, 1.6)
-        har_scale = np.clip(har_scale + rng.normal(0.0, 0.15 * deploy_scale_sigma, Np),
+        har_scale = np.clip(har_scale + rng.normal(0.0, 0.15 * harvest_scale_sigma, Np),
                             0.4, 1.6)
 
     return BeliefTrace(

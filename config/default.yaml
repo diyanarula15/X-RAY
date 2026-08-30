@@ -24,8 +24,11 @@ sim:
   dt: 0.005                # s, fixed step, semi-implicit Euler
   n_laps: 12
   start_gap_s: 0.9         # initial time gap, follower behind leader
-  leader_policy: BALANCED
-  follower_policy: AGGRESSIVE
+  # The demo scenario: the rival ahead of us burns its store early, we hold
+  # ours back. That contrast is what the estimator has to see and the decision
+  # engine has to exploit.
+  leader_policy: AGGRESSIVE      # the rival we are X-raying
+  follower_policy: CONSERVATIVE  # us
   e_start_frac: 0.75       # initial store as fraction of E_STORE_MAX
 
 observe:

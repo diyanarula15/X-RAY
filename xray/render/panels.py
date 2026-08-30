@@ -90,7 +90,9 @@ def panel_truth_reveal(ax, sc: Scene, k: int, err_pct: float | None = None) -> N
                     sc.belief.usable_p90[lo:hi] / 1e6, color=RED, alpha=0.28, lw=0)
     ax.plot(t[lo:hi], sc.belief.usable_mean[lo:hi] / 1e6, color=RED, lw=1.6, alpha=0.9)
     ax.plot(t[lo:hi], sc.true_usable_rival[lo:hi] / 1e6, color=WHITE, lw=2.0)
-    ax.set_ylim(-0.1, E_STORE_MAX / 1e6 * 0.92)
+    top = max(float(np.nanmax(sc.belief.usable_p90[lo:hi])),
+              float(np.nanmax(sc.true_usable_rival[lo:hi]))) / 1e6
+    ax.set_ylim(-0.08, max(top * 1.35, 0.6))
     ax.set_ylabel("rival deployable energy (MJ)", color=GRAY, fontsize=11)
     ax.legend(handles=[
         _proxy(RED, "X-RAY belief (p10-p90)", alpha=0.35),
@@ -178,7 +180,7 @@ def panel_threshold(ax, sc: Scene, k: int) -> None:
                    edgecolors=GREEN, lw=3.0, zorder=6)
         ax.annotate(f"ATTACK  P {sc.attack['q']:.2f}",
                     (sc.attack["lap"] + 1, sc.attack["q"]),
-                    textcoords="offset points", xytext=(14, 16), color=GREEN,
+                    textcoords="offset points", xytext=(18, 26), color=GREEN,
                     fontsize=15, weight="bold")
     ax.set_xlim(0.5, len(sc.tau) + 0.5)
     ax.set_ylim(0, max(0.75, max([o[1] for o in sc.opportunities] + [0.4]) * 1.35))
@@ -207,19 +209,33 @@ def panel_counterfactual(ax, sc: Scene, k_frac: float) -> None:
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     cf = sc.counterfactual
-    for i, (name, data, color) in enumerate((
-            ("BLIND", cf["blind"], GRAY), ("X-RAY", cf["xray"], AMBER))):
-        y = 0.72 - 0.42 * i
-        ax.text(0.0, y + 0.16, name, color=color, fontsize=16, weight="bold")
+    for i, (name, key, color) in enumerate((
+            ("BLIND", "blind", GRAY), ("X-RAY", "xray", AMBER))):
+        data = cf[key]
+        y = 0.70 - 0.36 * i
+        ax.text(0.0, y + 0.14, name, color=color, fontsize=17, weight="bold")
         laps = data["laps"]
-        for j, (lap, q, attacked, passed) in enumerate(laps):
-            x = 0.06 + 0.88 * j / max(len(laps) - 1, 1)
+        n_show = max(int(np.ceil(len(laps) * min(k_frac * 1.5, 1.0))), 1)
+        for j, (lap, q, attacked, passed) in enumerate(laps[:n_show]):
+            x = 0.05 + 0.90 * j / max(len(laps) - 1, 1)
             if attacked:
-                col = GREEN if passed else RED
-                ax.add_patch(Circle((x, y), 0.030, fc=col, ec="none"))
+                col, size = (GREEN, 170) if passed else (RED, 170)
             else:
-                ax.add_patch(Circle((x, y), 0.013, fc=DIM, ec="none"))
-        result = "PASSED lap %d" % data["lap_passed"] if data["passed"] else "never passed"
-        ax.text(0.0, y - 0.13, result, color=color if data["passed"] else DIM,
-                fontsize=13)
-    ax.text(0.0, 0.06, "attack   ", color=DIM, fontsize=11)
+                col, size = DIM, 34
+            ax.scatter([x], [y], s=size, c=col, edgecolors="none", zorder=4)
+            ax.text(x, y - 0.085, str(lap + 1), color=DIM, fontsize=10, ha="center")
+        if n_show >= len(laps):
+            result = (f"PASSED on lap {data['lap_passed']}" if data["passed"]
+                      else "never passed")
+            ax.text(0.0, y - 0.17, result, color=color if data["passed"] else DIM,
+                    fontsize=14, weight="bold" if data["passed"] else "normal")
+    from matplotlib.lines import Line2D
+    ax.legend(handles=[
+        Line2D([0], [0], marker="o", color="none", markerfacecolor=DIM,
+               markersize=7, label="held fire"),
+        Line2D([0], [0], marker="o", color="none", markerfacecolor=RED,
+               markersize=12, label="attacked, failed"),
+        Line2D([0], [0], marker="o", color="none", markerfacecolor=GREEN,
+               markersize=12, label="attacked, passed"),
+    ], loc="lower center", ncol=3, fontsize=12, labelcolor=GRAY,
+        bbox_to_anchor=(0.5, -0.06))

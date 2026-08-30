@@ -109,6 +109,9 @@ class DecisionModel:
                                 # draining them would let the DP attack for free.
     gap_s: float                # nominal gap at the braking point
     n_laps: int
+    fail_cost: float = 0.0      # fraction of continuation value lost when a
+                                # lunge fails: you yield the place back and
+                                # arrive at the next chance further adrift
     bins: np.ndarray = field(default=None)
 
     @property
@@ -180,7 +183,8 @@ def solve(model: DecisionModel) -> DPSolution:
         # saturates at 1 everywhere, every attack looks free, and the threshold
         # collapses to zero -- attack always, which is not a strategy.
         reward = R_PASS * k / model.n_laps
-        v_attack = P * reward + (1.0 - P) * v_fail[None, :, :]
+        v_attack = (P * reward
+                    + (1.0 - P) * (1.0 - model.fail_cost) * v_fail[None, :, :])
         z_best = np.argmax(v_attack, axis=0)
         v_best = np.max(v_attack, axis=0)
         take = v_best > v_wait
@@ -189,11 +193,27 @@ def solve(model: DecisionModel) -> DPSolution:
 
         # threshold: the opportunity quality at which attacking starts to win.
         # V_attack = q*reward + (1-q)*V_fail, so q* = (V_wait-V_fail)/(reward-V_fail).
-        denom = np.maximum(reward - v_fail, 1e-9)
-        q_star = np.clip((v_wait - v_fail) / denom, 0.0, 1.0)
+        vf = (1.0 - model.fail_cost) * v_fail
+        q_star = np.clip((v_wait - vf) / np.maximum(reward - vf, 1e-9), 0.0, 1.0)
         tau[k] = q_star.mean(axis=1)
 
     return DPSolution(V=V, best_zone=best, tau=tau, model=model)
+
+
+def fail_cost_from_geometry(gap_s: float, yield_m: float = 10.0,
+                            v_ref: float = 60.0, dv_ref: float = 8.0) -> float:
+    """How much a failed lunge costs, in the currency the DP uses.
+
+    The simulator makes a failed attacker yield the place and drop `yield_m`
+    behind. At racing speed that is an extra `yield_m / v_ref` seconds of gap,
+    and the pass model says exactly what that does to the next opportunity. The
+    number is read off the pass model, not chosen.
+    """
+    class _Z:
+        braking_severity = 1.0
+    before = p_pass(dv_ref, gap_s, _Z())
+    after = p_pass(dv_ref, gap_s + yield_m / v_ref, _Z())
+    return float(np.clip(1.0 - after / max(before, 1e-9), 0.0, 0.9))
 
 
 def build_model(track: Track, params: VehicleParams, n_laps: int,
@@ -208,7 +228,8 @@ def build_model(track: Track, params: VehicleParams, n_laps: int,
         own_spend_per_lap=(own_spend_per_lap if own_spend_per_lap is not None
                            else 0.6 * recharge_per_lap),
         rival_spend_per_lap=rival_spend_per_lap, attack_cost=cost,
-        defend_cost=defend_cost, gap_s=gap_s, n_laps=n_laps, bins=make_bins())
+        defend_cost=defend_cost, gap_s=gap_s, n_laps=n_laps, bins=make_bins(),
+        fail_cost=fail_cost_from_geometry(gap_s))
 
 
 # ------------------------------------------------- opponent policy posterior
@@ -347,4 +368,151 @@ def compare_policies(model: DecisionModel, sol: DPSolution, belief_e_riv,
     return {"xray_pass_rate": float(xr.mean()), "blind_pass_rate": float(bl.mean()),
             "mean_gain": float(d.mean()), "ci95": (float(d.mean() - 1.96 * se),
                                                    float(d.mean() + 1.96 * se)),
+            "n_races": n_races}
+
+
+# --------------------------------------- known rival trajectory (the real case)
+@dataclass(frozen=True)
+class ExogenousSolution:
+    """DP over (laps left, own energy) when the rival's energy at the decision
+    point is already known per lap from the belief trace.
+
+    This is the situation X-RAY actually creates. Guessing at the rival's
+    lap-to-lap energy dynamics is only necessary while you cannot see them; once
+    the speed trace has given you the trajectory, the rival stops being a state
+    to be modelled and becomes a schedule to be read.
+    """
+    V: np.ndarray            # (laps+1, bins)
+    best_zone: np.ndarray    # (laps+1, bins), -1 = wait
+    tau: np.ndarray          # (laps+1, bins)
+    q: np.ndarray            # (laps+1, bins) best available pass probability
+    model: DecisionModel
+    rival_track: np.ndarray  # J, deployable energy at the decision point per lap
+
+    def _lap_of(self, laps_left: int) -> int:
+        return int(np.clip(self.model.n_laps - laps_left, 0, len(self.rival_track) - 1))
+
+    def action(self, laps_left: int, e_own: float):
+        k = int(np.clip(laps_left, 0, self.V.shape[0] - 1))
+        i = int(_bin_index(self.model.bins, e_own))
+        z = int(self.best_zone[k, i])
+        return None if z < 0 else self.model.zones[z].name
+
+    def quality(self, laps_left: int, e_own: float) -> float:
+        k = int(np.clip(laps_left, 0, self.V.shape[0] - 1))
+        return float(self.q[k, int(_bin_index(self.model.bins, e_own))])
+
+    def threshold(self, laps_left: int, e_own: float) -> float:
+        k = int(np.clip(laps_left, 0, self.V.shape[0] - 1))
+        return float(self.tau[k, int(_bin_index(self.model.bins, e_own))])
+
+
+def solve_exogenous(model: DecisionModel, rival_track: np.ndarray) -> ExogenousSolution:
+    bins = model.bins
+    nb = len(bins)
+    K = model.n_laps
+    V = np.zeros((K + 1, nb))
+    best = np.full((K + 1, nb), -1, dtype=np.int8)
+    tau = np.zeros((K + 1, nb))
+    qbest = np.zeros((K + 1, nb))
+
+    own_next = np.clip(bins + model.recharge_per_lap - model.own_spend_per_lap,
+                       0.0, E_STORE_MAX)
+    wait_own = _bin_index(bins, own_next)
+    att_own = _bin_index(bins, np.clip(own_next - model.attack_cost, 0.0, E_STORE_MAX))
+    affordable = bins >= model.attack_cost * 0.75
+
+    for k in range(1, K + 1):
+        lap = int(np.clip(K - k, 0, len(rival_track) - 1))
+        e_riv = float(rival_track[lap])
+        P = np.array([[p_pass(delta_v(zm, min(eo, model.attack_cost),
+                                      min(e_riv, model.attack_cost)),
+                              model.gap_s, zm) for eo in bins]
+                      for zm in model.zones])
+        reward = R_PASS * k / K
+        v_next = V[k - 1]
+        v_wait = v_next[wait_own]
+        v_fail = v_next[att_own]
+        v_attack = (P * reward
+                    + (1.0 - P) * (1.0 - model.fail_cost) * v_fail[None, :])
+        v_attack = np.where(affordable[None, :], v_attack, -np.inf)
+        z_best = np.argmax(v_attack, axis=0)
+        v_best = np.max(v_attack, axis=0)
+        take = v_best > v_wait
+        V[k] = np.where(take, v_best, v_wait)
+        best[k] = np.where(take, z_best, -1)
+        qbest[k] = np.max(P, axis=0)
+        vf = (1.0 - model.fail_cost) * v_fail
+        tau[k] = np.clip((v_wait - vf) / np.maximum(reward - vf, 1e-9), 0.0, 1.0)
+
+    return ExogenousSolution(V=V, best_zone=best, tau=tau, q=qbest, model=model,
+                             rival_track=np.asarray(rival_track, dtype=float))
+
+
+def rival_energy_at_zone(belief, obs, track, n_laps: int, zone_name: str = "A"
+                         ) -> np.ndarray:
+    """Believed deployable energy of the rival where the pass would happen.
+
+    Not the lap minimum and not the lap maximum: the value at the entry to the
+    overtaking zone, which is the only moment that decides anything.
+    """
+    z = track.zone_by_name(zone_name)
+    out = np.zeros(n_laps)
+    for L in range(n_laps):
+        m = np.flatnonzero(obs.lap == L)
+        if len(m) == 0:
+            out[L] = out[L - 1] if L else 0.0
+            continue
+        j = m[int(np.argmin(np.abs(obs.s[m] - z.s_straight_start)))]
+        out[L] = float(belief.usable_mean[j])
+    return out
+
+
+def simulate_stint_exogenous(model: DecisionModel, sol_or_chooser, rng, n_laps: int,
+                             e_own0: float, rival_track: np.ndarray,
+                             blind: bool = False) -> dict:
+    """Stint played against a rival whose energy schedule is fixed and real."""
+    zmap = {zm.name: zm for zm in model.zones}
+    e_own = float(e_own0)
+    best_zone = max(model.zones, key=lambda z: z.braking_severity).name
+    rows = []
+    for k in range(n_laps, 0, -1):
+        lap = n_laps - k
+        e_riv = float(rival_track[min(lap, len(rival_track) - 1)])
+        if blind:
+            pick = best_zone if e_own >= model.attack_cost else None
+        else:
+            pick = sol_or_chooser.action(k, e_own)
+        e_own = float(np.clip(e_own + model.recharge_per_lap - model.own_spend_per_lap,
+                              0.0, E_STORE_MAX))
+        q, hit = 0.0, False
+        if pick is not None:
+            zm = zmap[pick]
+            spend = min(model.attack_cost, e_own)
+            q = p_pass(delta_v(zm, spend, min(e_riv, model.attack_cost)), model.gap_s, zm)
+            e_own = max(e_own - spend, 0.0)
+            hit = bool(rng.random() < q)
+        rows.append((lap, q, pick is not None, hit))
+        if hit:
+            return {"passed": 1, "lap_passed": lap + 1, "laps": rows}
+    return {"passed": 0, "lap_passed": 0, "laps": rows}
+
+
+def compare_exogenous(model: DecisionModel, sol: ExogenousSolution,
+                      rival_track: np.ndarray, n_races: int, n_laps: int,
+                      e_own0: float, seed: int = 0) -> dict:
+    xr, bl = [], []
+    for i in range(n_races):
+        xr.append(simulate_stint_exogenous(
+            model, sol, np.random.default_rng(seed * 977 + i), n_laps, e_own0,
+            rival_track)["passed"])
+        bl.append(simulate_stint_exogenous(
+            model, None, np.random.default_rng(seed * 977 + i), n_laps, e_own0,
+            rival_track, blind=True)["passed"])
+    xr, bl = np.array(xr, float), np.array(bl, float)
+    d = xr - bl
+    se = d.std(ddof=1) / np.sqrt(len(d)) if len(d) > 1 else 0.0
+    return {"xray_pass_rate": float(xr.mean()), "blind_pass_rate": float(bl.mean()),
+            "mean_gain": float(d.mean()),
+            "ci95": (float(d.mean() - 1.96 * se), float(d.mean() + 1.96 * se)),
             "n_races": n_races}

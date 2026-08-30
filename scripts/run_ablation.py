@@ -27,7 +27,7 @@ def main() -> None:
     ap = base_parser(__doc__)
     ap.add_argument("--rates", type=float, nargs="+", default=RATES)
     ap.add_argument("--seeds", type=int, nargs="+", default=[42, 7, 13])
-    ap.add_argument("--cars", nargs="+", default=[LEADER, FOLLOWER])
+    ap.add_argument("--cars", nargs="+", default=[LEADER])
     args = ap.parse_args()
     cfg = config_from(args)
     cda_true = cfg["vehicle"]["cda_straight"]

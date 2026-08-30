@@ -3,9 +3,10 @@ from __future__ import annotations
 
 import numpy as np
 
-from xray.decision import (blind_chooser, build_model, compare_policies,
-                           delta_v, policy_posterior, robustness, simulate_stint,
-                           solve)
+from xray.decision import (blind_chooser, build_model, compare_exogenous,
+                           compare_policies, delta_v, policy_posterior,
+                           rival_energy_at_zone, robustness, simulate_stint,
+                           solve, solve_exogenous)
 from xray.overtake import COEFFS, p_pass
 from xray.sim import FOLLOWER, LEADER
 from xray.vehicle import VehicleParams
@@ -71,14 +72,33 @@ def test_threshold_is_nontrivial_and_decays_through_the_stint(cfg, races):
 
 
 def test_decision_beats_blind(cfg, races):
-    """Over 50 seeded stints, positions gained is positive with 95% confidence."""
-    _g, _o, bel, model, sol, believed = _setup(cfg, races)
-    sigma = float(np.mean(bel.usable_p90 - bel.usable_p10) / 2)
-    res = compare_policies(model, sol, believed, sigma, n_races=50,
-                           n_laps=model.n_laps, e_own0=2.0e6, e_riv0=believed[0],
-                           seed=3)
+    """Over 50 seeded stints, positions gained is positive with 95% confidence.
+
+    Both rules are played against the same rival energy schedule -- the one the
+    estimator reconstructed -- with the same coin flips. The only difference is
+    what each rule knows.
+    """
+    g, obs, bel, model, _sol, _believed = _setup(cfg, races)
+    rival_track = rival_energy_at_zone(bel, obs, g.track, g.n_laps)
+    sol = solve_exogenous(model, rival_track)
+    res = compare_exogenous(model, sol, rival_track, n_races=50, n_laps=g.n_laps,
+                            e_own0=float(g.cars[FOLLOWER].E[0]), seed=3)
     assert res["mean_gain"] > 0, res
     assert res["ci95"][0] > 0, f"95% CI includes zero: {res}"
+
+
+def test_decision_waits_when_the_rival_is_strong(cfg, races):
+    """The point of the whole thing: it must be able to say 'not yet'."""
+    g, obs, bel, model, _sol, _believed = _setup(cfg, races)
+    rival_track = rival_energy_at_zone(bel, obs, g.track, g.n_laps)
+    sol = solve_exogenous(model, rival_track)
+    e_own = float(g.cars[FOLLOWER].E.max())
+    calls = [sol.action(g.n_laps - L, e_own) for L in range(g.n_laps)]
+    assert any(c is None for c in calls), f"never holds fire: {calls}"
+    assert any(c is not None for c in calls), f"never attacks: {calls}"
+    # the rival is strongest on the opening lap, so that is when to hold
+    assert rival_track[0] == rival_track.max()
+    assert calls[0] is None
 
 
 def test_robustness_is_computed_not_asserted(cfg, races):

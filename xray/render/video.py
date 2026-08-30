@@ -11,9 +11,9 @@ from matplotlib.animation import FFMpegWriter
 from matplotlib.patches import Circle
 
 from ..constants import E_STORE_MAX
-from ..decision import (blind_chooser, build_model, compare_policies, delta_v,
-                        policy_posterior, robustness, simulate_stint, solve,
-                        xray_chooser)
+from ..decision import (build_model, compare_exogenous, delta_v, policy_posterior,
+                        rival_energy_at_zone, robustness, simulate_stint_exogenous,
+                        solve, solve_exogenous)
 from ..estimator import estimate
 from ..metrics import band_width_by_regime, score_estimate, true_reserve_floor
 from ..observe import observe
@@ -55,48 +55,47 @@ def build_scene(cfg: dict, seed: int = 42, rate_hz: float | None = None,
     model = build_model(gt.track, params, n_laps=gt.n_laps,
                         recharge_per_lap=recharge, rival_spend_per_lap=rival_spend,
                         own_spend_per_lap=own_spend)
-    sol = solve(model)
 
-    # believed rival energy at each lap, and our own, taken at the lap boundary
-    laps = list(range(gt.n_laps))
-    believed = []
-    ours_e = []
-    for L in laps:
-        m = obs.lap == L
-        believed.append(float(belief.usable_mean[m].min()) if m.any() else 0.0)
-        ours_e.append(float(our_soc[m].max()) if m.any() else 0.0)
+    # what we believe the rival can still deploy, at the entry to the zone where
+    # a pass would actually happen -- not a lap average
+    rival_track = rival_energy_at_zone(belief, obs, gt.track, gt.n_laps)
+    sol = solve_exogenous(model, rival_track)
 
-    tau = np.array([sol.tau[max(gt.n_laps - L, 1)][
-        int(np.clip(np.searchsorted(model.bins, ours_e[L]), 0, len(model.bins) - 1))]
-        for L in laps])
+    our_e = np.array([float(our_soc[obs.lap == L].max()) if (obs.lap == L).any()
+                      else 0.0 for L in range(gt.n_laps)])
 
+    tau = np.array([sol.threshold(gt.n_laps - L, our_e[L]) for L in range(gt.n_laps)])
     opportunities = []
     attack = None
-    for L in laps:
-        q = max(p_pass(delta_v(zm, min(ours_e[L], model.attack_cost),
-                               min(believed[L], model.attack_cost)),
-                       model.gap_s, zm) for zm in model.zones)
-        take = bool(q >= tau[L] and ours_e[L] >= 0.75 * model.attack_cost)
-        opportunities.append((L, float(q), None, take))
-        if take and attack is None and L >= 2:
-            best_zone = max(model.zones, key=lambda zm: p_pass(
-                delta_v(zm, min(ours_e[L], model.attack_cost),
-                        min(believed[L], model.attack_cost)), model.gap_s, zm))
-            attack = {"lap": L, "q": float(q), "zone": best_zone.name}
+    for L in range(gt.n_laps):
+        q = sol.quality(gt.n_laps - L, our_e[L])
+        zone = sol.action(gt.n_laps - L, our_e[L])
+        opportunities.append((L, float(q), zone, zone is not None))
+        if zone is not None and attack is None:
+            attack = {"lap": L, "q": float(q), "zone": zone}
 
     posterior = policy_posterior(belief, gt.track, n_samples=200, seed=seed)
     if attack is not None:
         rb = robustness(model, posterior, laps_left=gt.n_laps - attack["lap"],
-                        e_own=ours_e[attack["lap"]], e_riv=believed[attack["lap"]])
+                        e_own=our_e[attack["lap"]], e_riv=rival_track[attack["lap"]])
         attack["robust"] = rb["fraction_agreeing"]
-        attack["zone"] = rb["action"] or attack["zone"]
 
-    # --- counterfactual: same energy, two decision rules
-    cf = _counterfactual(model, sol, believed, gt.n_laps, ours_e[0], believed[0], seed)
-    comp = compare_policies(model, sol, np.array(believed),
-                            float(np.mean(belief.usable_p90 - belief.usable_p10) / 2),
-                            n_races=50, n_laps=gt.n_laps, e_own0=ours_e[0],
-                            e_riv0=believed[0], seed=seed)
+    # --- counterfactual: same energy, two decision rules, same rival
+    # Show a run where the two rules actually diverge, and say on screen how
+    # often that happens. Picking an illustrative example is fine; picking a
+    # flattering one is not, so the pass rates are always shown next to it.
+    cf = {}
+    for r in range(60):
+        runs = {name: simulate_stint_exogenous(
+            model, sol, np.random.default_rng(seed * 131 + r), gt.n_laps,
+            float(our_e[0]), rival_track, blind=blind)
+            for name, blind in (("blind", True), ("xray", False))}
+        cf = {k: {"laps": v["laps"], "passed": v["passed"],
+                  "lap_passed": v["lap_passed"]} for k, v in runs.items()}
+        if runs["xray"]["passed"] and not runs["blind"]["passed"]:
+            break
+    comp = compare_exogenous(model, sol, rival_track, 50, gt.n_laps,
+                             float(our_e[0]), seed=seed)
 
     metrics = {
         "per-lap energy error": f"{score.deployed_mape:.1f}%",
@@ -109,10 +108,14 @@ def build_scene(cfg: dict, seed: int = 42, rate_hz: float | None = None,
               f"coverage {score.usable_coverage:.2f}, CdA err {score.cda_error_pct:+.1f}%")
         print(f"  band width by regime: "
               f"{ {k: round(v, 2) for k, v in band_width_by_regime(gt, rival, obs, belief).items()} }")
+        waits = [o[0] + 1 for o in opportunities if not o[3]]
+        print(f"  rival deployable at zone entry (MJ): "
+              f"{np.round(rival_track / 1e6, 2)}")
         if attack:
-            print(f"  decision: attack lap {attack['lap'] + 1} zone {attack['zone']}, "
-                  f"P {attack['q']:.2f}, optimal across "
-                  f"{attack['robust'] * 100:.0f}% of opponent policy space")
+            print(f"  decision: hold on lap(s) {waits or '-'}, attack lap "
+                  f"{attack['lap'] + 1} zone {attack['zone']}, P {attack['q']:.2f}, "
+                  f"optimal across {attack['robust'] * 100:.0f}% of opponent "
+                  f"policy space")
         print(f"  counterfactual: X-RAY {comp['xray_pass_rate']:.2f} vs blind "
               f"{comp['blind_pass_rate']:.2f}, gain {comp['mean_gain']:+.2f} "
               f"CI95 [{comp['ci95'][0]:.2f}, {comp['ci95'][1]:.2f}]")
@@ -125,7 +128,7 @@ def build_scene(cfg: dict, seed: int = 42, rate_hz: float | None = None,
                  counterfactual=cf)
 
 
-def _counterfactual(model, sol, believed, n_laps, e_own0, e_riv0, seed):
+def _unused_counterfactual(model, sol, believed, n_laps, e_own0, e_riv0, seed):
     out = {}
     for name, chooser in (("blind", blind_chooser(model)),
                           ("xray", xray_chooser(sol, np.array(believed), 0.0,
@@ -216,8 +219,8 @@ def draw_act0(fig, sc, u, t):
 
 def draw_act1(fig, sc, u, t):
     k = _sample_at(sc, u, 1, 2)
-    gs = fig.add_gridspec(2, 2, left=0.05, right=0.97, top=0.90, bottom=0.16,
-                          hspace=0.28, wspace=0.18)
+    gs = fig.add_gridspec(2, 2, left=0.03, right=0.97, top=0.90, bottom=0.15,
+                          hspace=0.30, wspace=0.10, width_ratios=(1.0, 1.35))
     panel_track_map(fig.add_subplot(gs[:, 0]), sc, k)
     panel_speed_traces(fig.add_subplot(gs[0, 1]), sc, k)
     panel_battery_bars(fig.add_subplot(gs[1, 1]), sc, k, show_question=True)
@@ -230,8 +233,8 @@ def draw_act1(fig, sc, u, t):
 
 def draw_act2(fig, sc, u, t):
     k = _sample_at(sc, u, 3, 5)
-    gs = fig.add_gridspec(2, 2, left=0.05, right=0.97, top=0.90, bottom=0.16,
-                          hspace=0.28, wspace=0.18)
+    gs = fig.add_gridspec(2, 2, left=0.03, right=0.97, top=0.90, bottom=0.15,
+                          hspace=0.30, wspace=0.10, width_ratios=(1.0, 1.35))
     panel_track_map(fig.add_subplot(gs[:, 0]), sc, k)
     panel_speed_traces(fig.add_subplot(gs[0, 1]), sc, k)
     panel_battery_bars(fig.add_subplot(gs[1, 1]), sc, k, reveal_band=True)
@@ -277,7 +280,7 @@ def draw_act4(fig, sc, u, t):
 
 
 def draw_act5(fig, sc, u, t):
-    ax = fig.add_axes((0.07, 0.20, 0.86, 0.64))
+    ax = fig.add_axes((0.07, 0.24, 0.86, 0.60))
     panel_counterfactual(ax, sc, u)
     fig.text(0.05, 0.925, "COUNTERFACTUAL", color=GRAY, fontsize=17, weight="bold")
     c = sc.metrics["_compare"]
