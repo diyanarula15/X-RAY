@@ -96,9 +96,40 @@ class Track:
             (float(self._starts[i]), float(self._ends[i]), float(seg.v_limit))
             for i, seg in enumerate(self.segments) if seg.kind == "corner"
         ]
+        self._inv_ds = 1.0 / self.GRID_DS
+        self._pt = self._build_point_table()
         self.zones = self._build_zones()
         self.detection_points = [z.detection_point for z in self.zones]
         self._xy = None
+
+    def _build_point_table(self) -> list[tuple]:
+        """Per-grid-cell physics lookup: everything a timestep needs, in one
+        list index. Built once; the simulator calls it ~200 times a second."""
+        table = []
+        horizon = 400.0
+        for i, s in enumerate(self._grid_s):
+            ahead = []
+            for start, _end, vlim in self.corners:
+                d = (start - s) % self.length
+                if d <= horizon:
+                    ahead.append((d, vlim))
+            ahead.sort()
+            while len(ahead) < 2:
+                ahead.append((1e9, 1e9))
+            table.append((
+                float(self._grid_vlim[i]), float(self._grid_grade[i]),
+                bool(self._grid_iscorner[i]),
+                float(ahead[0][0]), float(ahead[0][1]),
+                float(ahead[1][0]), float(ahead[1][1]),
+            ))
+        return table
+
+    def point(self, s: float) -> tuple:
+        """(v_limit, grade, is_corner, d_next, v_next, d_next2, v_next2)."""
+        i = int((s % self.length) * self._inv_ds)
+        if i >= len(self._pt):
+            i = len(self._pt) - 1
+        return self._pt[i]
 
     # ------------------------------------------------------------------ zones
     def _build_zones(self) -> list[Zone]:

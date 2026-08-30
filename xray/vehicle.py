@@ -86,21 +86,24 @@ def braking_distance(v_in: float, v_target: float, m: float, cda: float,
 
 
 def _regime(track, st: CarState, params: VehicleParams, grip: float,
-            margin: float = 1.02) -> tuple[str, float]:
+            pt=None, margin: float = 1.02) -> tuple[str, float]:
     """Pick the driving regime for this step. Returns (regime, v_limit_here)."""
-    v_lim_here = track.v_limit(st.s)
-    if track.is_corner(st.s):
-        v_lim_here *= grip
+    if pt is None:
+        pt = track.point(st.s)
+    v_lim_raw, grade, is_corner, d1, v1, d2, v2 = pt
+    v_lim_here = v_lim_raw * grip if is_corner else v_lim_raw
     if st.v > v_lim_here:
         return BRAKE, v_lim_here
-    cda = params.cda(track.aero_mode(st.s))
-    grade = track.grade(st.s)
-    for d_ahead, v_target in track.next_corner(st.s, horizon=300.0):
+    cda = params.cda_corner if is_corner else params.cda_straight
+    m = st.mass
+    for d_ahead, v_target in ((d1, v1), (d2, v2)):
+        if d_ahead > 400.0:
+            break
         v_target *= grip
         if st.v > v_target and d_ahead <= margin * braking_distance(
-                st.v, v_target, st.mass, cda, params, grade):
+                st.v, v_target, m, cda, params, grade):
             return BRAKE, v_lim_here
-    if track.is_corner(st.s) and st.v >= v_lim_here - 0.5:
+    if is_corner and st.v >= v_lim_here - 0.5:
         return CORNER, v_lim_here
     return ACCEL, v_lim_here
 
@@ -113,15 +116,17 @@ def step(track, st: CarState, params: VehicleParams, mguk_demand: float,
     clipped by the regulatory taper and by what is actually in the store.
     Returns a per-step record used by the ground-truth trace.
     """
-    aero = track.aero_mode(st.s)
-    cda = params.cda(aero) * tow_factor
-    grade = track.grade(st.s)
+    pt = track.point(st.s)
+    _v_lim_raw, grade, is_corner, _d1, _v1, _d2, _v2 = pt
+    aero = "corner" if is_corner else "straight"
+    cda = (params.cda_corner if is_corner else params.cda_straight) * tow_factor
     m = st.mass
-    regime, v_lim_here = _regime(track, st, params, grip)
+    regime, v_lim_here = _regime(track, st, params, grip, pt)
 
-    f_drag = drag_force(st.v, cda, params.rho)
+    v = st.v
+    f_drag = 0.5 * params.rho * cda * v * v
     f_roll = params.crr * m * G
-    f_grade = m * G * np.sin(grade)
+    f_grade = m * G * grade  # small-angle: sin(grade) ~ grade
     resist = f_drag + f_roll + f_grade
 
     p_ice = 0.0
@@ -130,32 +135,42 @@ def step(track, st: CarState, params: VehicleParams, mguk_demand: float,
 
     if regime == BRAKE:
         a = -(params.brake_decel_max + resist / m)
-        # regenerative braking: store-side power, capped by the regulation and
-        # by what will actually fit in the store this lap
-        harvest = min(P_MGUK_MAX, m * params.brake_decel_max * st.v)
+        # regenerative braking: store-side power, capped by the regulation
+        harvest = P_MGUK_MAX if m * params.brake_decel_max * v > P_MGUK_MAX \
+            else m * params.brake_decel_max * v
     elif regime == CORNER:
-        a = 0.0
-        p_ice = float(np.clip(resist * st.v / params.drivetrain_eff, 0.0, P_ICE_MAX))
-        f_trac = p_ice * params.drivetrain_eff / max(st.v, 1.0)
+        p_ice = resist * v / params.drivetrain_eff
+        p_ice = 0.0 if p_ice < 0.0 else (P_ICE_MAX if p_ice > P_ICE_MAX else p_ice)
+        f_trac = p_ice * params.drivetrain_eff / (v if v > 1.0 else 1.0)
         a = (f_trac - resist) / m
     else:  # ACCEL
         p_ice = P_ICE_MAX
-        avail = max(st.E, 0.0) / dt  # cannot draw more than the store holds
-        p_mguk = float(np.clip(mguk_demand, 0.0, min(p_mguk_ceiling(st.v), avail)))
-        f_trac = (p_ice + p_mguk) * params.drivetrain_eff / max(st.v, 1.0)
+        ceiling = p_mguk_ceiling(v)
+        avail = st.E / dt if st.E > 0.0 else 0.0
+        cap = ceiling if ceiling < avail else avail
+        p_mguk = 0.0 if mguk_demand <= 0.0 else (cap if mguk_demand > cap else mguk_demand)
+        f_trac = (p_ice + p_mguk) * params.drivetrain_eff / (v if v > 1.0 else 1.0)
         a = (f_trac - resist) / m
 
-    v_new = st.v + a * dt
+    v_new = v + a * dt
     if regime != BRAKE and v_new > v_lim_here:
         v_new = v_lim_here
-    v_new = max(v_new, 1.0)
+    if v_new < 1.0:
+        v_new = 1.0
 
     # ------------------------------------------------------- energy bookkeeping
     d_deploy = p_mguk * dt
-    room = max(E_STORE_MAX - (st.E - d_deploy), 0.0)
-    lap_room = max(E_HARVEST_LAP - st.harvested_lap, 0.0)
-    d_harvest = min(harvest * dt, room, lap_room)
-    st.E = float(np.clip(st.E - d_deploy + d_harvest, 0.0, E_STORE_MAX))
+    room = E_STORE_MAX - (st.E - d_deploy)
+    lap_room = E_HARVEST_LAP - st.harvested_lap
+    d_harvest = harvest * dt
+    if d_harvest > room:
+        d_harvest = room
+    if d_harvest > lap_room:
+        d_harvest = lap_room
+    if d_harvest < 0.0:
+        d_harvest = 0.0
+    e_new = st.E - d_deploy + d_harvest
+    st.E = 0.0 if e_new < 0.0 else (E_STORE_MAX if e_new > E_STORE_MAX else e_new)
     st.harvested_lap += d_harvest
     st.deployed_lap += d_deploy
 

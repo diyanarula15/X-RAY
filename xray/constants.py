@@ -34,6 +34,12 @@ def p_mguk_ceiling(v):
     Linear taper: full power up to TAPER_V_START, zero at and above
     TAPER_V_END. Works on scalars and arrays.
     """
+    if type(v) is float or type(v) is int:  # fast scalar path for the sim loop
+        if v <= TAPER_V_START:
+            return float(P_MGUK_MAX)
+        if v >= TAPER_V_END:
+            return 0.0
+        return P_MGUK_MAX * (TAPER_V_END - v) / (TAPER_V_END - TAPER_V_START)
     v = np.asarray(v, dtype=float)
     frac = (TAPER_V_END - v) / (TAPER_V_END - TAPER_V_START)
     out = P_MGUK_MAX * np.clip(frac, 0.0, 1.0)
