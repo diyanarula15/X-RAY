@@ -23,6 +23,21 @@ Four things are worth being explicit about beyond that paragraph:
 
 ---
 
+## Two deliverables
+
+- `out/xray_summary.png` — a single deck-ready page: the belief band against ground
+  truth (with a two-lap close-up), where the band tightens and where it goes slack,
+  accuracy against sample rate, and the attack call. Every number on it is computed
+  by the pipeline.
+- `out/xray_demo.mp4` — 60 s, 1920×1080, seven acts, scripted and reproducible.
+
+Colour on both follows the deck palette, checked with a CVD validator against the
+`#0B0B0F` surface: red and amber are the only categorical identity pair (ΔE 27 under
+deuteranopia — passes); white is reserved for ground truth and always direct-labelled;
+green is status-only and never appears without a text label, because green against
+amber is ΔE 7.1 under protanopia; grey fails the chroma floor so it carries no series
+identity, only the labelled "held fire" state.
+
 ## Results
 
 Measured on Circuit Sigma, 12 laps, seeds 42/7/13, estimating the rival ahead.
@@ -164,6 +179,7 @@ python scripts/run_sim.py --seed 42              # physics and the race
 python scripts/run_estimator.py --seed 42        # blindfold, estimate, score
 python scripts/run_ablation.py                   # MAPE vs sample rate  -> out/
 python scripts/run_decision_eval.py --mode fast  # blind vs X-RAY, 50 stints
+python scripts/make_summary.py --seed 42        # one-page summary -> out/xray_summary.png
 python scripts/make_video.py --seed 42 --out out/xray_demo.mp4
 pytest -q                                        # 26 acceptance tests, ~40 s
 ```
