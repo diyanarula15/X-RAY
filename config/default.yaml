@@ -1,0 +1,48 @@
+# X-RAY prototype configuration.
+# Everything the SIMULATOR is allowed to know lives here.
+# The estimator never reads this file (see xray/estimator.py::PublicPriors).
+
+vehicle:
+  mass_car: 768.0          # kg, 2026 minimum
+  fuel_start: 70.0         # kg
+  fuel_burn_per_lap: 1.4   # kg
+  cda_straight: 0.66       # m^2, low-drag aero mode ("X-mode"). See README: chosen
+                           # so a fully deployed car clears 340 km/h and the
+                           # regulatory taper window actually exists.
+  cda_corner: 1.42         # m^2, high-downforce aero mode
+  crr: 0.012
+  rho: 1.20                # kg/m^3
+  brake_decel_max: 45.0    # m/s^2 (~4.5g)
+  drivetrain_eff: 0.95
+
+tow:
+  cda_reduction: 0.25        # max fractional CdA reduction in tow
+  tau_s: 0.80                # exponential decay constant vs gap in seconds
+  dirty_air_grip_loss: 0.06  # max fractional apex-speed loss when following
+
+sim:
+  dt: 0.005                # s, fixed step, semi-implicit Euler
+  n_laps: 12
+  start_gap_s: 0.9         # initial time gap, follower behind leader
+  leader_policy: BALANCED
+  follower_policy: AGGRESSIVE
+  e_start_frac: 0.75       # initial store as fraction of E_STORE_MAX
+
+observe:
+  rate_hz: 3.7
+  speed_noise_ms: 0.35
+  quantize_kmh: 1.0
+
+estimator:
+  n_particles: 400
+  savgol_seconds: 0.8
+  cda_prior_wind_sigma: 3.0   # m/s, weak prior pulling the wind nuisance to zero
+  deploy_scale_sigma: 0.06    # per-particle systematic deployment-scale spread
+  dry_event_e_scale: 4.0e5    # J, likelihood scale for a "ran dry" observation
+  floor_violation_penalty: 6.0
+
+render:
+  fps: 30
+  width: 1920
+  height: 1080
+  dpi: 120
