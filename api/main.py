@@ -155,16 +155,22 @@ def _decision_payload(d: dict, car: str, rival: str) -> dict:
         raise HTTPException(422, "not enough common laps for a decision trace")
 
     zones = d["circuit_geometry"]["zones"]
-    # energy -> end-of-straight speed, from the straight's own length and the
-    # regulation power cap. No simulator here: real geometry, real rules.
+    # Energy -> end-of-straight speed. A car at the end of a long straight is
+    # near its power-limited terminal speed, where drag power goes as v^3, so
+    # extra power buys dv = dP / (3 * 0.5*rho*CdA * v^2) -- NOT the whole of the
+    # energy as kinetic energy. Ignoring drag gives 12 m/s per MJ, which is
+    # about seven times the truth and saturates every opportunity at p = 1.
+    rho = float(d.get("weather", {}).get("rho", 1.2))
+    cda = float((d["calibration"]["pooled"] or {}).get("cda_pooled") or 0.9)
     zms = []
+    e = np.linspace(0.0, 2.4e6, 7)
     for z in zones:
-        L = float(z["length"])
-        e = np.linspace(0.0, 2.4e6, 7)
-        v0 = 60.0
-        # v² = v0² + 2·(P·η/m)·(L/v̄) worked as an energy balance over the straight
-        m = 790.0
-        v_end = np.sqrt(v0 ** 2 + 2 * (e * 0.95) / m * (1.0 - np.exp(-L / 900.0)))
+        L = max(float(z["length"]), 120.0)
+        v = 78.0 if L > 900 else 66.0        # representative end-of-straight speed
+        # power added by spending e joules over the straight, and the speed it buys
+        dP = e * v / L
+        dv = dP / max(3.0 * 0.5 * rho * cda * v * v, 1.0)
+        v_end = v + dv
         zms.append(ZoneModel(z["name"], float(z["braking_severity"]), e, v_end,
                              float(np.polyfit(e / 1e6, v_end, 1)[0])))
 
@@ -173,14 +179,23 @@ def _decision_payload(d: dict, car: str, rival: str) -> dict:
     riv_use = np.clip(np.array([rc.get("reserve_mean", 0.0)] * len(laps)), 0, None)
     rival_track = np.maximum(riv - riv_use, 0.0)
 
+    # A lap's energy is not spent at one braking point. Allocate it across the
+    # zones by straight length, so what gets compared at a given corner is what
+    # each car can actually put down on THAT straight. Comparing whole-lap
+    # totals made every opportunity look like a certainty.
+    total_len = sum(max(float(z["length"]), 120.0) for z in zones) or 1.0
+    share = {z["name"]: max(float(z["length"]), 120.0) / total_len for z in zones}
+
     out_laps, tau, q = [], [], []
     n = len(laps)
     for i, lap in enumerate(laps):
         k = n - i
         reward = k / n
-        best = max(zms, key=lambda zm: p_pass(
-            delta_v(zm, min(own[i], 1.8e6), min(rival_track[i], 1.8e6)), 0.45, zm))
-        qi = p_pass(delta_v(best, min(own[i], 1.8e6), min(rival_track[i], 1.8e6)), 0.45, best)
+        def q_of(zm):
+            f = share[zm.name]
+            return p_pass(delta_v(zm, own[i] * f, rival_track[i] * f), 0.45, zm)
+        best = max(zms, key=q_of)
+        qi = q_of(best)
         # threshold: the quality at which spending now beats holding for a lap
         ti = float(np.clip(0.10 + 0.35 * (k / n) ** 2, 0.0, 1.0))
         q.append(round(float(qi), 4)); tau.append(round(ti, 4))
@@ -189,7 +204,7 @@ def _decision_payload(d: dict, car: str, rival: str) -> dict:
                          "own_mj": round(own[i] / 1e6, 3),
                          "rival_mj": round(rival_track[i] / 1e6, 3)})
 
-    fan = _policy_fan(zms, own, rival_track, laps)
+    fan = _policy_fan(zms, own, rival_track, laps, share)
     call = next((l for l in out_laps if l["attack"]), None)
     return {"car": car, "rival": rival, "laps": out_laps, "call": call,
             "fan": fan,
@@ -197,7 +212,7 @@ def _decision_payload(d: dict, car: str, rival: str) -> dict:
                              "dv_per_mj": round(z.dv_per_mj, 3)} for z in zms]}
 
 
-def _policy_fan(zms, own, rival_track, laps, n: int = 200) -> dict:
+def _policy_fan(zms, own, rival_track, laps, share, n: int = 200) -> dict:
     """View 4's sensitivity fan: the recommendation across sampled opponent
     policies. The consensus fraction is computed, not asserted."""
     from xray.overtake import p_pass
@@ -210,10 +225,9 @@ def _policy_fan(zms, own, rival_track, laps, n: int = 200) -> dict:
         rt = np.maximum(rival_track * agg - res, 0.0)
         row = []
         for i in range(len(laps)):
-            best = max(zms, key=lambda zm: p_pass(
-                delta_v(zm, min(own[i], 1.8e6), min(rt[i], 1.8e6)), 0.45, zm))
-            row.append(round(float(p_pass(
-                delta_v(best, min(own[i], 1.8e6), min(rt[i], 1.8e6)), 0.45, best)), 3))
+            qs = [p_pass(delta_v(zm, own[i] * share[zm.name], rt[i] * share[zm.name]),
+                         0.45, zm) for zm in zms]
+            row.append(round(float(max(qs)), 3))
         curves.append(row)
         k = len(laps)
         tau = [0.10 + 0.35 * ((k - i) / k) ** 2 for i in range(k)]

@@ -1,5 +1,11 @@
 # X-RAY
 
+> **Stage 2 is built.** The method now runs on real 2026 Formula 1 telemetry and
+> ships as an interactive instrument rather than a video. See
+> [`docs/stage2.md`](docs/stage2.md) for what changed and
+> [`docs/feasibility.md`](docs/feasibility.md) for the reality checks that forced
+> it. Stage 1 (the simulator, below) is unchanged and still passes its 26 tests.
+
 **Reconstructing a rival Formula 1 car's hidden electrical energy state from its speed trace alone — and using it to time an overtake.**
 
 One claim, one 60-second video:
