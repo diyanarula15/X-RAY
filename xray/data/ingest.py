@@ -90,6 +90,10 @@ def _lap_frame(lap, grid: np.ndarray) -> tuple[pd.DataFrame | None, LapQuality]:
     holes = dt > GAP_LIMIT_S
     gap_count = int(holes.sum())
     gap_seconds = float(dt[holes].sum()) if gap_count else 0.0
+    # Record the distance span of each hole NOW, against the original arrays.
+    # Doing it after the sort/dedupe below would index a shorter array with
+    # positions taken from the longer one.
+    hole_spans = [(float(d[i]), float(d[i + 1])) for i in np.flatnonzero(holes)]
 
     order = np.argsort(d)
     d, t, v = d[order], t[order], v[order]
@@ -114,11 +118,9 @@ def _lap_frame(lap, grid: np.ndarray) -> tuple[pd.DataFrame | None, LapQuality]:
     # 1-second gap at 300 km/h invents 80 m of trajectory
     if gap_count:
         bad = np.zeros(len(grid), dtype=bool)
-        for i in np.flatnonzero(holes):
-            lo, hi = t[0], t[-1]
-            d_lo = np.interp(np.clip(np.sort(t)[i], lo, hi), t, d)
-            d_hi = np.interp(np.clip(np.sort(t)[i + 1], lo, hi), t, d)
-            bad |= (grid >= d_lo) & (grid <= d_hi)
+        for d_lo, d_hi in hole_spans:
+            lo_, hi_ = min(d_lo, d_hi), max(d_lo, d_hi)
+            bad |= (grid >= lo_) & (grid <= hi_)
         out.loc[bad, ["speed", "time"]] = np.nan
         inside = inside & ~bad
 

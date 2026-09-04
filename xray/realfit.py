@@ -421,3 +421,141 @@ def pool_field(fits: dict, min_ident: float = 0.15) -> dict:
         "field_identifiability": float(np.clip(
             1.0 - (hi - lo) / max(pooled, 1e-6) / 0.5, 0.0, 1.0)),
     }
+
+
+# ---------------------------------------------------------------- belief
+def belief_from_deployment(kin: Kin, tr: dict, fit: RealNuisanceFit,
+                           n_particles: int = 400, seed: int = 0,
+                           reserve_max_frac: float = 0.35) -> dict:
+    """Stage 1's Stage C, run on a real deployment trace.
+
+    The calibration front-end had to be replaced for real data (§2), but the
+    inference that turns a deployment trace into a belief about stored energy is
+    unchanged: propagate each particle's own store, clip it at 0 and 4 MJ, and
+    let the clipping do the regularising. Deployment cut-outs remain the
+    informative event, and the store is still identified only up to the driver's
+    unspent buffer, so deployable energy is what gets reported.
+    """
+    rng = np.random.default_rng(seed)
+    D, H, dt = tr["deploy"], tr["harvest"], kin.dt
+    n = len(D)
+    ok = np.isfinite(D) & np.isfinite(H) & np.isfinite(dt)
+    D = np.where(ok, D, 0.0)
+    H = np.where(ok, H, 0.0)
+    dtv = np.where(ok, dt, 0.0)
+
+    Np = n_particles
+    scale = np.clip(rng.normal(1.0, max(fit.cda_sigma / max(fit.cda_hat, 1e-3), 0.05), Np),
+                    0.4, 1.8)
+    hscale = np.clip(rng.normal(1.0, 0.12, Np), 0.5, 1.5)
+    reserve = rng.uniform(0.0, reserve_max_frac * E_STORE_MAX, Np)
+    E = rng.uniform(0.0, E_STORE_MAX, Np)
+
+    # a cut-out: deployment stops while the car is still on the throttle below
+    # the taper, which says the store has reached this driver's floor
+    below_taper = kin.v < 80.6
+    on_power = (np.nan_to_num(kin.throttle) > 70.0) if kin.throttle is not None else (kin.a > 0.5)
+    dry = np.zeros(n, dtype=bool)
+    armed = False
+    for k in range(n):
+        if not (ok[k] and below_taper[k] and on_power[k]):
+            continue
+        if D[k] > 1.5e5:
+            armed = True
+        elif armed and D[k] < 2.5e4:
+            dry[k] = True
+            armed = False
+
+    soc_mean = np.empty(n); soc_lo = np.empty(n); soc_hi = np.empty(n)
+    use_mean = np.empty(n); use_lo = np.empty(n); use_hi = np.empty(n)
+    cloud = np.empty((n, min(Np, 400)), dtype=np.float32)   # for the 3D view
+    logw = np.zeros(Np)
+    floor_j = fit.residual_rms * float(np.nanmedian(dtv[dtv > 0]) or 0.05)
+
+    lap = kin.lap
+    laps = np.unique(lap)
+    dep_lap, har_lap = {}, {}
+    for L in laps:
+        idx = np.flatnonzero(lap == L)
+        if len(idx) == 0:
+            continue
+        d_l = D[idx] * dtv[idx] * scale[:, None]
+        h_l = H[idx] * dtv[idx] * hscale[:, None]
+        for j, k in enumerate(idx):
+            d = d_l[:, j]; h = h_l[:, j]
+            logw -= 6.0 * ((E <= 1.0) & (d > floor_j))
+            E = np.clip(E + h - d, 0.0, E_STORE_MAX)
+            if dry[k]:
+                logw -= 0.5 * ((E - reserve) / 2.5e5) ** 2
+            W = np.exp(logw - logw.max()); W /= W.sum()
+            soc_mean[k] = float(np.sum(E * W))
+            order = np.argsort(E); c = np.cumsum(W[order])
+            soc_lo[k] = float(E[order][np.searchsorted(c, 0.10)])
+            soc_hi[k] = float(E[order][np.searchsorted(c, 0.90)])
+            U = np.maximum(E - reserve, 0.0)
+            use_mean[k] = float(np.sum(U * W))
+            uo = np.argsort(U); cu = np.cumsum(W[uo])
+            use_lo[k] = float(U[uo][np.searchsorted(cu, 0.10)])
+            use_hi[k] = float(U[uo][np.searchsorted(cu, 0.90)])
+            cloud[k] = U[:cloud.shape[1]].astype(np.float32)
+        dep_lap[int(L)] = float(np.nansum(D[idx] * dtv[idx]))
+        har_lap[int(L)] = float(np.nansum(H[idx] * dtv[idx]))
+        # systematic resampling once per lap
+        W = np.exp(logw - logw.max()); W /= W.sum()
+        pos = (rng.random() + np.arange(Np)) / Np
+        take = np.searchsorted(np.cumsum(W), pos).clip(0, Np - 1)
+        E, scale, hscale, reserve = E[take], scale[take], hscale[take], reserve[take]
+        reserve = np.clip(reserve + rng.normal(0, 0.01 * reserve_max_frac * E_STORE_MAX, Np),
+                          0.0, reserve_max_frac * E_STORE_MAX)
+        logw = np.zeros(Np)
+
+    return {"soc_mean": soc_mean, "soc_p10": soc_lo, "soc_p90": soc_hi,
+            "usable_mean": use_mean, "usable_p10": use_lo, "usable_p90": use_hi,
+            "cloud": cloud, "dry": dry, "deployed_lap": dep_lap,
+            "harvested_lap": har_lap, "reserve_mean": float(np.mean(reserve))}
+
+
+def observability(kin: Kin, fit: RealNuisanceFit, track, crr: float = 0.012,
+                  eta: float = 0.95, n_bins: int = 200) -> dict:
+    """View 2: how much can the estimator learn at each point on the circuit?
+
+    Two different things are learnable and they are not the same thing, so they
+    are reported separately:
+
+      deployment information -- how much a change in deployment moves the
+        observed speed. dP/dD is flat, so what varies is whether deployment is
+        free to move at all: where the regulatory ceiling is wide open and the
+        car is on power, the trace is informative about deployment.
+
+      nuisance information -- how tightly this point constrains drag area, which
+        is |dP/dCdA| = B(k). That grows as v^3 and is what high-speed running
+        actually buys you.
+
+    High-speed running informs the nuisances rather than the deployment, which
+    is why it gets its own colour in the UI.
+    """
+    A, B = _terms(kin, fit.v_wind_hat, crr, fit.rho)
+    ok = kin.valid & (B > 1e3)
+    s = kin.s % track.length
+    bins = np.linspace(0.0, track.length, n_bins + 1)
+    idx = np.clip(np.digitize(s, bins) - 1, 0, n_bins - 1)
+
+    ceil = kin.ceiling
+    on_power = (np.nan_to_num(kin.throttle) > 50.0) if kin.throttle is not None else (kin.a > 0.5)
+    braking = (np.nan_to_num(kin.brake) > 0.5) if kin.brake is not None else (kin.a < BRAKE_DECEL)
+    # deployment is legible where there is headroom under the ceiling AND the
+    # car is actually using the power unit
+    dep_info = np.where(ok & on_power & ~braking, ceil / P_MGUK_MAX, 0.0)
+    nui_info = np.where(ok, B, 0.0)
+
+    dep = np.zeros(n_bins); nui = np.zeros(n_bins); cnt = np.zeros(n_bins)
+    vv = np.zeros(n_bins)
+    for arr, dst in ((dep_info, dep), (nui_info, nui)):
+        np.add.at(dst, idx[ok], arr[ok])
+    np.add.at(cnt, idx[ok], 1.0)
+    np.add.at(vv, idx[ok], kin.v[ok])
+    cnt = np.maximum(cnt, 1.0)
+    dep /= cnt; nui /= cnt; vv /= cnt
+    nui = nui / max(nui.max(), 1e-9)
+    return {"s": 0.5 * (bins[:-1] + bins[1:]), "deployment_info": dep,
+            "nuisance_info": nui, "speed": vv, "n_samples": cnt}
