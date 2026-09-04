@@ -6,7 +6,7 @@ import { C } from '../lib/theme';
 export type PaintMode = 'neutral' | 'deployment' | 'observability' | 'refusal';
 
 const col = (hex: string) => new THREE.Color(hex);
-const ASPHALT = col('#3A3A46');   // lifted off the grid colour: at tactical
+const ASPHALT = col('#4A4A58');   // lifted off the grid colour: at tactical
                                   // zoom under a dark sky, #26262E reads black
 const AMBER = col(C.amber);
 const RED = col(C.red);

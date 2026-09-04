@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { api, type Car, type RaceDetail, type RaceSummary } from './lib/api';
 import { C } from './lib/theme';
 import { usePlayback, type View } from './store/playback';
+import { bestBattleTime, sampleCar, timeRange } from './lib/carState';
 import { Theatre } from './views/Theatre';
 import { Observability } from './views/Observability';
 import { RDD } from './views/RDD';
@@ -31,7 +32,7 @@ export default function App() {
   const setView = usePlayback((s) => s.setView);
   const lite = usePlayback((s) => s.lite);
   const setLite = usePlayback((s) => s.setLite);
-  const frame = usePlayback((s) => s.frame);
+  const raceTime = usePlayback((s) => s.raceTime);
   const demo = usePlayback((s) => s.demo);
   const beat = usePlayback((s) => s.demoBeat);
   useDemo();
@@ -50,8 +51,11 @@ export default function App() {
     const d = await api.race(id);
     setRace(d);
     usePlayback.getState().setRace(id);
-    const ranked = d.drivers.slice().sort((a, b) => a.localeCompare(b));
-    const [s, r] = [ranked[0], ranked[1]];
+    // Open on a pair that actually raced each other, not on whoever sorts
+    // first alphabetically half a lap apart.
+    const b = (d.battles ?? [])[0];
+    const ranked = d.drivers.slice().sort((a, b2) => a.localeCompare(b2));
+    const [s, r] = b ? [b.car, b.ahead] : [ranked[0], ranked[1]];
     usePlayback.getState().setCars(s, r);
     const [sc, rc, ob] = await Promise.all([
       api.car(id, s).catch(() => null),
@@ -59,7 +63,17 @@ export default function App() {
       api.observability(id).catch(() => null),
     ]);
     setSubject(sc); setRival(rc); setObs(ob);
-    usePlayback.getState().setNFrames(sc?.trace.s.length ?? 0);
+    // The shared clock spans the window where BOTH cars have telemetry, so the
+    // two are always sampled at the same moment of the same race.
+    const ra = timeRange(sc), rb = timeRange(rc);
+    const range: [number, number] | null = ra && rb
+      ? [Math.max(ra[0], rb[0]), Math.min(ra[1], rb[1])] : (ra ?? null);
+    if (range) {
+      usePlayback.getState().setRange(range);
+      // open on the moment they were actually closest, not on a lap boundary
+      const t = bestBattleTime(sc, rc, d.circuit_geometry.length, range);
+      if (t != null) usePlayback.getState().setTime(t);
+    }
   }
 
   async function pick(which: 'subject' | 'rival', drv: string) {
@@ -112,7 +126,9 @@ export default function App() {
             {race.drivers.map((d) => <option key={d} value={d}>{d}</option>)}
           </select>
         ))}
-        <button onClick={() => usePlayback.getState().startDemo()}
+        <button onClick={() => usePlayback.getState().startDemo(
+          bestBattleTime(subject, rival, race.circuit_geometry.length,
+            usePlayback.getState().tRange) ?? undefined)}
           style={{ padding: '7px 12px', fontSize: 12, borderRadius: 7,
             border: `1px solid ${demo ? C.green : C.panelBorder}`, background: 'transparent',
             color: demo ? C.green : C.gray }}>
@@ -146,10 +162,8 @@ export default function App() {
               <Decision raceId={race.id} car={subject.driver} rival={rival.driver} />}
             {view === 'fingerprint' &&
               <Fingerprint cars={[subject, rival]} upto={
-                subject && frame > 0
-                  ? (subject.trace.lap[Math.min(Math.round(frame),
-                      subject.trace.lap.length - 1)] ?? 9999)
-                  : 9999} />}
+                subject ? (sampleCar(subject, raceTime,
+                  race.circuit_geometry.length)?.lap ?? 9999) : 9999} />}
             {view === 'method' && <Method races={races} current={current} />}
           </motion.div>
         </AnimatePresence>

@@ -124,13 +124,16 @@ def _lap_frame(lap, grid: np.ndarray) -> tuple[pd.DataFrame | None, LapQuality]:
         out.loc[bad, ["speed", "time"]] = np.nan
         inside = inside & ~bad
 
+    # A lap is usable if enough of it was actually observed. Gaps are already
+    # handled where they belong -- at sample level, by blanking the grid cells
+    # they span, so nothing is ever interpolated across one. Rejecting the whole
+    # lap as well threw away two thirds of the race for a single hole, which
+    # starved the calibration and left the replay with ten-minute holes in it.
     frac = float(inside.mean())
+    ok = frac > 0.60
     q = LapQuality(drv, lap_no, len(car), float(np.median(dt)), float(dt.max()),
-                   gap_count, gap_seconds, frac,
-                   usable=bool(frac > 0.75 and gap_count == 0),
-                   reason="" if (frac > 0.75 and gap_count == 0)
-                   else (f"{gap_count} gap(s) over {GAP_LIMIT_S}s" if gap_count
-                         else f"only {frac * 100:.0f}% of the lap observed"))
+                   gap_count, gap_seconds, frac, usable=bool(ok),
+                   reason="" if ok else f"only {frac * 100:.0f}% of the lap observed")
     out["lap"] = lap_no
     out["driver"] = drv
     out["usable"] = q.usable

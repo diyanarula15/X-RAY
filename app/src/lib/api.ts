@@ -21,6 +21,7 @@ export type Geometry = {
            braking_severity: number; detection_point: number; length: number }[];
 };
 export type CarTrace = {
+  t: number[];
   s: number[]; lap: number[]; v: number[];
   deploy_kw: number[]; harvest_kw: number[];
   usable_mean: number[]; usable_p10: number[]; usable_p90: number[];
@@ -36,6 +37,8 @@ export type Refusal = { kind: string; message: string; identifiability?: number 
 export type RaceDetail = RaceSummary & {
   circuit_geometry: Geometry; refusals: Record<string, Refusal>;
   calibration: any; drivers: string[]; laps: any[];
+  battles: { car: string; ahead: string; laps_close: number;
+             median_gap: number; first_lap: number }[];
 };
 
 export const api = {
