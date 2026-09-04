@@ -19,11 +19,12 @@ from xray.constants import E_STORE_MAX, P_ICE_MAX
 from xray.metrics import true_reserve_floor
 from xray.observe import observe
 from xray.pipeline import Feed, identify_car
+from xray.deadband import fit_cut_speeds
 from xray.regs import N_RPM_MAX, POST_MIAMI
 from xray.rbpf import run as rbpf_run
 from xray.sim import LEADER
 
-from tests.simfix import elevation_fn, observed_sigma
+from tests.simfix import elevation_fn, observed_sigma, true_theta
 
 
 def _setup(cfg, gt, car=LEADER, rate=3.7):
@@ -54,6 +55,13 @@ def _setup(cfg, gt, car=LEADER, rate=3.7):
     return obs, idx, feed, ident
 
 
+def _cuts(cfg, feed):
+    v = cfg["vehicle"]
+    return fit_cut_speeds(feed, POST_MIAMI, v["rho"], eta_d=v["drivetrain_eff"],
+                          m_published=v["mass_car"], fuel_start=v["fuel_start"],
+                          fuel_burn_per_lap=v["fuel_burn_per_lap"])
+
+
 def _mape(b, truth):
     laps = sorted(k for k in b.deployed_lap if k < len(truth))
     est = np.array([b.deployed_lap[k] for k in laps])
@@ -64,10 +72,14 @@ def _mape(b, truth):
 
 def _belief(cfg, gt, ident, feed, **over):
     v = cfg["vehicle"]
+    # The dead band is MEASURED and handed in, not inferred jointly -- see
+    # deadband.py and test_deadband.py. Jointly, particles escape the test
+    # instead of passing it.
     args = dict(n_particles=400, seed=7, eta_d=v["drivetrain_eff"],
                 m_published=v["mass_car"], fuel_start=v["fuel_start"],
                 fuel_burn_per_lap=v["fuel_burn_per_lap"],
-                is_x=ident.modes.is_x, regime=ident.modes.regime)
+                is_x=ident.modes.is_x, regime=ident.modes.regime,
+                cut_speeds=_cuts(cfg, feed))
     args.update(over)
     # POST_MIAMI, not PRE_MIAMI, is the variant that matches this simulator:
     # vehicle.step harvests at P_MGUK_MAX = 350 kW, which is the post-Miami
@@ -87,9 +99,15 @@ def test_deployable_band_covers_the_truth(cfg, races):
     is D_k = F_k - min_{j<=k} F_j exactly -- c and R both cancel. Before the
     first touch it is a lower bound.
 
-    Measured 0.62 coverage at 0.17 MJ width, against 0.04 for the previous
-    detector-based E - R formulation, which inferred a 0.97 MJ buffer for a
-    driver holding 0.00 and collapsed the band to 0.06 MJ.
+    Measured 0.67 coverage at 0.86 MJ width on seed 42 (0.72 and 0.80 on seeds
+    7 and 13), against 0.04 for the detector-based E - R formulation this
+    replaced, which inferred a 0.97 MJ buffer for a driver holding 0.00 and
+    collapsed the band to 0.06 MJ.
+
+    The coverage is honest but still short of the 0.85 the band should reach,
+    and the missing variance is named rather than tuned away: the CdA posterior
+    is not propagated into the flows, and the per-lap drift nuisance is uniform
+    where the real thing is a strategy.
     """
     gt = races[42]
     obs, idx, feed, ident = _setup(cfg, gt)
@@ -99,17 +117,13 @@ def test_deployable_band_covers_the_truth(cfg, races):
     u_true = np.clip(e_true - reserve, 0.0, None)
     cov = float(np.mean((u_true >= b.usable_p10) & (u_true <= b.usable_p90)))
     assert cov > 0.50, f"deployable-energy coverage {cov:.2f}"
-    # The store box itself must stay satisfiable. The ensemble may still empty
-    # at the end of the trace through the *testability* rejection -- once the
-    # car stops running in the dead band there is nothing left to test a policy
-    # claim against -- and those are different failures with different fixes,
-    # so the note names which one fired.
-    # The ensemble does empty, at the very last sample, and the note names
-    # which constraint did it: the store box, 3,146 rejections against 643 from
-    # untestability. That is a real tension rather than a bug -- the dead-band
-    # likelihood pushes drag up, which raises implied deployment, which widens
-    # range(F) towards the 4 MJ the store allows -- and the honest health check
-    # is how much of the trace survives, not whether it ever empties.
+    # The ensemble must survive the trace. With the dead band measured it now
+    # never empties at all -- 37 box rejections and zero untestable, against
+    # 3,146 and 643 when v_cut was a particle dimension -- because a measured
+    # band is the same for every particle, so "untestable" became a property of
+    # the lap rather than a verdict on a particle. The check stays as survival
+    # rather than never-empties: the two causes have different fixes and the
+    # note names which one fired.
     n = len(b.t)
     survived = n if b.first_empty_sample < 0 else b.first_empty_sample
     assert survived > 0.9 * n, (
@@ -123,11 +137,12 @@ def test_the_shape_likelihood_is_what_moves_drag(cfg, races):
     proposal for P_K.
 
     Isolated, because the two roles are separable and only one of them moves
-    drag. The proposal alone (shape likelihood off) leaves CdA_X at 0.271; with
-    the v^3 residual likelihood it reaches 0.408, against a true 0.660 inside a
-    polytope of [0.264, 0.744]. Still 38% low, but discriminating rather than
-    pinned: weighted mass occupies three of eight bins instead of one, and it is
-    no longer against the wall.
+    drag. With the dead band measured rather than inferred (deadband.py), the
+    proposal alone leaves CdA_X at the uniform draw's own mean -- 0.502, 0.440,
+    0.450 on the three seeds -- and the v^3 residual likelihood moves it to
+    0.597, 0.571, 0.494 against a true 0.660. So the likelihood is what carries
+    the drag information, and it is worth 10-24% of the error rather than the
+    3% the jointly-inferred version managed.
 
     An earlier claim that the *proposal* was what made everything work
     (coverage 0.62 against 0.14) does not survive the c-free store box -- that
@@ -192,25 +207,54 @@ def test_both_the_polytope_and_the_tilted_posterior_are_reported(cfg, races):
     assert (b.theta_post_mean <= b.theta_polytope[:, 1] + 1e-9).all()
 
 
-def test_the_store_box_is_a_rejection_not_a_weight(cfg, races):
-    """A particle whose flows take the store outside 0-4 MJ is describing a car
-    that cannot exist. Softening that to a penalty lets it survive with a small
-    weight and go on biasing the parameters: measured, deployable coverage falls
-    0.62 -> 0.44 and per-lap energy error rises 12.9% -> 33.6%.
+def test_the_store_box_does_not_reject_the_truth(cfg, races):
+    """The diagnostic invariant 9 demands before believing a binding store box,
+    and it found the largest error in this module.
 
-    Note the raw store band gets *better* without rejection (0.53 -> 0.79) while
-    everything that matters gets worse -- a wider store band covers more truth
-    without being more informative, which is exactly why raw-store coverage is
-    not the headline.
+    Run the filter with the polytope collapsed onto the simulator's true theta
+    and read range(F). If it exceeds 4 MJ then the flow reconstruction is
+    over-counting and the box is rejecting the *truth*, not constraining the
+    search. It was: 28.7 MJ against a true store range of 3.00 MJ, because the
+    per-interval deployment floor max(0, e_wheel - e_ice_max) carried no
+    measurement slack, so every positive noise excursion accumulated and none
+    cancelled -- 4.2-4.4 MJ of claimed deployment a lap against a true 2.15,
+    while the lap-aggregate floor was 0.00. Invariant 3, in the one place it had
+    not been applied.
+
+    With the slack in place range(F) at the truth is 2.8 MJ against a true 3.00,
+    and the box's own ablation now changes nothing (9.9% against 10.1% per-lap
+    error, deployable coverage 0.67 either way, 37 rejections in 1.6 million
+    particle-samples). So the earlier ablation numbers -- coverage 0.62 -> 0.44,
+    error 12.9% -> 33.6% -- were measuring the bug: rejection looked
+    load-bearing because it was throwing away the particles nearest the truth.
+    The box stays a hard rejection because a car outside 0-4 MJ cannot exist,
+    not because it buys a metric.
     """
+    import dataclasses
+
     gt = races[42]
     obs, idx, feed, ident = _setup(cfg, gt)
-    truth = gt.cars[LEADER].deployed_lap
-    hard = _belief(cfg, gt, ident, feed)
-    soft = _belief(cfg, gt, ident, feed, reject_outside_box=False)
-    assert _mape(soft, truth) > 1.6 * _mape(hard, truth), (
-        f"box rejection bought nothing: {_mape(hard, truth):.1f}% with, "
-        f"{_mape(soft, truth):.1f}% without")
+    truth = true_theta(cfg)
+    pinned = dataclasses.replace(ident.identified, lo=truth.copy(),
+                                 hi=truth.copy())
+    at_truth = rbpf_run(feed, pinned, POST_MIAMI, cfg["vehicle"]["rho"],
+                        n_particles=16, seed=7,
+                        eta_d=cfg["vehicle"]["drivetrain_eff"],
+                        m_published=cfg["vehicle"]["mass_car"],
+                        fuel_start=cfg["vehicle"]["fuel_start"],
+                        fuel_burn_per_lap=cfg["vehicle"]["fuel_burn_per_lap"],
+                        is_x=ident.modes.is_x, regime=ident.modes.regime,
+                        cut_speeds=_cuts(cfg, feed), reject_outside_box=False)
+    range_f = float(np.mean(at_truth.range_f_final))
+    assert range_f <= E_STORE_MAX, (
+        f"range(F) at the true theta is {range_f / 1e6:.2f} MJ against a 4 MJ "
+        "store, so the box rejects the truth and the flow reconstruction is "
+        "over-counting -- fix the reconstruction, not the box")
+    e_true = gt.cars[LEADER].E[idx]
+    true_range = float(e_true.max() - e_true.min())
+    assert abs(range_f - true_range) < 1.0e6, (
+        f"reconstructed store swing {range_f / 1e6:.2f} MJ against a true "
+        f"{true_range / 1e6:.2f} MJ")
 
 
 def test_closure_is_solved_not_weighted(cfg, races):
@@ -240,24 +284,36 @@ def test_closure_is_solved_not_weighted(cfg, races):
         f"{har / 1e6:.2f} MJ harvested")
 
 
-def test_store_band_covers_the_truth(cfg, races):
-    """The raw store, scored against the simulator's hidden state.
+def test_the_raw_store_is_a_bracket_and_says_so(cfg, races):
+    """The raw store is reported as the interval the trace admits, not as an
+    estimate, and this test exists because the previous version hid a
+    convention behind a coverage number.
 
-    Measured 0.50. Deliberately a weak assertion: the store is identified only
-    up to the driver's buffer, so raw-store coverage is *expected* to be poor
-    and is not the headline. The ablation in
-    test_the_store_box_is_a_rejection_not_a_weight shows why chasing it is a
-    trap -- turning the box rejection off takes this number from 0.50 to 0.80
-    while per-lap energy error triples.
+    E_k = c + F_k with c unidentified, so the store at sample k is the whole
+    interval [F_k - min F, E_max - (max F - F_k)] and every point in it is
+    exactly as consistent with the trace. The old code placed c at the centre
+    of that interval and reported percentiles across particles: coverage 0.50,
+    band 0.5 MJ wide, and it read as an estimate. Once the flows were corrected
+    that convention landed 2 MJ from the truth and coverage went to 0.00 -- the
+    0.50 had been an artefact of the over-counted floor dragging F down until
+    the centre happened to sit near the truth.
+
+    Now: coverage 0.74 at 3.50 MJ, which is almost the whole 4 MJ box. That is
+    the honest answer and it is the reason invariant 4 reports deployable energy
+    instead. The width E_max - range(F) is the only informative thing here.
     """
     gt = races[42]
     obs, idx, feed, ident = _setup(cfg, gt)
     b = _belief(cfg, gt, ident, feed)
     e_true = gt.cars[LEADER].E[idx]
     cov = float(np.mean((e_true >= b.soc_p10) & (e_true <= b.soc_p90)))
-    assert cov > 0.35, f"store band coverage {cov:.2f}"
+    assert cov > 0.65, f"store bracket coverage {cov:.2f}"
     width = float(np.mean(b.soc_p90 - b.soc_p10))
-    assert 0.05e6 < width < 1.5e6, f"store band width {width / 1e6:.2f} MJ"
+    assert width > 2.5e6, (
+        f"store bracket {width / 1e6:.2f} MJ wide: narrower than the trace can "
+        "support, so a reporting convention has crept back in")
+    # deployable energy is the headline and it is much sharper than this
+    assert float(np.mean(b.usable_p90 - b.usable_p10)) < 0.6 * width
 
 
 def test_per_lap_deployed_energy(cfg, races):
@@ -303,24 +359,26 @@ def test_every_particle_stays_inside_the_identified_set(cfg, races):
 
 
 def test_particle_count_is_measured_not_inherited(cfg, races):
-    """Re-measured again after invariants 9 and 10 landed, because the previous
-    answer was an artefact of the previous priors -- which is the whole point of
-    invariant 7.
+    """Re-measured a third time, after the measured dead band and the two
+    diagnostics it forced. Invariant 7 exists because this table keeps moving.
 
-        Np      deployable coverage   MAPE     ESS
-        100           0.58           11.6%      17
-        200           0.60           13.5%      30
-        400           0.60           15.3%      68
-        800           0.60           15.7%     144
+        Np      deployable coverage   MAPE     ESS    ESS/Np
+        100           0.42            9.1%      94     0.94
+        200           0.73            8.7%     185     0.93
+        400           0.67            9.9%     364     0.91
+        800           0.70            9.2%     730     0.91
 
-    Coverage is flat from 200 up. Per-lap energy error *rises* with the count,
-    which is the opposite of the earlier reading and is not a defect: more
-    particles keep more of the polytope alive, so the reported flows carry more
-    of the drag uncertainty that is genuinely there. A low count looks accurate
-    by discarding it -- ESS 17 of 100 is a collapsed cloud, not a sharp one.
+    Two things changed shape. Coverage now has a real knee: 100 particles
+    genuinely under-covers (0.42) where before every count read 0.58-0.60, so
+    the discriminator finally discriminates. And ESS is no longer a collapse
+    indicator at all -- it sits at 0.91-0.94 of the count everywhere, against
+    0.17-0.18 before, because there is now one well-scaled likelihood term
+    instead of several fighting each other over the same particles.
 
-    So the count is chosen on ESS and coverage, and MAPE is explicitly not the
-    criterion. Asserted that way.
+    So the previous version's assertion (that 100 particles must show a
+    collapsed cloud) is now false and is replaced by the coverage knee. MAPE
+    stays explicitly not the criterion -- it is flat within noise across the
+    whole range.
     """
     gt = races[42]
     obs, idx, feed, ident = _setup(cfg, gt)
@@ -332,29 +390,48 @@ def test_particle_count_is_measured_not_inherited(cfg, races):
 
     poor = _belief(cfg, gt, ident, feed, n_particles=100)
     good = _belief(cfg, gt, ident, feed, n_particles=400)
-    assert np.median(good.ess) > 2 * np.median(poor.ess)
-    assert cov(good) >= cov(poor)
-    assert np.median(poor.ess) < 0.25 * 100, (
-        "100 particles no longer shows a collapsed cloud; re-measure the knee")
+    assert cov(good) > cov(poor) + 0.15, (
+        f"the coverage knee has moved: {cov(poor):.2f} at 100 particles against "
+        f"{cov(good):.2f} at 400. Re-measure the table in this docstring "
+        "before changing the default count")
+    assert np.median(good.ess) > 0.8 * 400, (
+        f"ESS {np.median(good.ess):.0f} of 400 -- the cloud is collapsing "
+        "again, so some likelihood term has been rescaled")
 
 
-def test_rao_blackwellisation_is_wired_into_the_likelihood(cfg, races):
-    """The store's propagated variance must actually enter the weights.
+def test_rao_blackwellisation_is_wired_but_is_now_inert(cfg, races):
+    """The store's propagated variance enters the weights, and at the operating
+    point it changes nothing. Both halves are asserted, because carrying E_var
+    and never using it would make the label decoration -- which is what the
+    first version of this module did -- and claiming it matters when it does not
+    is the same error wearing a measurement.
 
-    Carrying E_var and never using it would make the label decoration, which is
-    exactly what the first version of this module did.
+    E_var appears only in the soft closure weight, whose numerator is
+    net + drift. Since lambda is *solved* by bisection to make exactly that
+    quantity zero, the weight is identically zero and its variance is
+    irrelevant: toggling Rao-Blackwellisation moves soc_mean by 0.0 J. It comes
+    back to life when the bisection cannot reach its target -- lambda saturated
+    at either end, which is the alarm case -- and tightening closure_sigma_j to
+    1e4 J reproduces that: 291 kJ of difference.
+
+    So it is not decoration and it is not doing work here. What moves drag is
+    the dead-band likelihood; what sets the flows is the solved lambda.
     """
     gt = races[42]
     obs, idx, feed, ident = _setup(cfg, gt)
     on = _belief(cfg, gt, ident, feed, rao_blackwell=True)
     off = _belief(cfg, gt, ident, feed, rao_blackwell=False)
-    assert not np.allclose(on.soc_mean, off.soc_mean), (
-        "toggling Rao-Blackwellisation changed nothing, so it is not connected")
-    # Honest about the size: it moves deployable coverage by about 0.01
-    # (0.62 against 0.63). It is wired in and it is principled -- a particle
-    # whose band was wide all lap has a genuinely uncertain net flow and should
-    # not be judged against closure as harshly -- but it is not what makes this
-    # work. The policy prior is.
+    assert np.allclose(on.soc_mean, off.soc_mean), (
+        "Rao-Blackwellisation now moves the store belief at the operating "
+        "point; the solved lambda must have stopped closing the balance, so "
+        "check for a saturated bisection before accepting this")
+    tight_on = _belief(cfg, gt, ident, feed, rao_blackwell=True,
+                       closure_sigma_j=1e4)
+    tight_off = _belief(cfg, gt, ident, feed, rao_blackwell=False,
+                        closure_sigma_j=1e4)
+    assert not np.allclose(tight_on.soc_mean, tight_off.soc_mean), (
+        "E_var does not reach the weights even when closure dominates them, "
+        "so Rao-Blackwellisation is decoration")
 
 
 def test_the_reserve_is_no_longer_estimated_separately(cfg, races):

@@ -20,6 +20,7 @@ traceable to a constraint it cannot violate.
 | `modes.py` | 3 | Aero mode and powertrain regime as an HMM. |
 | `pipeline.py` | 4 | Composes the above. No numerics of its own. |
 | `rbpf.py` | 5 | Store, reserve and theta by particle filter. |
+| `deadband.py` | 14 | v_cut and v_harv by changepoint, before the filter. |
 | `strategy.py` | 6 | The PMP prior: three parameters per lap. |
 | `pooling.py` | 7 | Partial pooling across the field, closed form. |
 | `qmdp.py` | 8 | Deciding under the belief, with sensitivity. |
@@ -158,17 +159,21 @@ diagnoses nothing.
 | Constraint containment | 0 upper-bound violations at 3.7 / 20 / 100 Hz |
 | Braking classification | exact (it is a rule, not an inference) |
 | Aero mode agreement | 93.1%, with >95% of the residual at braking samples |
-| Deployable-energy band coverage | 0.60 at 0.17 MJ width |
-| Raw store band coverage | 0.53 (not the headline -- see invariant 4) |
-| Per-lap deployed energy | 15.3% MAPE |
+| Deployable-energy band coverage | 0.67 / 0.72 / 0.80 on seeds 42 / 7 / 13 |
+| Raw store bracket coverage | 0.74 at 3.50 MJ wide (a bracket, not an estimate) |
+| Per-lap deployed energy | 9.9% / 15.2% / 14.0% MAPE |
+| Drag area CdA_X | 0.597 / 0.571 / 0.494 against a true 0.660 |
 | Policy recovery (v_cut, v_harv, w) | 71.9 / 88.0 / 3.0 against 72 / 88 / 3 |
 | Field pooling | 48% mean-absolute-error reduction over 20 cars |
 | LP cost | 11-18 ms for a 12-lap race |
 
-Particle count, re-measured after the priors changed: deployable coverage is
-flat from 200 particles up (0.57 / 0.63 / 0.62 / 0.62 / 0.60 at 100 / 200 / 400
-/ 800 / 1600) so 200 is enough. The earlier "400 is the knee, 100 collapses to
-39.6% error" was an artefact of a polytope whose drag floor was the prior box.
+Particle count, re-measured a third time (invariant 7 exists because this table
+keeps moving). Deployable coverage now has a real knee -- 0.42 / 0.73 / 0.67 /
+0.70 at 100 / 200 / 400 / 800 -- where every earlier version read 0.57-0.63 flat
+and the discriminator did not discriminate. ESS also stopped being a collapse
+indicator: it sits at 0.91-0.94 of the count everywhere, against 0.17-0.18
+before, because there is now one well-scaled likelihood term instead of several
+fighting over the same particles.
 
 ---
 
@@ -246,9 +251,9 @@ That the simulator has a speed-separable dead band at all is worth recording:
 the fraction of full-throttle brakes-off samples with true P_K = 0 rises
 monotonically from 0.00 below 279 km/h to 0.83 at 336-355 km/h.
 
-**The filter cannot yet exploit it, and the reason is instructive.** v_cut has
-to be inferred jointly, and every weighting scheme tried either lets particles
-escape the test or over-constrains:
+**v_cut is not a particle dimension, and inferring it jointly was the whole
+problem.** Every weighting scheme tried either let particles escape the test or
+over-constrained:
 
 | scheme | CdA_X | what happened |
 |---|---|---|
@@ -261,11 +266,91 @@ At the middle setting the diagnostic was unambiguous: v_cut collapsed to 98 m/s
 `corr(CdA, log weight) = -0.00` -- the likelihood was exerting no pressure on
 drag at all while appearing wired in.
 
-**The next step follows from the diagnostic rather than from more tuning.** The
-dead band is directly observable, so v_cut should be estimated *first*, as a
-changepoint in the P_K = 0 fraction against speed, instead of being inferred
-jointly inside the filter. The dead-band residual then becomes a one-parameter
-least squares for CdA, which the sweep above shows lands on the truth.
+### Two-stage v_cut: the fix, and the two bugs it exposed
+
+v_cut is now estimated *before* the filter, in `xray/deadband.py`, and handed in
+as an input. On full-throttle brakes-off intervals the model is
+
+    y(v) = 0.5 rho CdA v^3 + F_rr v m/M_ref - A taper(v) 1[v < v_cut] + H 1[v > v_harv]
+
+with every coefficient non-negative, scanned over v_cut with a BIC penalty so an
+empty band cannot win. Measured: **236 / 239 / 214 km/h** on seeds 42 / 7 / 13,
+BIC gains of 170.2 / 156.0 / 159.9 over the no-changepoint model. The v_harv
+scan **declines on all three**, correctly: `vehicle.step` harvests on the brakes
+only, so the Stage 1 simulator has no off-throttle super-clipping to find, and
+guessing one would invent the number the fit exists to measure.
+
+Two constraints in that fit are load-bearing and both were found by their
+absence, on seed 42 against a true 0.660:
+
+| fit | CdA_X |
+|---|---|
+| drag only, no intercept | 0.613 |
+| drag + free intercept | 0.842 (intercept -77 kW) |
+| drag + free roll + free intercept | 0.374 (F_rr 4181 N, 45x physical) |
+
+Over 210-355 km/h a v^3 column and a constant are nearly collinear, so a free
+intercept buys fit by pushing drag up; and with the *sign* of rolling resistance
+free the fit simply uses it as the intercept it was denied. Hence non-negative
+least squares. Inside the band the one-parameter estimate is then **0.632**
+against 0.660, stable at 0.629-0.665 as the band narrows from 234 to 324 km/h;
+the residual 3-5% is contamination that can only bias drag down, because this
+simulator's policy is positional rather than a speed threshold.
+
+Wiring that into the filter moved CdA_X from 0.407 to 0.597 -- but only after
+two bugs the change forced into the open.
+
+**The deployment floor carried no measurement slack.** `max(0, e_wheel -
+e_ice_max)` was taken per interval with no 5-sigma term, so every positive noise
+excursion accumulated and none cancelled. At the *true* theta on seed 42 the
+summed floor claimed 4.2-4.4 MJ of deployment a lap against a true 2.15, while
+the lap-aggregate floor `max(0, sum x)` was 0.00 -- so the floor was not a bound
+on the lap at all. That forced the closure solve to deploy twice the truth,
+drove range(F) to **28.7 MJ against a 4 MJ store** (true swing 3.00 MJ), and made
+the store box reject the true parameters. Every box-rejection count reported
+before the fix was measuring the bug, including the ablation that made the box
+look load-bearing (coverage 0.62 -> 0.44) -- it was throwing away the particles
+nearest the truth. With the slack in place range(F) at the truth is 2.8 MJ, the
+box rejects 37 of 1.6 million particle-samples, and its ablation changes nothing.
+This is invariant 3 in the one place it had not been applied, and invariant 9's
+own precondition -- *compute range(F) at true theta before trusting a binding
+box* -- is what caught it.
+
+**Resampling reindexed theta but not the flow bands.** `e_wheel`, `d_lo`, `d_hi`
+and `harvest` were precomputed once for the whole trace from the initial draw
+and never reindexed by the resampling permutation, so from the first resample
+onward each particle's bands belonged to a different particle's theta -- the
+dead-band residual was scored against another particle's drag. The symptom was
+precise and misleading: the per-lap weighted CdA_X was **0.60, correct**, and the
+reported posterior was **0.42**, because the correct answer was shuffled away
+immediately. The bands are now recomputed per lap from the current theta, which
+also removes the module's largest allocation and makes theta rejuvenation
+possible at all.
+
+Resample-move jitter on theta, once possible, turns out not to matter much:
+0.00 / 0.02 / 0.05 / 0.10 of each projection's width give CdA_X 0.583 / 0.589 /
+0.597 / 0.585. It is kept at 0.05 because a cloud that can only shrink cannot
+recover a direction the draw under-samples, but what was blamed on a collapsed
+cloud was the desync above.
+
+**Store closure had to stop being exact.** With the flows corrected, forcing
+per-lap net flow to zero left range(F) at 1.37 MJ against a true 3.00 and
+deployable coverage at **0.01**: lap 0 genuinely dumps 5.04 MJ out of a full
+store, and a store that may never drain has no deployable energy to report. Each
+particle now carries a per-lap drift nuisance bounded by `E_STORE_MAX/n_laps` --
+derived, not invented: a trajectory that has to fit in a 4 MJ store over n laps
+cannot average more drift than that -- and the box does the rest of the
+rejecting. Coverage 0.01 -> 0.67.
+
+**And the raw store is now reported as a bracket.** `E_k = c + F_k` with c
+unidentified, so the store at sample k is the whole interval
+`[F_k - min F, E_max - (max F - F_k)]`. The old code placed c at that interval's
+centre and reported percentiles across particles, which read as an estimate;
+once the flows were fixed that convention sat 2 MJ from the truth and coverage
+went to **0.00**. The earlier 0.53 was an artefact of the over-counted floor
+dragging F down until the centre happened to land near the truth. Reported as
+the interval the trace admits: coverage 0.74 at 3.50 MJ wide, almost the whole
+box -- which is exactly why invariant 4 reports deployable energy instead.
 
 **The earlier all-samples shape likelihood also found signal.** For each theta the band
 implies a P_K(t), and implied P_K is linear in CdA through the v^3 drag term, so
@@ -279,13 +364,22 @@ The wrong statistic here is instructive: the clipping distortion
 band is *widest* at low CdA, so it rewards low drag systematically. It collapsed
 the cloud to one bin at ESS 2 and pushed the posterior down to 0.297.
 
-| variant | CdA_X | deployable coverage | MAPE | ESS |
+| variant (seed 42) | CdA_X | deployable coverage | MAPE | ESS |
 |---|---|---|---|---|
-| full | 0.408 | 0.60 | 15.3% | 68 |
-| no shape likelihood | 0.271 | 0.58 | 17.8% | 121 |
-| no policy prior at all | 0.300 | 0.63 | 17.0% | 116 |
-| no box rejection | 0.275 | 0.47 | 29.2% | 143 |
-| no closure weight | 0.280 | 0.62 | 13.8% | 55 |
+| measured v_cut, full | 0.597 | 0.67 | 9.9% | 364 |
+| no shape likelihood | 0.502 | 0.79 | 9.1% | 400 |
+| v_cut inferred jointly | 0.610 | 0.62 | 9.2% | 351 |
+| no box rejection | 0.502 | 0.67 | 10.1% | 364 |
+| no closure weight | 0.597 | 0.67 | 9.9% | 364 |
+
+Read the second row carefully: 0.502 is the uniform draw's own mean, i.e. with
+the shape likelihood off nothing moves drag at all, and coverage is *better*
+without it (0.79 against 0.67). A band that carries no drag information is
+wider and covers more truth while saying less -- the same trap as raw-store
+coverage. The third row is the one that stings least and matters most: jointly
+inferred v_cut reaches a comparable CdA_X on this seed once the two bugs above
+are fixed, but it empties the ensemble at the end of the trace on two of three
+seeds and it does so for the particles' convenience rather than the trace's.
 
 Two earlier claims do not survive this table. The policy *proposal* was
 credited with making everything work (coverage 0.62 against 0.14) -- that 0.14
@@ -302,12 +396,20 @@ the posterior lies inside it.
 
 ## What does not work
 
-**Drag area is still recovered at the bottom half of its identified set** --
-0.407 against a true 0.660 inside [0.264, 0.744], so 38% low rather than 59%.
-Not because the statistic is wrong -- it is exact, see the sweep above -- but
-because v_cut is inferred jointly with it and the filter has no way to prefer a
-testable policy claim over an untestable one without also over-constraining.
-Estimating v_cut first is the fix.
+**Drag area is still 10-25% low** -- 0.597 / 0.571 / 0.494 against a true 0.660,
+where the direct dead-band least squares on the same traces gives 0.632. So the
+filter recovers most but not all of what the statistic contains, and the gap is
+not the statistic: it is that the band still admits some surviving deployment
+(the simulator's policy is positional, so no speed cut-off is clean) and that
+bias is one-sided by construction. Seed 13 is the weakest of the three because
+its fitted cut-off is the lowest (214 km/h against 236 and 239), which admits
+more of it.
+
+**Deployable coverage is 0.67-0.80 where it should be 0.85.** The missing
+variance is named rather than tuned away: the CdA posterior is not propagated
+into the flows, and the per-lap drift nuisance is uniform where the real thing is
+a strategy. Narrowing the band to improve a MAPE number would be the wrong
+trade and is explicitly not done.
 
 The store box is now the binding constraint rather than a formality: 3,146
 rejections against 643 from untestability, and the ensemble empties at the very
