@@ -10,6 +10,7 @@ import { RDD } from './views/RDD';
 import { Decision } from './views/Decision';
 import { Fingerprint } from './views/Fingerprint';
 import { Method } from './views/Method';
+import { GUIDE, HelpButton, Onboarding } from './components/Explain';
 import { useDemo, DEMO_BEATS } from './lib/demo';
 
 const VIEWS: { id: View; label: string; hint: string }[] = [
@@ -91,6 +92,7 @@ export default function App() {
 
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
+      <Onboarding />
       {/* nav */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '9px 16px',
         borderBottom: `1px solid ${C.panelBorder}`, background: 'rgba(11,11,15,.9)',
@@ -134,10 +136,21 @@ export default function App() {
             color: demo ? C.green : C.gray }}>
           {demo ? `demo · ${DEMO_BEATS[beat]?.label ?? ''}` : 'run demo'}
         </button>
+        <HelpButton view={view} />
         <button onClick={() => setLite(!lite)}
           style={{ padding: '7px 10px', fontSize: 11.5, borderRadius: 7,
             border: `1px solid ${lite ? C.amber : C.panelBorder}`, background: 'transparent',
             color: lite ? C.amber : C.dim }}>lite</button>
+      </div>
+
+      <div style={{ padding: '7px 16px', borderBottom: `1px solid ${C.panelBorder}`,
+        background: 'rgba(11,11,15,.75)', color: C.gray, fontSize: 12, zIndex: 19,
+        display: 'flex', gap: 10, alignItems: 'baseline' }}>
+        <b style={{ color: C.white }}>{GUIDE[view].title}</b>
+        <span style={{ opacity: 0.85 }}>{GUIDE[view].what.split('. ')[0]}.</span>
+        <span style={{ marginLeft: 'auto', color: C.dim }}>
+          press <b style={{ color: C.gray }}>?</b> in the bar for what to try here
+        </span>
       </div>
 
       {/* low-identifiability banner: loud, not buried */}
