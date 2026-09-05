@@ -158,9 +158,9 @@ diagnoses nothing.
 | Constraint containment | 0 upper-bound violations at 3.7 / 20 / 100 Hz |
 | Braking classification | exact (it is a rule, not an inference) |
 | Aero mode agreement | 93.1%, with >95% of the residual at braking samples |
-| Deployable-energy band coverage | 0.62 at 0.17 MJ width |
-| Raw store band coverage | 0.50 (not the headline -- see invariant 4) |
-| Per-lap deployed energy | 12.9% MAPE |
+| Deployable-energy band coverage | 0.60 at 0.17 MJ width |
+| Raw store band coverage | 0.53 (not the headline -- see invariant 4) |
+| Per-lap deployed energy | 15.3% MAPE |
 | Policy recovery (v_cut, v_harv, w) | 71.9 / 88.0 / 3.0 against 72 / 88 / 3 |
 | Field pooling | 48% mean-absolute-error reduction over 20 cars |
 | LP cost | 11-18 ms for a 12-lap race |
@@ -221,14 +221,59 @@ Turning the box rejection off takes raw-store coverage from 0.50 to 0.80 while
 tripling per-lap energy error -- a wider band covers more truth without being
 more informative.
 
+## Drag: the diagnostic found a bug, the likelihood found signal
+
+Invariant 9 prescribes a diagnostic before touching any prior: histogram the
+survivors against the uniform draw. It found the real problem immediately.
+
+**Sampling an initial store was rejecting, not discriminating.** Survivors
+collapsed to zero above CdA_X = 0.444 -- five of eight bins empty, the true
+0.660 among them -- and the posterior of 0.303 looked like inference. The cause
+is that `E_k = c + F_k` with `c` unidentified, so rejecting on a sampled `c`'s
+walk conflates "wrong theta" with "wrong c". The box's only c-free statement
+about theta is that a feasible `c` exists at all: `max(F) - min(F) <= 4 MJ`.
+
+**Then the shape likelihood found real signal.** For each theta the band
+implies a P_K(t), and implied P_K is linear in CdA through the v^3 drag term, so
+a wrong CdA leaves a residual proportional to `delta_CdA * v^3` once the policy
+step is fitted out. Regressing implied P_K on `[step(v), 1, v^3]` and penalising
+the v^3 coefficient moves CdA_X from 0.271 to **0.408**, with weighted mass in
+three of eight bins instead of one.
+
+The wrong statistic here is instructive: the clipping distortion
+`sum(clip(lam*want) - lam*want)^2` measures how often the band binds, and the
+band is *widest* at low CdA, so it rewards low drag systematically. It collapsed
+the cloud to one bin at ESS 2 and pushed the posterior down to 0.297.
+
+| variant | CdA_X | deployable coverage | MAPE | ESS |
+|---|---|---|---|---|
+| full | 0.408 | 0.60 | 15.3% | 68 |
+| no shape likelihood | 0.271 | 0.58 | 17.8% | 121 |
+| no policy prior at all | 0.300 | 0.63 | 17.0% | 116 |
+| no box rejection | 0.275 | 0.47 | 29.2% | 143 |
+| no closure weight | 0.280 | 0.62 | 13.8% | 55 |
+
+Two earlier claims do not survive this table. The policy *proposal* was
+credited with making everything work (coverage 0.62 against 0.14) -- that 0.14
+was measured while the box was rejecting on a sampled `c`, and with the box
+fixed the proposal is worth nothing on coverage (0.60 against 0.63). What the
+prior buys is drag, through the likelihood, not coverage. And the soft closure
+weight slightly *hurts* energy error (15.3% against 13.8%), on top of being
+redundant with the solved amplitude.
+
+The identified set travels with the tilted posterior, because the shape
+likelihood is a behavioural assumption that cannot be checked on real data.
+`Belief.theta_polytope` carries the assumption-free interval and a test asserts
+the posterior lies inside it.
+
 ## What does not work
 
-**Drag area is still recovered at the bottom of its identified set** -- CdA_X
-posterior 0.339 against a true 0.660 inside [0.264, 0.744]. Removing the floor
-penalty removed the mechanism that biased it, but nothing has replaced it as a
-*positive* discriminator on drag, because inside the polytope there is none to
-be had from the trace. Narrowing the set is the only route, which means the
-fuel-closure bound and the field pooling rather than anything in the filter.
+**Drag area is still recovered at the bottom half of its identified set** -- 0.408 against a true
+0.660 inside [0.264, 0.744], so 38% low rather than 59%. The residual bias is
+in the implied-P_K construction: it assumes the ICE sits at its cap, so where
+throttle is below full the implied deployment is overstated and its v^3 content
+is not purely `delta_CdA`. Narrowing the set is still the more reliable route --
+the fuel-closure bound and field pooling, not the filter.
 
 Also short of the plan: pooling reduces error 66% but width only to 0.87x. Six fixes have now been tried and measured: an accelerating gate on
 the cut-out detector, hysteresis on it, 10x wider reserve jitter, the

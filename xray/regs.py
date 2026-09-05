@@ -130,6 +130,32 @@ POST_MIAMI = RegSet(
     mom_bonus=0.5e6, mom_gap_s=1.0)
 
 
+def rules_for_simulator() -> RegSet:
+    """The variant the Stage 1 simulator actually implements.
+
+    Derived from the constants `vehicle.step` uses, not asserted: it harvests at
+    P_MGUK_MAX and deploys at p_mguk_ceiling(v), which is 350 kW both ways --
+    the post-Miami super-clip cap.
+
+    This function exists because the mismatch cost an entire iteration. Fixtures
+    assumed pre-Miami's 250 kW harvest while the simulator recovered at 350, so
+    reconstructed harvest came out at 0.71x the truth, per-lap net flow was
+    -2.22 MJ against a true -0.25, and the store drifted -26.6 MJ over twelve
+    laps out of a 4 MJ box. No particle could satisfy store closure, so a
+    correct deployable-energy formulation reported a zero-width band -- the
+    regulation variant underneath it was simply wrong.
+
+    The blindfold forbids the *estimator* importing the simulator. It does not
+    forbid a test asserting the two agree on the rulebook, and
+    `test_simulator_and_fixtures_agree_on_the_rules` does exactly that.
+    """
+    return RegSet(
+        variant="stage1-simulator",
+        p_dep_max_zone=float(P_MGUK_MAX), p_dep_max_elsewhere=float(P_MGUK_MAX),
+        p_harv_max=float(P_MGUK_MAX), e_harvest_lap=7.0e6,
+        mom_bonus=0.5e6, mom_gap_s=1.0)
+
+
 def regs_for(race_date: date | str | None,
              changeover: date = ASSUMED_MIAMI_2026) -> RegSet:
     """Which variant was in force. Defaults to pre-Miami when the date is

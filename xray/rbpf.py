@@ -82,6 +82,43 @@ CLOSURE_SIGMA_J = 1.0e6
 LAMBDA_MAX = 4.0
 LAMBDA_BISECT_STEPS = 24
 
+# Scale of the policy-shape residual, as a fraction of the lap's own deployment.
+# A behavioural assumption, so the assumption-free polytope is always reported
+# alongside the tilted posterior -- see Belief.theta_polytope.
+# Scale of the v^3 residual coefficient. A drag-area error of 0.10 m^2 leaves a
+# residual of 0.5 * rho * 0.10 * v^3, so this is that error expressed as a
+# coefficient. Multiplied by rho at the call site.
+SHAPE_V3_SIGMA = 0.5 * 0.10
+
+
+def _v3_coefficient(S, one, V3, y):
+    """v^3 coefficient of y regressed on [S, 1, V^3], per particle.
+
+    Three normal equations solved in closed form rather than by lstsq, because
+    the design matrix differs per particle (each has its own policy step) and a
+    loop over 400 particles per lap is the difference between 0.3 s and minutes.
+    """
+    def dot(a, b):
+        return np.sum(a * b, axis=1)
+    G = np.empty((S.shape[0], 3, 3))
+    rhs = np.empty((S.shape[0], 3))
+    cols = (S, one, V3)
+    for i, a in enumerate(cols):
+        for j, b in enumerate(cols):
+            G[:, i, j] = dot(np.broadcast_to(a, S.shape),
+                             np.broadcast_to(b, S.shape))
+        rhs[:, i] = dot(np.broadcast_to(a, S.shape), y)
+    # ridge on the diagonal: at low speed the three columns are nearly
+    # collinear and a singular Gram matrix would otherwise raise
+    G[:, 0, 0] += 1e-9
+    G[:, 1, 1] += 1e-9
+    G[:, 2, 2] += 1e-9
+    try:
+        beta = np.linalg.solve(G, rhs[:, :, None])[:, :, 0]
+    except np.linalg.LinAlgError:
+        return np.zeros(S.shape[0])
+    return beta[:, 2]
+
 
 def _sigmoid(x):
     return 1.0 / (1.0 + np.exp(-np.clip(x, -60.0, 60.0)))
@@ -108,6 +145,10 @@ class Belief:
     n_particles: int
     dry: np.ndarray
     notes: tuple = ()
+    theta_polytope: np.ndarray = None  # assumption-free: the identified set
+    theta_init: np.ndarray = None    # the draw, before any weighting
+    theta_final: np.ndarray = None   # survivors after resampling
+    weights_final: np.ndarray = None
 
 
 def _sample_theta(ident, rng, n: int) -> np.ndarray:
@@ -147,7 +188,8 @@ def run(feed, ident, regs: RegSet, rho: float, n_particles: int = 400,
         fuel_start: float = 70.0, fuel_burn_per_lap: float = 1.15,
         is_x=None, regime=None, rao_blackwell: bool = True,
         n_laps: int | None = None, closure_sigma_j: float = CLOSURE_SIGMA_J,
-        policy_prior: bool = True, reject_outside_box: bool = True) -> Belief:
+        policy_prior: bool = True, reject_outside_box: bool = True,
+        policy_likelihood: bool = True) -> Belief:
     """Filter the store forward. Policy prior proposes, the store box rejects.
 
     Inside the identified polytope the trace is uninformative *by construction*:
@@ -176,6 +218,7 @@ def run(feed, ident, regs: RegSet, rho: float, n_particles: int = 400,
     is_x = np.ones(n, bool) if is_x is None else np.asarray(is_x, bool)
 
     theta = _sample_theta(ident, rng, Np)
+    theta_init = theta.copy()
     e_wheel, dt = _interval_terms(feed, theta, rho, m_published, fuel_start,
                                   fuel_burn_per_lap, is_x)
 
@@ -211,9 +254,19 @@ def run(feed, ident, regs: RegSet, rho: float, n_particles: int = 400,
     width = rng.uniform(*WIDTH_PRIOR, Np)
     split = rng.random(Np)          # fallback when the prior is switched off
 
-    E = rng.uniform(0.0, E_STORE_MAX, Np)
     E_var = np.zeros(Np)
     alive = np.ones(Np, bool)
+    # No initial store is sampled. E_k = c + F_k with c unidentified (invariant
+    # 6), so sampling c and rejecting on its walk conflates "wrong theta" with
+    # "wrong c": measured, that killed every particle above CdA_X = 0.444 -- five
+    # of eight bins empty, with the true 0.660 among them -- and left a posterior
+    # of 0.303 that looked like inference and was rejection.
+    #
+    # The box's actual statement about theta is c-free: a feasible c exists iff
+    # the flow trajectory fits inside the store at all, i.e.
+    # max(F) - min(F) <= 4 MJ. That rejects impossible drag areas and nothing
+    # else.
+    F_max = np.zeros(Np)
     # Cumulative flow, and its running minimum. Deployable energy is the gap
     # between them and needs no cut-out detector at all: the store is known up
     # to a constant, E_k = c + F_k, so if the driver has touched the reserve at
@@ -239,10 +292,17 @@ def run(feed, ident, regs: RegSet, rho: float, n_particles: int = 400,
         return w / w.sum()
 
     def record(k, w):
+        # The store, with c placed so the trajectory sits centred in the box.
+        # Any c in the feasible interval is equally consistent with the trace --
+        # that is the degeneracy, not a defect -- so the centre is a reporting
+        # convention and the deployable figure below does not depend on it.
+        span = np.clip(F_max - F_min, 0.0, E_STORE_MAX)
+        c_mid = 0.5 * (E_STORE_MAX - span) - F_min
+        E = np.clip(c_mid + F, 0.0, E_STORE_MAX)
         soc_m[k] = float(np.sum(E * w))
-        order = np.argsort(E); c = np.cumsum(w[order])
-        soc_lo[k] = float(E[order][min(np.searchsorted(c, 0.10), Np - 1)])
-        soc_hi[k] = float(E[order][min(np.searchsorted(c, 0.90), Np - 1)])
+        order = np.argsort(E); cw = np.cumsum(w[order])
+        soc_lo[k] = float(E[order][min(np.searchsorted(cw, 0.10), Np - 1)])
+        soc_hi[k] = float(E[order][min(np.searchsorted(cw, 0.90), Np - 1)])
         D = np.maximum(F - F_min, 0.0)
         use_m[k] = float(np.sum(D * w))
         uo = np.argsort(D); cu = np.cumsum(w[uo])
@@ -288,6 +348,29 @@ def run(feed, ident, regs: RegSet, rho: float, n_particles: int = 400,
                 lam_lo = np.where(too_much, lam_lo, lam)
             lam = 0.5 * (lam_lo + lam_hi)
             d_lap = np.clip(lam[:, None] * want_lap, lo_lap, hi_lap)
+            if policy_likelihood:
+                # Invariant 9, done literally. The wrong statistic here is the
+                # clipping distortion sum(clip(lam*want) - lam*want)^2: that
+                # measures how often the band binds, and the band is *widest*
+                # at low CdA, so it rewards low drag systematically -- measured,
+                # it collapsed the cloud to one bin at ESS 2 and pushed the
+                # posterior further down, to 0.297.
+                #
+                # The actual signal is the SHAPE of the implied P_K against
+                # speed. Implied P_K is linear in CdA through the v^3 drag term,
+                # so a wrong CdA leaves a residual proportional to
+                # delta_CdA * v^3 once the policy step is fitted out. Regress
+                # implied P_K on [step(v), 1, v^3] and penalise the v^3
+                # coefficient: it is zero at the true drag area and grows either
+                # side of it.
+                y = e_wheel[:, sl] / np.maximum(dt[sl], 1e-9)[None, :]
+                y = y - (e_ice_max[sl] / np.maximum(dt[sl], 1e-9))[None, :]
+                S = _sigmoid((v_cut[:, None] - v_cap[sl][None, :])
+                             / np.maximum(width, 1e-3)[:, None])
+                V3 = (v_cap[sl] ** 3)[None, :]
+                one = np.ones_like(V3)
+                logw = logw - 0.5 * (_v3_coefficient(S, one, V3, y)
+                                     / (SHAPE_V3_SIGMA * rho)) ** 2
         else:
             d_lap = lo_lap + split[:, None] * (hi_lap - lo_lap)
 
@@ -296,12 +379,11 @@ def run(feed, ident, regs: RegSet, rho: float, n_particles: int = 400,
             h = h_lap[:, j]
             if rao_blackwell:
                 E_var = E_var + ((hi_lap[:, j] - lo_lap[:, j]) ** 2) / 12.0
-            E_new = E + h - d
-            if reject_outside_box:
-                alive = alive & (E_new >= -1.0) & (E_new <= E_STORE_MAX + 1.0)
-            E = np.clip(E_new, 0.0, E_STORE_MAX)
             F = F + (h - d)
             F_min = np.minimum(F_min, F)
+            F_max = np.maximum(F_max, F)
+            if reject_outside_box:
+                alive = alive & ((F_max - F_min) <= E_STORE_MAX + 1.0)
             dep_acc += d
             har_acc += h
             w = weights()
@@ -331,8 +413,9 @@ def run(feed, ident, regs: RegSet, rho: float, n_particles: int = 400,
         dep_lap[int(lap_id)] = float(np.sum(dep_acc * w))
         har_lap[int(lap_id)] = float(np.sum(har_acc * w))
         take = _systematic(w, rng)
-        E, E_var, theta, split, F, F_min = (
-            E[take], E_var[take], theta[take], split[take], F[take], F_min[take])
+        E_var, theta, split, F, F_min, F_max = (
+            E_var[take], theta[take], split[take], F[take], F_min[take],
+            F_max[take])
         v_cut, v_harv, width = v_cut[take], v_harv[take], width[take]
         alive = np.ones(Np, bool)
         v_cut = np.clip(v_cut + rng.normal(0.0, 1.5, Np), *V_CUT_PRIOR)
@@ -351,7 +434,9 @@ def run(feed, ident, regs: RegSet, rho: float, n_particles: int = 400,
         reserve_sigma=float(np.sqrt(np.sum(w * (-F_min - np.sum(-F_min * w)) ** 2))),
         ess=np.array(ess), theta_post_mean=np.sum(theta * w[:, None], axis=0),
         theta_post_lo=theta.min(axis=0), theta_post_hi=theta.max(axis=0),
-        n_particles=Np, dry=np.zeros(n, bool), notes=tuple(notes))
+        n_particles=Np, dry=np.zeros(n, bool), notes=tuple(notes),
+        theta_init=theta_init, theta_final=theta.copy(), weights_final=w.copy(),
+        theta_polytope=np.column_stack([ident.lo, ident.hi]))
 
 
 def _systematic(w: np.ndarray, rng) -> np.ndarray:

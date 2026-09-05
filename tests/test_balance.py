@@ -206,3 +206,35 @@ def test_windows_never_straddle_a_mode_or_zone_transition(cfg, races):
     both = (np.abs(cons.A[:, 0]) > 1e-9) & (np.abs(cons.A[:, 1]) > 1e-9)
     assert not both.any(), (
         f"{int(both.sum())} windows span both aero modes despite the cut")
+
+
+def test_simulator_and_fixtures_agree_on_the_rules(cfg):
+    """A regulation-variant mismatch must fail loudly, not silently scale a result.
+
+    This cost a full iteration: the fixtures ran the Stage 1 simulator against
+    pre-Miami's 250 kW harvest cap while `vehicle.step` recovers at
+    P_MGUK_MAX = 350 kW. Reconstructed harvest came out at 0.71x the truth,
+    per-lap net flow -2.22 MJ against a true -0.25, and the store drifted
+    -26.6 MJ over twelve laps out of a 4 MJ box -- so store closure was
+    unsatisfiable and a correct deployable-energy formulation reported a
+    zero-width band.
+
+    The blindfold forbids the estimator importing the simulator. It does not
+    forbid this.
+    """
+    from xray.constants import P_MGUK_MAX, p_mguk_ceiling
+    from xray.regs import POST_MIAMI, rules_for_simulator
+
+    sim_rules = rules_for_simulator()
+    # what vehicle.step actually does, read off the constants it uses
+    assert sim_rules.p_harv_max == float(P_MGUK_MAX)
+    assert sim_rules.p_dep_max_zone == float(p_mguk_ceiling(0.0))
+
+    # and the variant the fixtures use for the RBPF must match it on both caps
+    assert POST_MIAMI.p_harv_max == sim_rules.p_harv_max, (
+        "fixture harvest cap disagrees with the simulator's")
+    assert POST_MIAMI.p_dep_max_zone == sim_rules.p_dep_max_zone, (
+        "fixture in-zone deployment cap disagrees with the simulator's")
+    # pre-Miami is the one that does NOT match, which is the trap
+    from xray.regs import PRE_MIAMI
+    assert PRE_MIAMI.p_harv_max != sim_rules.p_harv_max

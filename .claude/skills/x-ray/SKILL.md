@@ -165,6 +165,20 @@ the hot kernels ported to C++/Rust. Nothing is ported now. What is done now:
    inherit a count from an earlier fixture.
 8. **Pool τ across the grid**, precision-weighted, with a half-normal prior. Ten team
    pairs do not support per-team method-of-moments.
+9. **The policy prior is a likelihood for θ, not only a proposal for P_K.** Bounds alone
+   leave the polytope flat (invariant 5), but for each θ the band implies a P_K(t); the
+   true CdA makes it a clean step in v at amplitude λ, a wrong CdA leaves a v³-shaped
+   residual. Weight particles by the fit of implied P_K to the policy shape over windows.
+   Test it on a simulated driver whose v_c drifts lap to lap — on the fixed-policy
+   simulator it is trivially perfect. On real data it is a behavioural assumption:
+   always report the assumption-free polytope and the policy-tilted posterior as two
+   numbers. If the filter's CdA sits at a polytope wall, something is rejecting, not
+   discriminating — histogram survivors against the uniform draw before touching priors.
+10. **One `Rules(D)` object, and a test that the simulator and the fixture agree on it.**
+    The simulator ran 350 kW harvest while fixtures assumed 250 kW for an entire
+    iteration; every measurement was 0.71× on harvest. The blindfold forbids the
+    estimator importing the simulator; it does not forbid a test asserting
+    `sim.rules == fixture.rules`. A regulation-variant mismatch must fail loudly.
 
 ## House style (the codebase has a voice — keep it)
 
