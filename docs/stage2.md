@@ -78,17 +78,25 @@ UI, on its own panel.
 
 ### Measured
 
-| circuit | identifiability | pooled CdA | cars | refused |
-|---|---|---|---|---|
-| Zandvoort | 89% | 0.92 m² | 20 | 17 |
-| Melbourne | 81% | 1.14 m² | 20 | 15 |
-| Spa-Francorchamps | 77% | 0.84 m² | 21 | 16 |
-| Silverstone | **0%** | — | 22 | 20 |
-| Monte Carlo | **0%** | — | 20 | 20 |
+| circuit | identifiability | pooled CdA | cars | refused | usable laps |
+|---|---|---|---|---|---|
+| Zandvoort | 97% | 0.94 m² | 21 | 18 | 1365/1368 |
+| Spa-Francorchamps | 78% | 0.87 m² | 21 | 15 | 871/872 |
+| Melbourne | 72% | 1.09 m² | 20 | 13 | 1006/1006 |
+| Silverstone | **0%** | — | 22 | 20 | 1112/1113 |
+| Monte Carlo | **0%** | — | 21 | 20 | 1451/1452 |
 
-Spa's pooled drag area of 0.84 m² is a real F1 figure, and its per-lap energy
-comes out at **3.7 MJ deployed against 3.5 MJ recovered** — energy-neutral,
-inside a 4 MJ store, which is what real energy management looks like.
+Spa's pooled drag area of 0.87 m² is a real F1 figure, and per-lap energy across
+the analysed races comes out at **3.5–4.7 MJ deployed against 3.3–4.6 MJ
+recovered** — energy-neutral inside a 4 MJ store, which is what real energy
+management looks like.
+
+An early version rejected a whole lap if it contained a single telemetry hole,
+which threw away **two thirds of every race**. Gaps are already handled where
+they belong, at sample level, by blanking the grid cells they span so nothing is
+ever interpolated across one; the lap-level rejection on top of that was
+belt-and-braces. Removing it took usable laps from about 30% to essentially all
+of them, and identifiability rose with it.
 
 Monaco and Silverstone return nothing, and that is the result, not a failure. A
 circuit that never reaches high speed cannot pin drag area from a speed trace.
@@ -99,6 +107,34 @@ Air density is computed from each session's own weather rather than assumed:
 landed directly on CdA.
 
 ---
+
+### Deployment is a band, not a number
+
+A speed trace measures total power at the wheels. It cannot see which part came
+from the engine and which from the motor — both make torque at the same axle.
+What the regulation pins down is the range:
+
+- **lower bound** — whatever exceeds the 400 kW the ICE is allowed to make must
+  be electrical;
+- **upper bound** — the MGU-K ceiling at this speed, and no more.
+
+An earlier version modelled ICE output from the throttle trace and called the
+remainder deployment. That produced laps of 0.2 MJ against a real 3–4 MJ,
+because a real car below about 200 km/h is traction-limited and its wheel power
+sits under the ICE cap for most of a lap — so the model handed everything to the
+engine and left nothing for the motor.
+
+Where in that band the truth sits is not visible in the trace. It is, however,
+pinned by the store being bounded: over a race, deployment and recovery must
+agree to within one 4 MJ store. Solving for the split that closes that balance
+is what makes the per-lap numbers come out at 3.5–4.7 MJ instead of 10.
+
+**What this does not fix.** A single global split spreads deployment evenly
+around the lap, where a real car deploys in bursts out of slow corners. The
+consequence is visible in the app: the reconstructed store spends 14–45% of the
+race reading empty, and the belief band is narrow (0.04–0.26 MJ) when it does.
+That is more confidence than the method has earned, and it is the clearest
+remaining gap between the simulator result and the real-data one.
 
 ## The real-data validation, and why it is a null
 
@@ -174,6 +210,21 @@ particle, which treats a legitimate 0.0 as unset. Every particle stayed pinned a
 the world origin, and the cloud rendered as a small orange smudge in the middle
 of the circuit that was easy to mistake for an intentional marker.
 
+### Racing, not two independent replays
+
+The first version of the theatre drove each car by an index into its own trace.
+Both cars moved, but they were not racing: they were two replays running side by
+side at whatever rate their sample counts happened to imply, and the gap on
+screen meant nothing.
+
+The shared clock is now **session time in seconds**, and both traces carry it, so
+sampling each at the same instant is what makes the gap real. It is computed
+from the two cars' positions on the lap and the speed of the one behind, and it
+turns green when it drops under the 1.000 s Manual Override boundary. The view
+opens on the moment those two were genuinely closest — found by scanning the
+shared window, skipping the standing start, where the whole field is three
+metres apart at 40 km/h and would otherwise always win.
+
 ### Performance and the room
 
 `?lite=1` drops postprocessing, cuts the cloud to 120 particles and flattens the
@@ -184,6 +235,19 @@ geometry built in code — no liveried model, no licensing question.
 The track ribbon is drawn 20 m wide rather than a true 12–15 m. It is the primary
 data surface and the paint modes have to be readable from the tactical camera,
 where a true width is sub-pixel. It is the only schematic liberty in the scene.
+
+The cars are built from primitives in code — floor, monocoque, nose, sidepods,
+airbox, halo, front and rear wings, four wheels that spin at road speed — at
+metre scale and then scaled into the world. No liveried model, so no licensing
+question, and a clean silhouette reads better at projector distance. Kerbs are
+placed on the corners the geometry actually found, and the elevation is the real
+`Z` channel, which is what makes Eau Rouge climb.
+
+One bug there is worth recording. The ground plane was pinned at a fixed height
+just below the origin, which is harmless on a flat circuit and wrong on a real
+one: Spa drops 100 m, so the entire bottom half of the lap sat *underneath* the
+ground and was not drawn. It presented as a framing problem and then as a fog
+problem, and was neither.
 
 ---
 

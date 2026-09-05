@@ -86,6 +86,8 @@ def analyse(year: int, rnd: int, session_name: str = "R",
         traces[drv] = tr
         beliefs[drv] = belief_from_deployment(kins[drv], tr, use,
                                               n_particles=n_particles)
+        # the UI shows the split-corrected deployment, matching the belief
+        tr["deploy"] = beliefs[drv].get("deploy_star", tr["deploy"])
         if verbose:
             dl = beliefs[drv]["deployed_lap"]
             med = np.median(list(dl.values())) if dl else 0.0
@@ -136,6 +138,21 @@ def analyse(year: int, rnd: int, session_name: str = "R",
             gaps.append({"lap": lp, "car": b["driver"], "ahead": a["driver"],
                          "gap_s": round(g, 3), "position": b["position"]})
 
+    # ------------------------------------------------------------- battles
+    # Pairs that actually raced each other: laps spent within 2 s. The app
+    # defaults to the best of these so the theatre opens on a fight, not on
+    # two cars half a lap apart chosen alphabetically.
+    close = {}
+    for g in gaps:
+        if g["gap_s"] < 2.0 and g["car"] in fits and g["ahead"] in fits:
+            k = (g["car"], g["ahead"])
+            close.setdefault(k, []).append(g)
+    battles = sorted(
+        [{"car": k[0], "ahead": k[1], "laps_close": len(v),
+          "median_gap": float(np.median([x["gap_s"] for x in v])),
+          "first_lap": int(min(x["lap"] for x in v))} for k, v in close.items()],
+        key=lambda b: (-b["laps_close"], b["median_gap"]))[:8]
+
     # ------------------------------------------------------------------ RDD
     rdd = _rdd_rows(beliefs, gaps)
 
@@ -181,6 +198,7 @@ def analyse(year: int, rnd: int, session_name: str = "R",
                             "notes": f.notes} for d, f in fits.items()},
         },
         "refusals": refusals,
+        "battles": battles,
         "cars": {},
         "laps": lap_rows,
         "gaps": gaps,
@@ -196,7 +214,7 @@ def analyse(year: int, rnd: int, session_name: str = "R",
     for drv in fits:
         kin, tr, bel = kins[drv], traces[drv], beliefs[drv]
         keep = np.isfinite(kin.v) & kin.valid
-        st = max(int(keep.sum()) // 2500, 1)
+        st = max(int(keep.sum()) // 3500, 1)
         sel = np.flatnonzero(keep)[::st]
         payload["cars"][drv] = {
             "driver": drv,
@@ -207,13 +225,17 @@ def analyse(year: int, rnd: int, session_name: str = "R",
             "inherited_pooled": bool(fits[drv].identifiability < MIN_IDENT),
             "n_coast_samples": int(fits[drv].n_coast),
             "reserve_mean": round(bel["reserve_mean"], 1),
+            "recovery_balance": round(float(bel.get("balance", 1.0)), 3),
             "deployed_lap": {str(k): round(v / 1e6, 4) for k, v in bel["deployed_lap"].items()},
             "harvested_lap": {str(k): round(v / 1e6, 4) for k, v in bel["harvested_lap"].items()},
             "trace": {
+                "t": _f(kin.t[sel], 2),      # session time: the shared clock
                 "s": _f(kin.s[sel], 1),
                 "lap": [int(x) for x in kin.lap[sel]],
                 "v": _f(kin.v[sel], 2),
                 "deploy_kw": _f(tr["deploy"][sel] / 1e3, 1),
+                "deploy_lo_kw": _f(tr["deploy_lo"][sel] / 1e3, 1),
+                "deploy_hi_kw": _f(tr["deploy_hi"][sel] / 1e3, 1),
                 "harvest_kw": _f(tr["harvest"][sel] / 1e3, 1),
                 "usable_mean": _f(bel["usable_mean"][sel] / 1e6, 4),
                 "usable_p10": _f(bel["usable_p10"][sel] / 1e6, 4),
@@ -224,9 +246,9 @@ def analyse(year: int, rnd: int, session_name: str = "R",
             # the particle cloud drives the 3D signature visual; 120 particles
             # at every 6th frame is plenty to read as a cloud and keeps the
             # payload small enough to load instantly
-            "cloud_stride": 6,
-            "cloud": [[round(float(x), 2) for x in row[::3]]
-                      for row in (bel["cloud"][sel][::6] / 1e6)],
+            "cloud_stride": 5,
+            "cloud": [[round(float(x), 2) for x in row[::4]]
+                      for row in (bel["cloud"][sel][::5] / 1e6)],
         }
     return payload
 

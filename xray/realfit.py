@@ -37,6 +37,7 @@ from scipy.signal import savgol_filter
 from .constants import (E_HARVEST_LAP, E_STORE_MAX, G, P_ICE_MAX, P_MGUK_MAX,
                         TAPER_V_END, p_mguk_ceiling)
 
+RESERVE_SIGMA_REAL = 5.0e5   # J; a cut-out locates the buffer to about this
 COAST_THROTTLE = 8.0       # % — below this the ICE is effectively off
 COAST_MIN_DECEL = 0.4      # m/s², a real coast, not just noise
 COAST_MAX_DECEL = 12.0     # m/s², above this the brakes are involved
@@ -336,24 +337,55 @@ def fit_nuisance_real(kin: Kin, rho: float, crr: float = 0.012, eta: float = 0.9
 
 def deployment_trace(kin: Kin, fit: RealNuisanceFit, crr: float = 0.012,
                      eta: float = 0.95, smooth_win: int = 5) -> dict:
-    """Deployment and recovery, per sample, from the calibrated model."""
+    """Deployment and recovery per sample, as an identified BAND.
+
+    A speed trace measures total power at the wheels. It cannot see which part
+    of that came from the engine and which from the motor -- both make torque at
+    the same axle. What the regulation does pin down is:
+
+      lower bound   whatever exceeds the 400 kW the ICE is allowed to make must
+                    be electrical. Below that the split is unidentified.
+      upper bound   the MGU-K ceiling at this speed, and no more.
+
+    An earlier version modelled ICE output from the throttle trace and reported
+    the remainder as deployment. That produced laps of 0.2 MJ against a real
+    3-4 MJ, because a real car below about 200 km/h is traction-limited and its
+    wheel power sits under the ICE cap for most of the lap -- so the model
+    attributed everything to the engine and left nothing for the motor. Carrying
+    the ambiguity as a band is the honest answer; collapsing it to a point with
+    an engine model is not.
+    """
     A, B = _terms(kin, fit.v_wind_hat, crr, fit.rho)
     P_obs = A + fit.cda_hat * B
-    P_ice = ice_power(kin, eta)
-    D = np.clip(P_obs / eta - P_ice, 0.0, kin.ceiling)
+    p_wheel = P_obs / eta
+
     if kin.brake is not None:
         braking = np.nan_to_num(kin.brake) > 0.5
     else:
         braking = kin.a < BRAKE_DECEL
-    D = np.where(braking, 0.0, D)
+    if kin.throttle is not None:
+        on_power = np.nan_to_num(kin.throttle) > COAST_THROTTLE
+    else:
+        on_power = kin.a > 0.0
+
+    d_lo = np.clip(p_wheel - P_ICE_MAX, 0.0, None)
+    d_hi = np.where(on_power, p_wheel, 0.0)
+    d_lo = np.minimum(np.clip(d_lo, 0.0, kin.ceiling), kin.ceiling)
+    d_hi = np.clip(np.maximum(d_hi, d_lo), 0.0, kin.ceiling)
+    d_lo = np.where(braking, 0.0, d_lo)
+    d_hi = np.where(braking, 0.0, d_hi)
+
     H = np.where(braking, np.clip(-P_obs, 0.0, P_MGUK_MAX), 0.0)
-    D = np.where(kin.valid, D, np.nan)
-    H = np.where(kin.valid, H, np.nan)
+
+    mid = 0.5 * (d_lo + d_hi)
     if smooth_win > 2:
-        D = _sg(np.nan_to_num(D), smooth_win) * np.where(kin.valid, 1.0, np.nan)
-        D = np.clip(D, 0.0, None)
-    return {"P_obs": P_obs, "deploy": D, "harvest": H, "braking": braking,
-            "P_ice": P_ice}
+        mid = np.clip(_sg(np.nan_to_num(mid), smooth_win), 0.0, None)
+    keep = kin.valid
+    return {"P_obs": P_obs, "deploy": np.where(keep, mid, np.nan),
+            "deploy_lo": np.where(keep, d_lo, np.nan),
+            "deploy_hi": np.where(keep, d_hi, np.nan),
+            "harvest": np.where(keep, H, np.nan), "braking": braking,
+            "P_ice": np.clip(p_wheel - mid, 0.0, P_ICE_MAX)}
 
 
 def common_mode(fits_by_car: dict, kins: dict) -> dict:
@@ -438,16 +470,57 @@ def belief_from_deployment(kin: Kin, tr: dict, fit: RealNuisanceFit,
     """
     rng = np.random.default_rng(seed)
     D, H, dt = tr["deploy"], tr["harvest"], kin.dt
+    Dlo = np.nan_to_num(tr.get("deploy_lo", D))
+    Dhi = np.nan_to_num(tr.get("deploy_hi", D))
     n = len(D)
     ok = np.isfinite(D) & np.isfinite(H) & np.isfinite(dt)
     D = np.where(ok, D, 0.0)
     H = np.where(ok, H, 0.0)
     dtv = np.where(ok, dt, 0.0)
 
+    # The store is bounded at 4 MJ, so over a whole race the net flow must be
+    # within a store of zero -- a car cannot deploy more than it recovers, lap
+    # after lap, for two hours. The raw reconstruction does not respect that: at
+    # Spa it comes out about 0.2 MJ/lap net negative, which over 44 laps pegs
+    # every particle at the floor within a few laps and produces a belief band of
+    # +/-0.00 MJ that is confidently wrong.
+    #
+    # Boundedness therefore identifies the ratio between the deployment and
+    # recovery estimates, which is not otherwise pinned. Centre the recovery
+    # scale on the value that closes the balance and let the spread around it
+    # carry the uncertainty. This is a regulation constraint, not ground truth.
+    # Deployment is identified only between d_lo (what the ICE cannot supply)
+    # and d_hi (the regulatory ceiling). Where in that band the truth sits is not
+    # visible in a speed trace -- but the store is bounded at 4 MJ, so over a
+    # whole race deployment and recovery must agree to within one store. Solve
+    # for the split that closes that balance, and let the particles spread around
+    # it. Leaving the split uniform on [0,1] implies the car runs half on
+    # electricity and gives 10 MJ per lap against a 4 MJ store.
+    dtv_f = np.nan_to_num(dtv)
+    lo_f, hi_f = np.nan_to_num(Dlo), np.nan_to_num(Dhi)
+    tot_h = float(np.sum(np.nan_to_num(H) * dtv_f))
+    tot_lo = float(np.sum(lo_f * dtv_f))
+    tot_span = float(np.sum((hi_f - lo_f) * dtv_f))
+    split_star = float(np.clip((tot_h - tot_lo) / max(tot_span, 1.0), 0.0, 1.0))
+    # Verify against the same quantities the report uses and correct. A 10%
+    # residual imbalance is enough to drain a 4 MJ store inside ten laps and
+    # leave the belief pinned at zero for the rest of the race.
+    for _ in range(3):
+        tot_d = float(np.sum((lo_f + split_star * (hi_f - lo_f)) * dtv_f))
+        err = tot_d - tot_h
+        if abs(err) < 0.005 * max(tot_h, 1.0) or tot_span <= 0:
+            break
+        split_star = float(np.clip(split_star - err / tot_span, 0.0, 1.0))
+    balance = split_star
+
     Np = n_particles
     scale = np.clip(rng.normal(1.0, max(fit.cda_sigma / max(fit.cda_hat, 1e-3), 0.05), Np),
                     0.4, 1.8)
+    # recovery is taken as measured; the deployment split does the balancing
     hscale = np.clip(rng.normal(1.0, 0.12, Np), 0.5, 1.5)
+    # centred on the split that closes the energy balance, spread by how
+    # uncertain that closure is
+    split = np.clip(rng.normal(split_star, 0.22, Np), 0.0, 1.0)
     reserve = rng.uniform(0.0, reserve_max_frac * E_STORE_MAX, Np)
     E = rng.uniform(0.0, E_STORE_MAX, Np)
 
@@ -479,15 +552,31 @@ def belief_from_deployment(kin: Kin, tr: dict, fit: RealNuisanceFit,
         idx = np.flatnonzero(lap == L)
         if len(idx) == 0:
             continue
-        d_l = D[idx] * dtv[idx] * scale[:, None]
+        floor_hits = np.zeros(Np)
+        # A cut-out is one observation. On real, noisy data the detector can
+        # re-arm and fire many times in a lap, and a sharp quadratic penalty each
+        # time collapses the cloud to one particle and reports a 0.1 MJ band with
+        # total confidence. Take the first few per lap and no more.
+        dry_budget = 3
+        # each particle takes its own position inside the identified band, so
+        # the ICE / MGU-K split ambiguity shows up as band width rather than
+        # being silently resolved
+        d_band = Dlo[idx][None, :] + split[:, None] * (Dhi[idx] - Dlo[idx])[None, :]
+        d_l = d_band * dtv[idx][None, :] * scale[:, None]
         h_l = H[idx] * dtv[idx] * hscale[:, None]
         for j, k in enumerate(idx):
             d = d_l[:, j]; h = h_l[:, j]
-            logw -= 6.0 * ((E <= 1.0) & (d > floor_j))
+            # Count floor violations; charge for them ONCE at the end of the lap.
+            # Applying the penalty per sample multiplies it a few thousand times
+            # over and annihilates every particle but one, which is how a belief
+            # band collapses to +/-0.00 MJ and starts lying with total confidence.
+            floor_hits += (E <= 1.0) & (d > floor_j)
             E = np.clip(E + h - d, 0.0, E_STORE_MAX)
-            if dry[k]:
-                logw -= 0.5 * ((E - reserve) / 2.5e5) ** 2
-            W = np.exp(logw - logw.max()); W /= W.sum()
+            if dry[k] and dry_budget > 0:
+                dry_budget -= 1
+                logw -= 0.5 * ((E - reserve) / RESERVE_SIGMA_REAL) ** 2
+            W = np.exp((logw - 6.0 * floor_hits / max(len(idx), 1) * 10.0))
+            W = W / W.sum() if W.sum() > 0 else np.full(Np, 1.0 / Np)
             soc_mean[k] = float(np.sum(E * W))
             order = np.argsort(E); c = np.cumsum(W[order])
             soc_lo[k] = float(E[order][np.searchsorted(c, 0.10)])
@@ -498,21 +587,39 @@ def belief_from_deployment(kin: Kin, tr: dict, fit: RealNuisanceFit,
             use_lo[k] = float(U[uo][np.searchsorted(cu, 0.10)])
             use_hi[k] = float(U[uo][np.searchsorted(cu, 0.90)])
             cloud[k] = U[:cloud.shape[1]].astype(np.float32)
-        dep_lap[int(L)] = float(np.nansum(D[idx] * dtv[idx]))
+        logw = logw - 6.0 * floor_hits / max(len(idx), 1) * 10.0
+        # report the split-corrected deployment, which is what the particles
+        # actually used -- not the raw band midpoint
+        d_star = (np.nan_to_num(Dlo[idx])
+                  + split_star * (np.nan_to_num(Dhi[idx]) - np.nan_to_num(Dlo[idx])))
+        dep_lap[int(L)] = float(np.nansum(d_star * dtv[idx]))
         har_lap[int(L)] = float(np.nansum(H[idx] * dtv[idx]))
         # systematic resampling once per lap
         W = np.exp(logw - logw.max()); W /= W.sum()
         pos = (rng.random() + np.arange(Np)) / Np
         take = np.searchsorted(np.cumsum(W), pos).clip(0, Np - 1)
-        E, scale, hscale, reserve = E[take], scale[take], hscale[take], reserve[take]
+        E, scale, hscale, reserve, split = (E[take], scale[take], hscale[take],
+                                            reserve[take], split[take])
+        split = np.clip(split + rng.normal(0, 0.03, Np), 0.0, 1.0)
+        # Process noise on the store itself. Without it the filter drives every
+        # particle onto the floor and then reports "empty" with a zero-width
+        # band -- certainty it has not earned, since a lap's reconstructed energy
+        # is only good to a few per cent. Sized from that error, not chosen.
+        lap_energy = float(np.nansum(d_star * dtv[idx])) if len(idx) else 0.0
+        E = np.clip(E + rng.normal(0.0, max(0.12 * lap_energy, 5.0e4), Np),
+                    0.0, E_STORE_MAX)
         reserve = np.clip(reserve + rng.normal(0, 0.01 * reserve_max_frac * E_STORE_MAX, Np),
                           0.0, reserve_max_frac * E_STORE_MAX)
         logw = np.zeros(Np)
 
-    return {"soc_mean": soc_mean, "soc_p10": soc_lo, "soc_p90": soc_hi,
+    deploy_star = (np.nan_to_num(Dlo)
+                   + split_star * (np.nan_to_num(Dhi) - np.nan_to_num(Dlo)))
+    return {"deploy_star": np.where(np.isfinite(tr["deploy"]), deploy_star, np.nan),
+            "soc_mean": soc_mean, "soc_p10": soc_lo, "soc_p90": soc_hi,
             "usable_mean": use_mean, "usable_p10": use_lo, "usable_p90": use_hi,
             "cloud": cloud, "dry": dry, "deployed_lap": dep_lap,
-            "harvested_lap": har_lap, "reserve_mean": float(np.mean(reserve))}
+            "harvested_lap": har_lap, "reserve_mean": float(np.mean(reserve)),
+            "balance": balance}
 
 
 def observability(kin: Kin, fit: RealNuisanceFit, track, crr: float = 0.012,

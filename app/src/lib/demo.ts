@@ -7,8 +7,8 @@ import { usePlayback } from '../store/playback';
  * click on a control stops it.
  */
 export const DEMO_BEATS = [
-  { label: 'intro', s: 4, apply: () => set({ camera: 'tactical', paintMode: 'neutral', showCloud: false }) },
-  { label: 'a race', s: 6, apply: () => set({ camera: 'chase', showCloud: false }) },
+  { label: 'intro orbit', s: 4, apply: () => set({ camera: 'chase', paintMode: 'neutral', showCloud: false }) },
+  { label: 'just a race', s: 6, apply: () => set({ camera: 'chase', showCloud: false }) },
   { label: 'cloud materialises', s: 3, apply: () => set({ showCloud: true }) },
   { label: 'convergence', s: 8, apply: () => set({ camera: 'duel', showCloud: true }) },
   { label: 'trails ignite', s: 5, apply: () => set({ paintMode: 'deployment' }) },

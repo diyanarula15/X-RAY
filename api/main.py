@@ -35,12 +35,18 @@ def _race(rid: str) -> dict:
     return json.loads(p.read_text())
 
 
+@lru_cache(maxsize=1)
+def _all_races_cached(stamp: str) -> str:
+    """Summaries only. Re-parsing every race payload on every /api/races call
+    meant reading ~160 MB of JSON to answer a request that returns 3 kB."""
+    return json.dumps([_summary(json.loads(p.read_text()))
+                       for p in sorted(RACES.glob("*.json"))])
+
+
 def _all_races() -> list[dict]:
-    out = []
-    for p in sorted(RACES.glob("*.json")):
-        d = json.loads(p.read_text())
-        out.append(_summary(d))
-    return out
+    stamp = ",".join(f"{p.name}:{p.stat().st_mtime_ns}"
+                     for p in sorted(RACES.glob("*.json")))
+    return json.loads(_all_races_cached(stamp))
 
 
 def _summary(d: dict) -> dict:
@@ -64,6 +70,17 @@ def races():
     return _all_races()
 
 
+@app.on_event("startup")
+def _warm() -> None:
+    """Preload so the first request is not the slow one."""
+    try:
+        _all_races()
+        for p in sorted(RACES.glob("*.json"))[:1]:
+            _race(p.stem)
+    except Exception:
+        pass
+
+
 @app.get("/api/race/{rid}/summary")
 def summary(rid: str):
     d = _race(rid)
@@ -73,6 +90,7 @@ def summary(rid: str):
         "refusals": d["refusals"],
         "calibration": d["calibration"],
         "drivers": sorted(d["cars"].keys()),
+        "battles": d.get("battles", []),
         "laps": d["laps"][:2000],
     }
 
