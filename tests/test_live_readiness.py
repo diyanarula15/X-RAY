@@ -29,7 +29,7 @@ XRAY = Path(__file__).resolve().parent.parent / "xray"
 # a port that had to drag a DataFrame into a kernel would not be a port.
 KERNELS = ("estimator.py", "realfit.py", "overtake.py", "decision.py",
            "metrics.py", "observe.py", "constants.py", "track.py",
-           "regs.py", "balance.py", "setmem.py")
+           "regs.py", "balance.py", "setmem.py", "modes.py")
 IMPURE = {"pandas", "fastf1", "matplotlib", "pyplot", "json", "requests"}
 
 # Longest braking event on seed 42, measured at both rates: 1.730 s at 100 Hz,
