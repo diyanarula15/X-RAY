@@ -203,6 +203,67 @@ export function Method({ races, current }:
             ) : <P>loading…</P>}
           </S>
 
+          <S title="DOES IT ACTUALLY PICK THE RIGHT LAP?">
+            <P>
+              The question the whole system exists to answer, tested where the
+              true answer is known. In simulation we can solve the same decision
+              problem three ways and score all three on the same ground truth:
+              an <b style={{ color: C.white }}>oracle</b> given the rival's real
+              energy, <b style={{ color: C.amber }}>X-RAY</b> given only a noisy
+              speed trace, and a <b>blind</b> driver with no read at all.
+            </P>
+            <table className="num" style={{ width: '100%', fontSize: 12.5,
+              color: C.gray, borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ color: C.dim, fontSize: 10.5 }}>
+                  <th style={{ textAlign: 'left', paddingBottom: 6 }}>method</th>
+                  <th style={{ textAlign: 'right' }}>expected value</th>
+                  <th style={{ textAlign: 'right' }}>lap chosen</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderTop: `1px solid ${C.grid}` }}>
+                  <td style={{ padding: '6px 0' }}>best possible</td>
+                  <td style={{ textAlign: 'right' }}>0.496</td>
+                  <td style={{ textAlign: 'right' }}>3.0</td></tr>
+                <tr style={{ borderTop: `1px solid ${C.grid}` }}>
+                  <td style={{ padding: '6px 0', color: C.white }}>oracle (true energy)</td>
+                  <td style={{ textAlign: 'right', color: C.white }}>0.483</td>
+                  <td style={{ textAlign: 'right' }}>2.0</td></tr>
+                <tr style={{ borderTop: `1px solid ${C.grid}` }}>
+                  <td style={{ padding: '6px 0', color: C.amber }}>X-RAY (from speed)</td>
+                  <td style={{ textAlign: 'right', color: C.amber }}>0.491</td>
+                  <td style={{ textAlign: 'right' }}>2.6</td></tr>
+                <tr style={{ borderTop: `1px solid ${C.grid}` }}>
+                  <td style={{ padding: '6px 0' }}>blind, random lap</td>
+                  <td style={{ textAlign: 'right' }}>0.334</td>
+                  <td style={{ textAlign: 'right' }}>5.3</td></tr>
+                <tr style={{ borderTop: `1px solid ${C.grid}` }}>
+                  <td style={{ padding: '6px 0' }}>blind, first chance</td>
+                  <td style={{ textAlign: 'right', color: C.red }}>0.023</td>
+                  <td style={{ textAlign: 'right' }}>1.0</td></tr>
+              </tbody>
+            </table>
+            <P>
+              At full telemetry rate X-RAY picks the oracle's exact lap in{' '}
+              <b style={{ color: C.green }}>100%</b> of races. At the 4.17 Hz rate
+              real 2026 telemetry actually arrives at, it is exact 40% of the time
+              and <b style={{ color: C.green }}>within one lap in 100%</b> — and
+              the cost of that error in expected value is nil.
+            </P>
+            <P>
+              Two honest notes. X-RAY can score <i>above</i> the oracle on
+              individual seeds; that is estimation error landing favourably, not
+              skill. And the engine does not maximise the chance of a pass — it
+              maximises laps spent in front, so it correctly takes a 0.53 chance
+              on lap 2 over a 0.63 chance on lap 9.
+            </P>
+            <P>
+              Reproduce with <span className="mono" style={{ color: C.white }}>
+              python scripts/validate_decision.py --seeds 25</span>.
+            </P>
+          </S>
+
           <S title="BAND CALIBRATION, BOTH DIRECTIONS">
             <P>
               In simulation the deployable-energy band covers the truth 86–90% of

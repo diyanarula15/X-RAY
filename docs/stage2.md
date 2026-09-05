@@ -167,6 +167,38 @@ apart, and which made the boundary unfindable by construction.
 
 ---
 
+## Does it actually pick the right lap?
+
+The question the system exists to answer, tested where the true answer is known.
+`scripts/validate_decision.py` simulates seeded races and solves the same
+decision problem three ways, scoring all three on the same ground truth:
+
+- **oracle** — the DP given the rival's *true* deployable energy. The ceiling.
+- **X-RAY** — the same DP given only a noisy, downsampled speed trace.
+- **blind** — attack on the first affordable lap, and a fairer random-lap variant.
+
+| method | expected value | p(pass) | lap chosen |
+|---|---|---|---|
+| best possible | 0.496 | 0.627 | 3.0 |
+| **oracle** (true energy) | 0.483 | 0.527 | 2.0 |
+| **X-RAY** (from speed) | **0.491** | 0.568 | 2.6 |
+| blind, random lap | 0.334 | 0.548 | 5.3 |
+| blind, first chance | 0.023 | 0.023 | 1.0 |
+
+At full telemetry rate X-RAY picks **the oracle's exact lap in 100% of races**. At
+the 4.17 Hz rate real 2026 telemetry actually arrives at, it is exact 40% of the
+time and **within one lap in 100%** — and the expected-value cost of that error is
+nil. Against a blind driver attacking at the first opportunity, +0.468 expected
+value with a 95% CI of [+0.466, +0.471]; against the fairer random-lap baseline,
++0.157 with CI [+0.096, +0.218].
+
+Two things worth stating rather than burying. X-RAY sometimes scores *above* the
+oracle on individual seeds — that is estimation error landing favourably, not
+skill, and it is why the comparison is reported over 25 seeds rather than one.
+And the engine does not maximise the chance of a pass: it maximises laps spent in
+front, so it correctly prefers a 0.53 chance on lap 2 to a 0.63 chance on lap 9.
+Scoring it on p(pass) alone would mark it down for being right.
+
 ## The interface
 
 React, TypeScript, Vite. React Three Fiber for the scene, D3 for every

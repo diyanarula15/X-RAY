@@ -7,6 +7,7 @@ import { usePlayback } from '../store/playback';
 import { EnergyBar, Panel, Refusal } from '../components/Readouts';
 import { ScrubBar } from '../components/ScrubBar';
 import { SpeedTrace } from '../components/SpeedTrace';
+import { SceneLegend } from '../components/Explain';
 import { Scene } from '../three/Scene';
 
 export function Theatre({ race, subject, rival, obs }: {
@@ -100,6 +101,10 @@ export function Theatre({ race, subject, rival, obs }: {
       <div style={{ position: 'absolute', top: 18, right: 18, width: 330,
                     display: 'flex', flexDirection: 'column', gap: 12 }}>
         <Panel>
+          <div style={{ color: C.dim, fontSize: 10.5, marginBottom: 8, lineHeight: 1.5 }}>
+            Deployable energy — how much each car can still throw at the other.
+            Yours is known; theirs is reconstructed from speed.
+          </div>
           <EnergyBar label={`YOU — ${subject?.driver ?? '—'}`}
             mean={sS?.usable ?? null} p10={sS?.p10} p90={sS?.p90} colour={C.amber}
             sub={sS ? (sS.usable < 0.02
@@ -137,9 +142,14 @@ export function Theatre({ race, subject, rival, obs }: {
           <Refusal title={`CANNOT ESTIMATE — ${refusal[0]}`} message={refusal[1].message} />
         )}
 
+        <SceneLegend />
+
         <Panel style={{ padding: 11 }}>
           <div style={{ color: C.gray, fontSize: 10, letterSpacing: '0.09em',
-                        marginBottom: 7, fontWeight: 700 }}>TRACK PAINT</div>
+                        marginBottom: 3, fontWeight: 700 }}>TRACK PAINT</div>
+          <div style={{ color: C.dim, fontSize: 10.5, marginBottom: 7 }}>
+            what to colour the circuit by
+          </div>
           <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
             {(['neutral', 'deployment', 'observability', 'refusal'] as const).map((m) => (
               <button key={m} onClick={() => setPaint(m)}
@@ -151,7 +161,10 @@ export function Theatre({ race, subject, rival, obs }: {
             ))}
           </div>
           <div style={{ color: C.gray, fontSize: 10, letterSpacing: '0.09em',
-                        margin: '11px 0 7px', fontWeight: 700 }}>CAMERA</div>
+                        margin: '11px 0 3px', fontWeight: 700 }}>CAMERA</div>
+          <div style={{ color: C.dim, fontSize: 10.5, marginBottom: 7 }}>
+            chase follows you · duel frames both · tactical shows the lap
+          </div>
           <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
             {(['chase', 'duel', 'tactical'] as const).map((m) => (
               <button key={m} onClick={() => setCam(m)}
