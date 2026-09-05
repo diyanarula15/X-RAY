@@ -63,7 +63,28 @@ CEIL_PENALTY = 0.35        # relative to the floor penalty. A particle pinned at
                            # the ceiling claims the team threw recovered energy
                            # away lap after lap: possible, unlike deploying from
                            # an empty store, so penalised more softly.
-FLOOR_PENALTY = 6.0
+FLOOR_PENALTY = 6.0        # retained only for the historical note above
+
+# Priors on the three policy parameters, in m/s. Wide: they are a *proposal*
+# for where inside the deployment band P_K sits, not a claim about the driver.
+V_CUT_PRIOR = (45.0, 100.0)
+V_HARV_PRIOR = (70.0, 105.0)
+WIDTH_PRIOR = (2.0, 9.0)
+
+# Store closure per lap. A car cannot deploy materially more than it recovers
+# lap after lap on a 4 MJ store; the Manual Override allowance is 0.5 MJ, so the
+# scale is one allowance plus room for the store to breathe.
+CLOSURE_SIGMA_J = 1.0e6
+
+# Bisection on the policy prior's amplitude. 24 steps on [0, LAMBDA_MAX] is
+# 1e-7 of the range, far below the energy resolution, and the cost is 24
+# vectorised clips per lap.
+LAMBDA_MAX = 4.0
+LAMBDA_BISECT_STEPS = 24
+
+
+def _sigmoid(x):
+    return 1.0 / (1.0 + np.exp(-np.clip(x, -60.0, 60.0)))
 
 
 @dataclass(frozen=True)
@@ -86,6 +107,7 @@ class Belief:
     theta_post_hi: np.ndarray
     n_particles: int
     dry: np.ndarray
+    notes: tuple = ()
 
 
 def _sample_theta(ident, rng, n: int) -> np.ndarray:
@@ -124,8 +146,30 @@ def run(feed, ident, regs: RegSet, rho: float, n_particles: int = 400,
         seed: int = 0, eta_d: float = 0.95, m_published: float = 790.0,
         fuel_start: float = 70.0, fuel_burn_per_lap: float = 1.15,
         is_x=None, regime=None, rao_blackwell: bool = True,
-        n_laps: int | None = None, v_cut: float | None = None) -> Belief:
-    """Filter the store forward, one lap of resampling at a time."""
+        n_laps: int | None = None, closure_sigma_j: float = CLOSURE_SIGMA_J,
+        policy_prior: bool = True, reject_outside_box: bool = True) -> Belief:
+    """Filter the store forward. Policy prior proposes, the store box rejects.
+
+    Inside the identified polytope the trace is uninformative *by construction*:
+    every theta in P explains the data exactly, which is what set membership
+    means. So the only things that can discriminate between particles are
+
+      (a) the store box -- 0 to 4 MJ, as a rejection;
+      (b) store closure per lap -- deployed and harvested must agree to within
+          one store plus the Manual Override allowance;
+      (c) the strategy prior, which is what decides where inside the deployment
+          band each particle's P_K actually sits.
+
+    Without (c) the assignment of P_K within the band is arbitrary -- uniform,
+    or the midpoint -- and then the store-floor penalty is the only selection
+    pressure left. Measured, that biased drag low (less drag, less inferred
+    deployment, fuller store, fewer floor hits) and did double duty as the only
+    thing making the energy estimate work at all: at FLOOR_PENALTY = 0 the CdA
+    posterior was exactly the uniform draw mean and per-lap energy was 344.7%
+    out; at 6.0 the posterior sat at 0.277 against a true 0.660 with ESS 12 of
+    400. There is no setting of that knob that is not trading drag bias against
+    energy accuracy, which is why it is gone.
+    """
     rng = np.random.default_rng(seed)
     n = len(feed)
     Np = n_particles
@@ -135,25 +179,19 @@ def run(feed, ident, regs: RegSet, rho: float, n_particles: int = 400,
     e_wheel, dt = _interval_terms(feed, theta, rho, m_published, fuel_start,
                                   fuel_burn_per_lap, is_x)
 
-    # Regulation bounds on the store-side flow over each interval, which is
-    # what the ICE / MGU-K split ambiguity actually amounts to. Deployment is
-    # bounded below by whatever the engine cannot supply and above by the
-    # ceiling; where in that band the truth sits is not visible in a speed
-    # trace, so each particle takes its own position and the ambiguity shows up
-    # as band width instead of being silently resolved.
     v_cap = np.minimum(feed.v[:-1], feed.v[1:])
     rpm_hi = np.maximum(feed.rpm[:-1], feed.rpm[1:])
     thr_hi = np.maximum(feed.throttle[:-1], feed.throttle[1:])
     zone = np.asarray(feed.in_zone, bool)
+    zone_i = zone[:-1] | zone[1:]
     mo = (None if feed.manual_override is None
           else np.asarray(feed.manual_override, bool)[:-1])
-    pk_lo, pk_hi = p_k_bounds(v_cap, zone[:-1] | zone[1:], rpm_hi, thr_hi, regs,
+    pk_lo, pk_hi = p_k_bounds(v_cap, zone_i, rpm_hi, thr_hi, regs,
                               False if mo is None else mo)
     e_ice_max = eta_d * p_ice_max(rpm_hi, thr_hi, regs) * dt
     d_lo = np.clip(e_wheel - e_ice_max[None, :], 0.0, None)
     d_hi = np.minimum(np.maximum(e_wheel, d_lo), (pk_hi * eta_d * dt)[None, :])
     d_hi = np.maximum(d_hi, d_lo)
-    h_cap = (-pk_lo * dt)[None, :]
 
     braking = np.zeros(n - 1, bool) if regime is None else (
         np.asarray(regime)[:-1] == BRAKE_HARVEST)
@@ -161,181 +199,159 @@ def run(feed, ident, regs: RegSet, rho: float, n_particles: int = 400,
         np.asarray(regime)[:-1] == SUPER_CLIP)
     recovering = braking | superclip
     harvest = np.where(recovering[None, :],
-                       np.clip(-e_wheel, 0.0, h_cap), 0.0)
-    deploy_lo = np.where(recovering[None, :], 0.0, d_lo)
-    deploy_hi = np.where(recovering[None, :], 0.0, d_hi)
+                       np.clip(-e_wheel, 0.0, (-pk_lo * dt)[None, :]), 0.0)
+    d_lo = np.where(recovering[None, :], 0.0, d_lo)
+    d_hi = np.where(recovering[None, :], 0.0, d_hi)
 
-    split = rng.random(Np)
-    reserve = rng.uniform(0.0, RESERVE_MAX_FRAC * E_STORE_MAX, Np)
+    # (c) the strategy prior, as the proposal for where in the band P_K sits.
+    # Three interpretable parameters per particle -- see strategy.py for the
+    # 1/(m v^3) argument that makes them the right three.
+    v_cut = rng.uniform(*V_CUT_PRIOR, Np)
+    v_harv = rng.uniform(*V_HARV_PRIOR, Np)
+    width = rng.uniform(*WIDTH_PRIOR, Np)
+    split = rng.random(Np)          # fallback when the prior is switched off
+
     E = rng.uniform(0.0, E_STORE_MAX, Np)
-    # Rao-Blackwellised second moment: the store's variance is propagated in
-    # closed form from the width of the deployment band, rather than being
-    # represented by extra particles. This is the whole reason a few hundred
-    # particles suffice.
     E_var = np.zeros(Np)
-    # Net flow since the last reserve hit. Deployable energy is this integral,
-    # not E - R: the two particle dimensions are identified only jointly, but
-    # their *difference* since a known reference point is measured directly by
-    # the flows. Reporting the integral sidesteps the degeneracy instead of
-    # fighting it.
-    since = np.zeros(Np)
+    alive = np.ones(Np, bool)
+    # Cumulative flow, and its running minimum. Deployable energy is the gap
+    # between them and needs no cut-out detector at all: the store is known up
+    # to a constant, E_k = c + F_k, so if the driver has touched the reserve at
+    # least once then E_min = R and D_k = F_k - min_{j<=k} F_j exactly, with c
+    # and R both cancelling. Before the first touch it is a lower bound.
+    F = np.zeros(Np)
+    F_min = np.zeros(Np)
 
     soc_m = np.empty(n); soc_lo = np.empty(n); soc_hi = np.empty(n)
     use_m = np.empty(n); use_lo = np.empty(n); use_hi = np.empty(n)
     since_m = np.empty(n)
-    dry = np.zeros(n, bool)
     logw = np.zeros(Np)
     laps = np.asarray(feed.lap_frac, float).astype(int)
-    # Stint length is published, so this is not cheating -- and it must not be
-    # read off the window, which would move the release ramp as the race runs.
     n_laps_total = int(laps.max()) + 1 if n_laps is None else int(n_laps)
     dep_lap, har_lap, ess = {}, {}, []
+    notes = []
 
-    # A RESERVE hit, as distinct from a policy cut-out -- and the distinction is
-    # the whole difficulty. Both look like "deployment stopped at full
-    # throttle". A policy cut-out happens at the driver's chosen cut-off speed
-    # v_cut and resumes at the next corner exit; a reserve hit is unconditional
-    # on speed and *persists* until the next harvest. Treating the first as the
-    # second pins the buffer to the store level at every straight -- near full --
-    # which is exactly a large R inferred for a driver holding none.
-    #
-    # So the gate is: below the policy cut-off (where the prior says the driver
-    # still wants to deploy), with real headroom under the regulation ceiling,
-    # on full throttle, gaining speed, and deployment still zero.
-    #
-    # A cut-out: on power, below the taper, *gaining speed*, and the
-    # reconstruction says deployment stopped. The single most informative event
-    # about a hidden store -- and the accelerating gate is not optional.
-    #
-    # Without it a corner-limited car qualifies: it is on full throttle and not
-    # deploying because it does not need to, which is not the same as having
-    # nothing left. Measured on seed 42, the ungated detector fired 36 times at
-    # a true store of 0.01 MJ median but 2.86 MJ maximum, and the false
-    # detections at a nearly-full store taught the filter a 0.91 MJ buffer for a
-    # driver holding none. That put the deployable-energy band 0.91 MJ low,
-    # clipped it at zero, and dropped coverage to 0.03 -- a band that had
-    # collapsed and was lying, while the underlying store estimate was fine.
-    on_power = np.asarray(feed.throttle, float)[:-1] > 0.7
-    room = pk_hi > 1.0e5
-    gaining = np.diff(np.asarray(feed.v, float)) > 0.2
-    # below the driver's own cut-off: where the policy prior still wants to
-    # deploy, so a stop here is not the policy's doing
-    v_int = np.minimum(np.asarray(feed.v, float)[:-1], np.asarray(feed.v, float)[1:])
-    below_cut = (np.ones(n - 1, bool) if v_cut is None else v_int < float(v_cut))
-    armed = False
-
-    def reserve_eff_at(lap: int) -> np.ndarray:
-        laps_left = max(n_laps_total - int(lap), 0)
-        return reserve * min(1.0, laps_left / RESERVE_RELEASE_LAPS)
+    def weights():
+        lw = np.where(alive, logw, -np.inf)
+        if not np.isfinite(lw).any():
+            return None
+        w = np.exp(lw - lw.max())
+        return w / w.sum()
 
     def record(k, w):
         soc_m[k] = float(np.sum(E * w))
         order = np.argsort(E); c = np.cumsum(w[order])
         soc_lo[k] = float(E[order][min(np.searchsorted(c, 0.10), Np - 1)])
         soc_hi[k] = float(E[order][min(np.searchsorted(c, 0.90), Np - 1)])
-        since_m[k] = float(np.sum(np.maximum(since, 0.0) * w))
-        U = np.maximum(E - reserve_eff_at(laps[k]), 0.0)
-        use_m[k] = float(np.sum(U * w))
-        uo = np.argsort(U); cu = np.cumsum(w[uo])
-        use_lo[k] = float(U[uo][min(np.searchsorted(cu, 0.10), Np - 1)])
-        use_hi[k] = float(U[uo][min(np.searchsorted(cu, 0.90), Np - 1)])
+        D = np.maximum(F - F_min, 0.0)
+        use_m[k] = float(np.sum(D * w))
+        uo = np.argsort(D); cu = np.cumsum(w[uo])
+        use_lo[k] = float(D[uo][min(np.searchsorted(cu, 0.10), Np - 1)])
+        use_hi[k] = float(D[uo][min(np.searchsorted(cu, 0.90), Np - 1)])
+        since_m[k] = use_m[k]
 
     w = np.full(Np, 1.0 / Np)
     record(0, w)
-    floor_hits = np.zeros(Np)
-    ceil_hits = np.zeros(Np)
-    cur_lap = laps[0]
     dep_acc = np.zeros(Np)
     har_acc = np.zeros(Np)
-    dry_budget = DRY_PER_LAP
 
-    for k in range(n - 1):
-        d = deploy_lo[:, k] + split * (deploy_hi[:, k] - deploy_lo[:, k])
-        h = harvest[:, k]
-        band = deploy_hi[:, k] - deploy_lo[:, k]
-        if rao_blackwell:
-            # variance of a uniform position inside the identified band
-            E_var = E_var + (band ** 2) / 12.0
-        floor_hits += (E <= 1.0) & (d > 1.0e3)
-        ceil_hits += (E >= E_STORE_MAX - 1.0) & (h > 1.0e3)
-        # The store the cut-out was observed AT is the one before this
-        # interval's flows are applied. Using the post-update value offsets the
-        # observation by one interval, which is the same class of bug as the
-        # simulator's own record-after-step ordering.
-        E_at_event = E
-        E = np.clip(E + h - d, 0.0, E_STORE_MAX)
-        # net flow since the last reserve hit: this is the deployable quantity,
-        # and it is identified WITHOUT separating E from R
-        since = since + (h - d)
-        dep_acc += d
-        har_acc += h
+    # Blocked by lap, because the policy prior's *scale* has to be solved rather
+    # than assumed. The prior gives the shape of P_K -- deploy below the cut-off
+    # speed, taper above it -- but its amplitude saturates at the regulation
+    # ceiling, so taking it at face value simply pins deployment to the top of
+    # the band: measured, 3.82 MJ/lap against a true 2.41, a net flow of
+    # -1.71 MJ/lap against a true -0.25, and a store that drifts 20 MJ out of a
+    # 4 MJ box. Store closure is what sets the amplitude, and it has to be
+    # *solved* for, not weighted: no particle satisfies it by luck.
+    interval_lap = laps[:-1]
+    for lap_id in np.unique(interval_lap):
+        sl = np.flatnonzero(interval_lap == lap_id)
+        if len(sl) == 0:
+            continue
+        h_lap = harvest[:, sl]
+        want_lap = ((pk_hi[sl] * eta_d * dt[sl])[None, :]
+                    * _sigmoid((v_cut[:, None] - v_cap[sl][None, :])
+                               / np.maximum(width, 1e-3)[:, None]))
+        lo_lap, hi_lap = d_lo[:, sl], d_hi[:, sl]
 
-        if on_power[k] and room[k] and gaining[k] and below_cut[k]:
-            # Detecting on the deployment lower bound instead of the band
-            # midpoint was tried and is worse: d_lo is regulation-grounded
-            # (d_lo > 0 means the ICE provably cannot have supplied the power),
-            # but it is also zero for most of a lap, so the detector loses the
-            # events that matter. Store-band coverage fell 0.69 -> 0.55 with no
-            # improvement in the inferred buffer (0.85 MJ against 0.98).
-            p_d = float(np.mean(d)) / max(dt[k], 1e-6)
-            if p_d > DRY_ARM_W:
-                armed = True
-            elif armed and p_d < DRY_FIRE_W and dry_budget > 0:
-                dry[k] = True
-                armed = False
-                dry_budget -= 1
-                # The Rao-Blackwellised part earning its name: the store's
-                # own propagated variance enters the likelihood, so a cut-out
-                # observed after a long stretch of ambiguous deployment counts
-                # for less than one observed right after a well-determined
-                # stretch. Carrying E_var and not using it here would make the
-                # label decoration.
-                var = RESERVE_SIGMA_J ** 2 + E_var
-                logw = logw - 0.5 * (E_at_event - reserve_eff_at(laps[k])) ** 2 / var
-                # the store was at the buffer here, so deployable resets to zero
-                since = np.zeros(Np)
+        if policy_prior:
+            # d(lam) is monotone non-decreasing in lam, so bisection is exact
+            # to tolerance in a fixed number of steps and needs no derivative.
+            target = h_lap.sum(axis=1)
+            lam_lo = np.zeros(Np)
+            lam_hi = np.full(Np, LAMBDA_MAX)
+            for _ in range(LAMBDA_BISECT_STEPS):
+                lam = 0.5 * (lam_lo + lam_hi)
+                tot = np.clip(lam[:, None] * want_lap, lo_lap, hi_lap).sum(axis=1)
+                too_much = tot > target
+                lam_hi = np.where(too_much, lam, lam_hi)
+                lam_lo = np.where(too_much, lam_lo, lam)
+            lam = 0.5 * (lam_lo + lam_hi)
+            d_lap = np.clip(lam[:, None] * want_lap, lo_lap, hi_lap)
+        else:
+            d_lap = lo_lap + split[:, None] * (hi_lap - lo_lap)
 
-        w = np.exp(logw - logw.max())
-        w = w / w.sum() if w.sum() > 0 else np.full(Np, 1.0 / Np)
-        record(k + 1, w)
+        for j, k in enumerate(sl):
+            d = d_lap[:, j]
+            h = h_lap[:, j]
+            if rao_blackwell:
+                E_var = E_var + ((hi_lap[:, j] - lo_lap[:, j]) ** 2) / 12.0
+            E_new = E + h - d
+            if reject_outside_box:
+                alive = alive & (E_new >= -1.0) & (E_new <= E_STORE_MAX + 1.0)
+            E = np.clip(E_new, 0.0, E_STORE_MAX)
+            F = F + (h - d)
+            F_min = np.minimum(F_min, F)
+            dep_acc += d
+            har_acc += h
+            w = weights()
+            if w is None:
+                notes.append(
+                    f"every particle left the 0-4 MJ store box by sample {k}: "
+                    f"the deployment band and the identified drag cannot be "
+                    f"reconciled with a 4 MJ store on this trace")
+                w = np.full(Np, 1.0 / Np)
+                alive = np.ones(Np, bool)
+                logw = np.zeros(Np)
+            record(k + 1, w)
 
-        if laps[k + 1] != cur_lap or k == n - 2:
-            nk = max(np.sum(laps[:-1] == cur_lap), 1)
-            logw = logw - FLOOR_PENALTY * floor_hits / nk * 10.0
-            logw = logw - CEIL_PENALTY * FLOOR_PENALTY * ceil_hits / nk * 10.0
-            w = np.exp(logw - logw.max()); w /= w.sum()
-            ess.append(float(1.0 / np.sum(w ** 2)))
-            dep_lap[int(cur_lap)] = float(np.sum(dep_acc * w))
-            har_lap[int(cur_lap)] = float(np.sum(har_acc * w))
-            take = _systematic(w, rng)
-            E, E_var, theta, split, reserve, since = (
-                E[take], E_var[take], theta[take], split[take], reserve[take],
-                since[take])
-            # Process noise on the store, sized from the reconstruction's own
-            # per-lap error rather than chosen. Without it the filter drives
-            # every particle onto the floor and then reports "empty" with a
-            # zero-width band -- certainty it has not earned.
-            lap_e = max(float(np.mean(dep_acc)), 5.0e4)
-            E = np.clip(E + rng.normal(0.0, 0.12 * lap_e, Np), 0.0, E_STORE_MAX)
-            reserve = np.clip(
-                reserve + rng.normal(0.0, RESERVE_JITTER_FRAC * RESERVE_MAX_FRAC * E_STORE_MAX, Np),
-                0.0, RESERVE_MAX_FRAC * E_STORE_MAX)
-            logw = np.zeros(Np)
-            floor_hits = np.zeros(Np); ceil_hits = np.zeros(Np)
-            dep_acc = np.zeros(Np); har_acc = np.zeros(Np)
-            dry_budget = DRY_PER_LAP
-            cur_lap = laps[k + 1]
+        # Store closure, with the Rao-Blackwellised variance in the
+        # denominator. This is where E_var earns the name: a particle whose
+        # deployment band was wide all lap has a genuinely uncertain net flow
+        # and should not be judged against closure as harshly as one whose band
+        # was tight. Carrying E_var and never using it would make
+        # "Rao-Blackwellised" decoration -- which is what an earlier version of
+        # this module did.
+        net = har_acc - dep_acc
+        logw = logw - 0.5 * net ** 2 / (closure_sigma_j ** 2 + E_var)
+        w = weights()
+        if w is None:
+            w = np.full(Np, 1.0 / Np); alive = np.ones(Np, bool); logw = np.zeros(Np)
+        ess.append(float(1.0 / np.sum(w ** 2)))
+        dep_lap[int(lap_id)] = float(np.sum(dep_acc * w))
+        har_lap[int(lap_id)] = float(np.sum(har_acc * w))
+        take = _systematic(w, rng)
+        E, E_var, theta, split, F, F_min = (
+            E[take], E_var[take], theta[take], split[take], F[take], F_min[take])
+        v_cut, v_harv, width = v_cut[take], v_harv[take], width[take]
+        alive = np.ones(Np, bool)
+        v_cut = np.clip(v_cut + rng.normal(0.0, 1.5, Np), *V_CUT_PRIOR)
+        v_harv = np.clip(v_harv + rng.normal(0.0, 1.5, Np), *V_HARV_PRIOR)
+        logw = np.zeros(Np)
+        dep_acc = np.zeros(Np); har_acc = np.zeros(Np)
 
-    w = np.exp(logw - logw.max()); w /= w.sum()
+    w = weights()
+    if w is None:
+        w = np.full(Np, 1.0 / Np)
     return Belief(
         t=np.asarray(feed.t).copy(), soc_mean=soc_m, soc_p10=soc_lo,
         soc_p90=soc_hi, usable_mean=use_m, usable_p10=use_lo, usable_p90=use_hi,
         since_reserve=since_m, deployed_lap=dep_lap, harvested_lap=har_lap,
-        reserve_mean=float(np.sum(reserve * w)),
-        reserve_sigma=float(np.sqrt(np.sum(w * (reserve - np.sum(reserve * w)) ** 2))),
+        reserve_mean=float(np.sum(-F_min * w)),
+        reserve_sigma=float(np.sqrt(np.sum(w * (-F_min - np.sum(-F_min * w)) ** 2))),
         ess=np.array(ess), theta_post_mean=np.sum(theta * w[:, None], axis=0),
         theta_post_lo=theta.min(axis=0), theta_post_hi=theta.max(axis=0),
-        n_particles=Np, dry=dry)
+        n_particles=Np, dry=np.zeros(n, bool), notes=tuple(notes))
 
 
 def _systematic(w: np.ndarray, rng) -> np.ndarray:

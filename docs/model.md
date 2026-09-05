@@ -158,21 +158,79 @@ diagnoses nothing.
 | Constraint containment | 0 upper-bound violations at 3.7 / 20 / 100 Hz |
 | Braking classification | exact (it is a rule, not an inference) |
 | Aero mode agreement | 93.1%, with >95% of the residual at braking samples |
-| Raw store band coverage | 0.72 at 0.46 MJ width |
-| Per-lap deployed energy | 5.1% MAPE |
+| Deployable-energy band coverage | 0.62 at 0.17 MJ width |
+| Raw store band coverage | 0.50 (not the headline -- see invariant 4) |
+| Per-lap deployed energy | 12.9% MAPE |
 | Policy recovery (v_cut, v_harv, w) | 71.9 / 88.0 / 3.0 against 72 / 88 / 3 |
 | Field pooling | 48% mean-absolute-error reduction over 20 cars |
 | LP cost | 11-18 ms for a 12-lap race |
 
-The particle count is a **correctness** parameter, not a speed dial: 100
-particles collapses (ESS 1 of 100, 39.6% error), 400 works, 1,600 buys nothing.
+Particle count, re-measured after the priors changed: deployable coverage is
+flat from 200 particles up (0.57 / 0.63 / 0.62 / 0.62 / 0.60 at 100 / 200 / 400
+/ 800 / 1600) so 200 is enough. The earlier "400 is the knee, 100 collapses to
+39.6% error" was an artefact of a polytope whose drag floor was the prior box.
 
 ---
 
+## Deployable energy: fixed, and how
+
+The band now covers **0.62 at 0.17 MJ width**, against 0.04 before. Three
+changes did it, and their ablations say which mattered.
+
+**Inside the polytope the trace is uninformative by construction.** Every theta
+in P explains the data exactly -- that is what set membership *means* -- so
+something has to decide where inside the deployment band P_K sits. Previously
+nothing did (a uniform position), which left the store-floor penalty as the only
+selection pressure. That penalty was simultaneously the only thing making the
+energy estimate work and the thing biasing drag low, on one knob.
+
+| variant | deployable coverage | per-lap MAPE |
+|---|---|---|
+| policy prior + box rejection + solved closure | **0.62** | 12.9% |
+| uniform position in the band | 0.14 | 43.6% |
+| store box as a soft penalty, not a rejection | 0.44 | 33.6% |
+| soft closure weight removed | 0.64 | 13.0% |
+
+So the strategy prior is what makes it work, the box rejection matters, and the
+soft closure *weight* is redundant -- because closure is **solved**, not
+weighted. The prior gives the shape of P_K but its amplitude saturates at the
+regulation ceiling, so at face value it pins deployment to the top of the band:
+3.82 MJ/lap against a true 2.41, net flow -1.71 MJ/lap against -0.25, and a
+store drifting 20 MJ out of a 4 MJ box. Bisecting an amplitude lambda per lap so
+the lap's flows close brings deployment to 2.51 against 2.41.
+
+**No cut-out detector.** The store is known up to a constant, E_k = c + F_k, so
+if the driver has touched the reserve at least once then E_min = R and
+deployable energy is D_k = F_k - min_{j<=k} F_j exactly, with c and R both
+cancelling. Before the first touch it is a lower bound. The detector is gone,
+and with it the whole class of failure it caused -- its false positives at a
+nearly-full store were what inferred a 0.97 MJ buffer for a driver holding zero.
+
+One fixture bug found on the way, and it had been poisoning everything: the
+Stage 1 simulator harvests at `P_MGUK_MAX` = 350 kW, which is the *post*-Miami
+super-clip cap, but the tests ran it against pre-Miami's 250 kW. Reconstructed
+harvest came out at 0.71x the truth, which made per-lap net flow -2.22 MJ
+against a true -0.25 and drifted the store -26.6 MJ over twelve laps. No
+particle could satisfy store closure, so the running-minimum deployable
+collapsed to zero width -- a correct formulation reporting nothing because the
+regulation variant underneath it was wrong.
+
+Raw-store coverage fell 0.69 -> 0.50 in the process, and that is the right
+trade: it is not the headline, and the ablation shows why chasing it is a trap.
+Turning the box rejection off takes raw-store coverage from 0.50 to 0.80 while
+tripling per-lap energy error -- a wider band covers more truth without being
+more informative.
+
 ## What does not work
 
-**The reserve is not separately identified, so the deployable-energy band is
-unusable.** Six fixes have now been tried and measured: an accelerating gate on
+**Drag area is still recovered at the bottom of its identified set** -- CdA_X
+posterior 0.339 against a true 0.660 inside [0.264, 0.744]. Removing the floor
+penalty removed the mechanism that biased it, but nothing has replaced it as a
+*positive* discriminator on drag, because inside the polytope there is none to
+be had from the trace. Narrowing the set is the only route, which means the
+fuel-closure bound and the field pooling rather than anything in the filter.
+
+Also short of the plan: pooling reduces error 66% but width only to 0.87x. Six fixes have now been tried and measured: an accelerating gate on
 the cut-out detector, hysteresis on it, 10x wider reserve jitter, the
 buffer-release ramp, a `v_cut` policy gate, and detecting on the deployment
 lower bound instead of the band midpoint. The `k/k+1` convention on the
