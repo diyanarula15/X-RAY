@@ -16,15 +16,18 @@ import { C } from '../lib/theme';
  * cut for performance, it is not this.
  */
 export function BeliefCloud({
-  particles, target, height = 3.2, maxMJ = 4.0, count,
+  particlesRef, target, height = 3.2, maxMJ = 4.0, count = 400,
   spread = 0.55, offset = 1.5,
 }: {
-  particles: number[];          // MJ per particle, this frame
-  target: THREE.Vector3;        // where the rival car is
+  // A ref, not a prop value: the cloud changes every frame and passing it
+  // through React would re-render the Canvas subtree at 60 Hz, which is exactly
+  // what made playback stutter. The render loop reads it directly.
+  particlesRef: React.MutableRefObject<number[]>;
+  target: THREE.Vector3;        // where the rival car is (mutated in place)
   height?: number; maxMJ?: number; count?: number;
   spread?: number; offset?: number;
 }) {
-  const n = count ?? particles.length;
+  const n = count;
   const points = useRef<THREE.Points>(null);
   const cur = useRef<Float32Array>(new Float32Array(n * 3));
   // Without this the spring below never starts: `cur[i] || target` treats a
@@ -53,6 +56,7 @@ export function BeliefCloud({
     const k = 1 - Math.exp(-dt * 9);
     const hot = new THREE.Color(C.amber), cold = new THREE.Color(C.red);
     const tmp = new THREE.Color();
+    const particles = particlesRef.current;
     for (let i = 0; i < n; i++) {
       const mj = particles.length ? particles[i % particles.length] : 0;
       const ty = target.y + offset * 0.35 + (Math.min(mj, maxMJ) / maxMJ) * height;

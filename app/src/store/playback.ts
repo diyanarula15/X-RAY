@@ -18,6 +18,7 @@ type State = {
   camera: 'chase' | 'duel' | 'tactical';
   subject: string | null; rival: string | null;
   demo: boolean; demoBeat: number; showCloud: boolean; introTick: number;
+  autoLite: boolean;
   setRace: (id: string) => void; setView: (v: View) => void;
   setTime: (t: number) => void; setRange: (r: [number, number]) => void;
   play: () => void; pause: () => void; toggle: () => void;
@@ -33,7 +34,7 @@ export const usePlayback = create<State>((set) => ({
   playing: false, speed: 2,
   lite: new URLSearchParams(location.search).get('lite') === '1',
   paintMode: 'neutral', camera: 'chase', subject: null, rival: null,
-  demo: false, demoBeat: -1, showCloud: true, introTick: 0,
+  demo: false, demoBeat: -1, showCloud: true, introTick: 0, autoLite: false,
   setRace: (raceId) => set({ raceId }),
   setView: (view) => set({ view }),
   setTime: (raceTime) => set({ raceTime }),

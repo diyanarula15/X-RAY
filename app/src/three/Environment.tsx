@@ -92,7 +92,7 @@ export function TrackDressing({ geo, width = 20, lite = false }:
 
   return (
     <>
-      <mesh geometry={apron} receiveShadow>
+      <mesh geometry={apron}>
         <meshStandardMaterial color="#17171E" roughness={0.98} metalness={0}
           side={THREE.DoubleSide} />
       </mesh>
@@ -130,7 +130,7 @@ export function Ground({ radius, geo }: { radius: number; geo: Geometry }) {
     return (lo * S) - 3.0;
   }, [geo]);
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, y, 0]} receiveShadow>
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, y, 0]}>
       <circleGeometry args={[radius * 3.4, 64]} />
       <meshStandardMaterial color="#0D0D12" roughness={1} metalness={0} />
     </mesh>
