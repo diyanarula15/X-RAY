@@ -32,7 +32,7 @@ import numpy as np
 from .balance import M_REF_KG, fuel_mass
 from .constants import E_STORE_MAX, G
 from .modes import BRAKE_HARVEST, DEPLOY, SUPER_CLIP
-from .regs import RegSet, p_ice_max, p_k_bounds
+from .regs import FULL_THROTTLE_FRAC, RegSet, p_ice_max, p_k_bounds
 
 RESERVE_MAX_FRAC = 0.35    # racing prior: a driver holds back at most about a
                            # third of the store. Inferred per particle.
@@ -68,7 +68,7 @@ FLOOR_PENALTY = 6.0        # retained only for the historical note above
 # Priors on the three policy parameters, in m/s. Wide: they are a *proposal*
 # for where inside the deployment band P_K sits, not a claim about the driver.
 V_CUT_PRIOR = (45.0, 100.0)
-V_HARV_PRIOR = (70.0, 105.0)
+V_HARV_OFFSET_PRIOR = (2.0, 40.0)   # m/s above v_cut
 WIDTH_PRIOR = (2.0, 9.0)
 
 # Store closure per lap. A car cannot deploy materially more than it recovers
@@ -89,6 +89,18 @@ LAMBDA_BISECT_STEPS = 24
 # residual of 0.5 * rho * 0.10 * v^3, so this is that error expressed as a
 # coefficient. Multiplied by rho at the call site.
 SHAPE_V3_SIGMA = 0.5 * 0.10
+
+# How many sigma of measurement noise the dead-band residual is allowed before
+# it counts against a particle. Matches balance.N_SIGMA_DEFAULT, because it is
+# the same noise on the same quantity.
+n_sigma_power = 5.0
+
+# Minimum dead-band samples for a particle's policy claim to be testable, and a
+# cap on how much evidence one lap may contribute. The cap stops a particle
+# whose dead band covers most of the lap -- because it guessed a very low
+# cut-off -- from being judged 400 times more strongly than a plausible one.
+N_DEAD_MIN = 8
+N_DEAD_CAP = 40.0
 
 
 def _v3_coefficient(S, one, V3, y):
@@ -149,6 +161,10 @@ class Belief:
     theta_init: np.ndarray = None    # the draw, before any weighting
     theta_final: np.ndarray = None   # survivors after resampling
     weights_final: np.ndarray = None
+    policy_final: np.ndarray = None  # (Np, 2): v_cut, v_harv
+    n_box_rejected: int = 0
+    n_untestable_rejected: int = 0
+    first_empty_sample: int = -1   # -1 if the ensemble never emptied
 
 
 def _sample_theta(ident, rng, n: int) -> np.ndarray:
@@ -219,6 +235,13 @@ def run(feed, ident, regs: RegSet, rho: float, n_particles: int = 400,
 
     theta = _sample_theta(ident, rng, Np)
     theta_init = theta.copy()
+    # Measurement noise on interval energy, in J, so the dead-band residual can
+    # be scaled by what the quantiser actually allows rather than by a guess.
+    from .balance import M_REF_KG, energy_slack, fuel_mass
+    _m_nom = m_published + fuel_mass(np.asarray(feed.lap_frac, float)[:-1],
+                                     fuel_start, fuel_burn_per_lap)
+    feed_slack = energy_slack(np.asarray(feed.v, float)[:-1],
+                              np.asarray(feed.v, float)[1:], _m_nom)
     e_wheel, dt = _interval_terms(feed, theta, rho, m_published, fuel_start,
                                   fuel_burn_per_lap, is_x)
 
@@ -250,12 +273,21 @@ def run(feed, ident, regs: RegSet, rho: float, n_particles: int = 400,
     # Three interpretable parameters per particle -- see strategy.py for the
     # 1/(m v^3) argument that makes them the right three.
     v_cut = rng.uniform(*V_CUT_PRIOR, Np)
-    v_harv = rng.uniform(*V_HARV_PRIOR, Np)
+    # v_harv is drawn ABOVE v_cut, not independently. Super-clip onset below the
+    # deployment cut-off is not a policy, it is a contradiction -- and drawing
+    # the two independently left many particles with v_harv < v_cut, i.e. an
+    # empty dead band, which is the one region that identifies drag. Measured:
+    # with the ordering unenforced the dead-band likelihood reached CdA_X 0.336
+    # against a true 0.660, worse than the diluted all-samples version.
+    v_harv = v_cut + rng.uniform(*V_HARV_OFFSET_PRIOR, Np)
     width = rng.uniform(*WIDTH_PRIOR, Np)
     split = rng.random(Np)          # fallback when the prior is switched off
 
     E_var = np.zeros(Np)
     alive = np.ones(Np, bool)
+    n_box_rejected = 0
+    n_untestable_rejected = 0
+    first_empty = -1
     # No initial store is sampled. E_k = c + F_k with c unidentified (invariant
     # 6), so sampling c and rejecting on its walk conflates "wrong theta" with
     # "wrong c": measured, that killed every particle above CdA_X = 0.444 -- five
@@ -349,28 +381,69 @@ def run(feed, ident, regs: RegSet, rho: float, n_particles: int = 400,
             lam = 0.5 * (lam_lo + lam_hi)
             d_lap = np.clip(lam[:, None] * want_lap, lo_lap, hi_lap)
             if policy_likelihood:
-                # Invariant 9, done literally. The wrong statistic here is the
-                # clipping distortion sum(clip(lam*want) - lam*want)^2: that
-                # measures how often the band binds, and the band is *widest*
-                # at low CdA, so it rewards low drag systematically -- measured,
-                # it collapsed the cloud to one bin at ESS 2 and pushed the
-                # posterior further down, to 0.297.
+                # Invariant 9, sharpest form. The DEAD BAND between the
+                # deployment cut-off v_cut and the super-clip onset v_harv is
+                # where the policy says P_K = 0, so the balance there is pure
+                # ICE against drag and the residual is delta_CdA * 0.5 rho v^3
+                # with nothing else in it. No step regressor, so no
+                # collinearity -- this is Stage 1's high-speed window relocated
+                # to a speed that actually exists on a real circuit.
                 #
-                # The actual signal is the SHAPE of the implied P_K against
-                # speed. Implied P_K is linear in CdA through the v^3 drag term,
-                # so a wrong CdA leaves a residual proportional to
-                # delta_CdA * v^3 once the policy step is fitted out. Regress
-                # implied P_K on [step(v), 1, v^3] and penalise the v^3
-                # coefficient: it is zero at the true drag area and grows either
-                # side of it.
-                y = e_wheel[:, sl] / np.maximum(dt[sl], 1e-9)[None, :]
-                y = y - (e_ice_max[sl] / np.maximum(dt[sl], 1e-9))[None, :]
-                S = _sigmoid((v_cut[:, None] - v_cap[sl][None, :])
-                             / np.maximum(width, 1e-3)[:, None])
-                V3 = (v_cap[sl] ** 3)[None, :]
-                one = np.ones_like(V3)
-                logw = logw - 0.5 * (_v3_coefficient(S, one, V3, y)
-                                     / (SHAPE_V3_SIGMA * rho)) ** 2
+                # Gated to full throttle with the brakes off. Below full
+                # throttle the ICE output is unknown and recovering it needs an
+                # engine map, which is not something to build: an earlier
+                # real-data version inferred ICE output from the throttle trace
+                # and produced CdA lower bounds above 13 m^2.
+                #
+                # Two weaker statistics were tried first and are recorded
+                # because both looked reasonable. The clipping distortion
+                # sum(clip(lam*want) - lam*want)^2 measures how often the band
+                # binds, and the band is widest at low CdA, so it rewards low
+                # drag: cloud collapsed to one bin at ESS 2, posterior 0.297.
+                # Regressing implied P_K on [step(v), 1, v^3] over all samples
+                # works but is diluted by partial-throttle samples where the ICE
+                # term is wrong: CdA_X 0.408 against a true 0.660.
+                wot = (np.minimum(feed.throttle[:-1], feed.throttle[1:])[sl]
+                       >= FULL_THROTTLE_FRAC)
+                gate = wot & ~braking[sl]
+                if gate.any():
+                    v_g = v_cap[sl][gate]
+                    dead = ((v_g[None, :] > v_cut[:, None])
+                            & (v_g[None, :] < v_harv[:, None]))
+                    # power residual against "ICE at its cap, motor idle"
+                    resid = ((e_wheel[:, sl][:, gate] - e_ice_max[sl][gate][None, :])
+                             / np.maximum(dt[sl][gate], 1e-9)[None, :])
+                    sig = np.maximum(
+                        n_sigma_power * (feed_slack[sl][gate]
+                                         / np.maximum(dt[sl][gate], 1e-9)), 1.0)
+                    pen = np.where(dead, (resid / sig[None, :]) ** 2, 0.0)
+                    n_dead = dead.sum(axis=1)
+                    # MEAN, not sum: with a sum, a particle whose dead band is
+                    # nearly empty pays almost nothing, so the filter comes to
+                    # prefer particles that avoid being tested. That is what
+                    # diluted this statistic to nothing -- swept against the
+                    # true dead band the residual minimises at CdA_X 0.66,
+                    # exactly the truth, while the filter reported 0.310.
+                    mean_pen = pen.sum(axis=1) / np.maximum(n_dead, 1)
+                    # And a particle with too few dead-band samples makes no
+                    # testable claim, so it must not be *rewarded* for that.
+                    # It inherits the population's penalty instead of a free
+                    # pass.
+                    # Testability is a REJECTION, not a fallback penalty. With
+                    # a fallback -- even the population mean -- escaping the
+                    # test stays cheaper than being tested and wrong, so the
+                    # filter drove v_cut to 98 m/s (353 km/h, above the car's
+                    # top speed) where the dead band is empty. Measured at that
+                    # point: corr(CdA, log weight) = -0.00, i.e. the likelihood
+                    # was exerting no pressure on drag whatsoever while
+                    # appearing to be wired in. A particle that makes no
+                    # testable claim about its own policy does not survive.
+                    testable = n_dead >= N_DEAD_MIN
+                    n_untestable_rejected += int(np.sum(alive & ~testable))
+                    alive = alive & testable
+                    if testable.any():
+                        logw = logw - 0.5 * np.where(testable, mean_pen, 0.0) \
+                            * np.sqrt(np.minimum(n_dead, N_DEAD_CAP))
         else:
             d_lap = lo_lap + split[:, None] * (hi_lap - lo_lap)
 
@@ -383,15 +456,31 @@ def run(feed, ident, regs: RegSet, rho: float, n_particles: int = 400,
             F_min = np.minimum(F_min, F)
             F_max = np.maximum(F_max, F)
             if reject_outside_box:
-                alive = alive & ((F_max - F_min) <= E_STORE_MAX + 1.0)
+                fits = (F_max - F_min) <= E_STORE_MAX + 1.0
+                n_box_rejected += int(np.sum(alive & ~fits))
+                alive = alive & fits
             dep_acc += d
             har_acc += h
             w = weights()
             if w is None:
-                notes.append(
-                    f"every particle left the 0-4 MJ store box by sample {k}: "
-                    f"the deployment band and the identified drag cannot be "
-                    f"reconciled with a 4 MJ store on this trace")
+                # Name the constraint that emptied the ensemble. Reporting
+                # both causes with one message is how a testability rejection
+                # spent an iteration masquerading as a store-box failure.
+                if first_empty < 0:
+                    first_empty = k
+                if n_untestable_rejected > n_box_rejected:
+                    notes.append(
+                        f"ensemble empty at sample {k}: every particle's "
+                        f"policy claim became untestable (fewer than "
+                        f"{N_DEAD_MIN} dead-band samples). The trace stopped "
+                        f"containing a speed range where the policy predicts "
+                        f"no deployment.")
+                else:
+                    notes.append(
+                        f"ensemble empty at sample {k}: no flow trajectory fits "
+                        f"a 4 MJ store (range(F) > {E_STORE_MAX / 1e6:.0f} MJ). "
+                        f"The deployment band and the identified drag cannot be "
+                        f"reconciled with the store on this trace.")
                 w = np.full(Np, 1.0 / Np)
                 alive = np.ones(Np, bool)
                 logw = np.zeros(Np)
@@ -419,7 +508,8 @@ def run(feed, ident, regs: RegSet, rho: float, n_particles: int = 400,
         v_cut, v_harv, width = v_cut[take], v_harv[take], width[take]
         alive = np.ones(Np, bool)
         v_cut = np.clip(v_cut + rng.normal(0.0, 1.5, Np), *V_CUT_PRIOR)
-        v_harv = np.clip(v_harv + rng.normal(0.0, 1.5, Np), *V_HARV_PRIOR)
+        v_harv = np.maximum(v_harv + rng.normal(0.0, 1.5, Np),
+                            v_cut + V_HARV_OFFSET_PRIOR[0])
         logw = np.zeros(Np)
         dep_acc = np.zeros(Np); har_acc = np.zeros(Np)
 
@@ -436,7 +526,11 @@ def run(feed, ident, regs: RegSet, rho: float, n_particles: int = 400,
         theta_post_lo=theta.min(axis=0), theta_post_hi=theta.max(axis=0),
         n_particles=Np, dry=np.zeros(n, bool), notes=tuple(notes),
         theta_init=theta_init, theta_final=theta.copy(), weights_final=w.copy(),
-        theta_polytope=np.column_stack([ident.lo, ident.hi]))
+        theta_polytope=np.column_stack([ident.lo, ident.hi]),
+        policy_final=np.column_stack([v_cut, v_harv]),
+        n_box_rejected=n_box_rejected,
+        n_untestable_rejected=n_untestable_rejected,
+        first_empty_sample=first_empty)
 
 
 def _systematic(w: np.ndarray, rng) -> np.ndarray:
