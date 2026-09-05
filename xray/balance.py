@@ -29,7 +29,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .constants import G
+from .constants import E_HARVEST_LAP, E_STORE_MAX, G
 from .regs import RegSet, p_ice_max, p_k_bounds
 
 PARAM_NAMES = ("CdA_X", "CdA_Z", "F_rr", "dm")
@@ -60,6 +60,23 @@ class Constraints:
 
 
 QUANT_SIGMA_MS = (1.0 / 3.6) / np.sqrt(12.0)  # 1 km/h uniform quantisation
+
+# How many sigma of slack each bound carries. Calibrated, not chosen: swept
+# against the *known* true theta on simulator data at three sample rates, and
+# set at the point where the truth stops being excluded. Violations of the true
+# theta, out of the constraints at that rate:
+#
+#   n_sigma   3.7 Hz        20 Hz         100 Hz
+#      3      1 / 7,325     4 / 41,099    190 / 206,817
+#      4      1 / 7,325     0 / 41,099      2 / 206,817
+#      5      1 / 7,325     0 / 41,099      0 / 206,817
+#
+# Five is where 100 Hz reaches zero. The single stubborn 3.7 Hz constraint is a
+# braking-onset label, which is the outlier budget's job (see setmem).
+# The error is not Gaussian -- uniform quantisation plus sensor noise plus the
+# simulator's own Euler error -- so the multiplier is larger than a normal tail
+# would suggest, and that is why it is measured rather than derived.
+N_SIGMA_DEFAULT = 5.0
 
 
 def energy_slack(v0, v1, m, speed_sigma_ms: float = QUANT_SIGMA_MS):
@@ -112,7 +129,7 @@ def build_constraints(v, t, z, lap_frac, is_x_mode, in_zone, rpm, throttle,
                       manual_override=None, m_published: float = M_REF_KG,
                       gap_limit_s: float = GAP_LIMIT_S,
                       speed_sigma_ms: float = QUANT_SIGMA_MS,
-                      n_sigma: float = 3.0,
+                      n_sigma: float = N_SIGMA_DEFAULT,
                       fuel_start: float = 70.0,
                       fuel_burn_per_lap: float = 1.15) -> Constraints:
     """Turn one car's telemetry into a set of half-spaces on theta.
@@ -249,3 +266,141 @@ def residual_power(v, t, z, lap_frac, theta, is_x_mode, rho, cda_scale=None,
         return np.where(dt > 1e-9,
                         d_e / dt + 0.5 * rho * cda * v3bar
                         + f_rr * vbar * (m / M_REF_KG), np.nan)
+
+
+# --------------------------------------------------------- window aggregation
+def build_window_constraints(v, t, z, lap_frac, is_x_mode, in_zone, rpm,
+                             throttle, brake, gap_s, regs: RegSet, rho: float,
+                             window_s: float = 4.0, cda_scale=None,
+                             eta_d: float = 0.95, manual_override=None,
+                             m_published: float = M_REF_KG,
+                             gap_limit_s: float = GAP_LIMIT_S,
+                             speed_sigma_ms: float = QUANT_SIGMA_MS,
+                             n_sigma: float = N_SIGMA_DEFAULT,
+                             fuel_start: float = 70.0,
+                             fuel_burn_per_lap: float = 1.15,
+                             e_harvest_lap: float = E_HARVEST_LAP) -> Constraints:
+    """The same balance, summed over a window. This is what makes it identify.
+
+    Per-interval constraints are robust and nearly useless. The reason is that
+    an intersection keeps the single *tightest* bound rather than averaging, so
+    noise never cancels: with the slack honestly set at 5 sigma, one interval's
+    31 kJ of slack sits against 36.7 kJ of drag signal, and the identified range
+    for CdA_X came out as the entire prior box [0.30, 3.00].
+
+    Summing consecutive intervals fixes it, and the reason is worth stating
+    because it is the whole trick: the kinetic and potential terms *telescope*.
+
+        sum_k [ 1/2 m (v_{k+1}^2 - v_k^2) ] = 1/2 m (v_end^2 - v_start^2)
+
+    Only the two endpoints survive, so the measurement error of a window is the
+    same 6.3 kJ as that of a single interval -- while the drag term, the rolling
+    term and the regulation's energy budget all grow linearly with the window.
+    Signal grows, noise does not.
+
+    A window spanning an aero-mode change is not dropped: the drag sum splits
+    into an X part and a Z part, and both are parameters, so a mixed window
+    simply constrains a combination of them.
+
+    Windows are non-overlapping, which keeps their errors independent and keeps
+    the LP small enough to re-solve per lap.
+    """
+    v = np.asarray(v, float); t = np.asarray(t, float); z = np.asarray(z, float)
+    lap_frac = np.asarray(lap_frac, float)
+    is_x = np.asarray(is_x_mode, bool)
+    brake = np.asarray(brake, float) > 0.5
+    scale = np.ones_like(v) if cda_scale is None else np.asarray(cda_scale, float)
+    mo = np.zeros_like(v, bool) if manual_override is None else np.asarray(manual_override, bool)
+    in_zone = np.asarray(in_zone, bool)
+
+    dt = np.diff(t)
+    v0, v1 = v[:-1], v[1:]
+    vbar = 0.5 * (v0 + v1)
+    v3bar = 0.5 * (v0 ** 3 + v1 ** 3)
+    scale_i = 0.5 * (scale[:-1] + scale[1:])
+    good = (np.isfinite(dt) & (dt > 1e-6) & (dt <= gap_limit_s)
+            & np.isfinite(v0) & np.isfinite(v1) & np.isfinite(z[:-1]) & np.isfinite(z[1:]))
+
+    v_cap = np.minimum(v0, v1)
+    rpm_hi = np.maximum(rpm[:-1], rpm[1:])
+    thr_hi = np.maximum(throttle[:-1], throttle[1:])
+    zone_any = in_zone[:-1] | in_zone[1:]
+    mo_any = mo[:-1] | mo[1:]
+    pk_lo, pk_hi = p_k_bounds(v_cap, zone_any, rpm_hi, thr_hi, regs, mo_any)
+    pice_hi = p_ice_max(rpm_hi, thr_hi, regs)
+
+    # per-interval contributions, zeroed where the interval is unusable so a
+    # window containing a hole contributes nothing rather than nonsense
+    g = good.astype(float)
+    drag_x = g * dt * 0.5 * rho * scale_i * v3bar * is_x[:-1]
+    drag_z = g * dt * 0.5 * rho * scale_i * v3bar * (~is_x[:-1])
+    rr_i = g * dt * vbar
+    bud_hi = g * dt * eta_d * (pice_hi + pk_hi)
+    bud_lo = g * dt * eta_d * pk_lo
+    pice_sum = g * dt * pice_hi
+
+    rows_A, rows_b, n_up, n_dn = [], [], 0, 0
+    reasons = {"window_had_hole": 0, "braking_lower_dropped": 0}
+    n = len(v)
+    starts = []
+    i = 0
+    while i < n - 1:
+        j = i
+        t_end = t[i] + window_s
+        while j < n - 1 and t[j + 1] <= t_end:
+            j += 1
+        if j <= i:
+            j = i + 1
+        starts.append((i, j))
+        i = j
+    for i, j in starts:
+        sl = slice(i, j)
+        if not good[sl].all():
+            reasons["window_had_hole"] += 1
+            continue
+        m_nom = m_published + fuel_mass(0.5 * (lap_frac[i] + lap_frac[j]),
+                                        fuel_start, fuel_burn_per_lap)
+        d_e = 0.5 * (v[j] ** 2 - v[i] ** 2) + G * (z[j] - z[i])
+        known = d_e * m_nom
+        f_max = float(np.max(tow_f_max(np.asarray(gap_s, float)[sl]))) if gap_s is not None else 0.0
+        dx, dz = drag_x[sl].sum(), drag_z[sl].sum()
+        row = np.array([dx, dz, rr_i[sl].sum() * (m_nom / M_REF_KG), d_e])
+        slack = n_sigma * float(energy_slack(v[i], v[j], m_nom, speed_sigma_ms))
+
+        # The integral caps, and they are what give the lower bound any teeth
+        # at all. Instantaneously the MGU-K may recover 250 kW, so over an 8 s
+        # window the rules permit -2 MJ of store-side flow against 1.09 MJ of
+        # drag: the constraint is then satisfied by CdA = 0 and the lower bound
+        # sits on its prior edge, which is exactly what was measured before this
+        # block existed. But a car cannot harvest 2 MJ every 8 s for a race --
+        # the store holds 4 MJ and the per-lap harvest allowance is 7 MJ. Taking
+        # whichever cap binds turns "a car could always be recovering" into a
+        # quantity with a budget.
+        laps_spanned = max(lap_frac[j] - lap_frac[i], 1e-9)
+        harv_cap = e_harvest_lap * max(laps_spanned, 1.0)
+        dep_cap = E_STORE_MAX + e_harvest_lap * laps_spanned
+        pk_lo_tot = max(bud_lo[sl].sum() / eta_d, -harv_cap) * eta_d
+        pk_hi_tot = min((bud_hi[sl].sum() / eta_d) - pice_sum[sl].sum(),
+                        dep_cap) * eta_d
+
+        # upper: loosest drag (strongest admissible tow)
+        rows_A.append(np.array([dx * (1 - f_max), dz * (1 - f_max), row[2], row[3]]))
+        rows_b.append(eta_d * pice_sum[sl].sum() + pk_hi_tot - known + slack)
+        n_up += 1
+        if not brake[i:j + 1].any():
+            rows_A.append(-row)
+            rows_b.append(-(pk_lo_tot - known - slack))
+            n_dn += 1
+        else:
+            reasons["braking_lower_dropped"] += 1
+
+    if not rows_A:
+        return Constraints(A=np.zeros((0, N_PARAMS)), b=np.zeros(0), n_intervals=0,
+                           n_upper=0, n_lower=0, n_dropped=len(starts),
+                           drop_reasons=reasons)
+    order = np.argsort([0] * n_up + [1] * n_dn, kind="stable")
+    A = np.array(rows_A)[order]
+    b = np.array(rows_b)[order]
+    return Constraints(A=A, b=b, n_intervals=len(starts), n_upper=n_up,
+                       n_lower=n_dn, n_dropped=reasons["window_had_hole"],
+                       drop_reasons=reasons)
