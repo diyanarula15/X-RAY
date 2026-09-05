@@ -30,7 +30,8 @@ from dataclasses import dataclass
 import numpy as np
 
 from .constants import E_HARVEST_LAP, E_STORE_MAX, G
-from .regs import RegSet, p_ice_max, p_k_bounds
+from .regs import (RegSet, ice_work_from_fuel, p_ice_max, p_ice_min,
+                   p_k_bounds)
 
 PARAM_NAMES = ("CdA_X", "CdA_Z", "F_rr", "dm")
 N_PARAMS = len(PARAM_NAMES)
@@ -279,7 +280,8 @@ def build_window_constraints(v, t, z, lap_frac, is_x_mode, in_zone, rpm,
                              n_sigma: float = N_SIGMA_DEFAULT,
                              fuel_start: float = 70.0,
                              fuel_burn_per_lap: float = 1.15,
-                             e_harvest_lap: float = E_HARVEST_LAP) -> Constraints:
+                             e_harvest_lap: float = E_HARVEST_LAP,
+                             ice_floor_delta: float | None = None) -> Constraints:
     """The same balance, summed over a window. This is what makes it identify.
 
     Per-interval constraints are robust and nearly useless. The reason is that
@@ -305,6 +307,9 @@ def build_window_constraints(v, t, z, lap_frac, is_x_mode, in_zone, rpm,
     Windows are non-overlapping, which keeps their errors independent and keeps
     the LP small enough to re-solve per lap.
     """
+    from .regs import ASSUMED_ICE_FLOOR_DELTA
+    ice_floor_delta = (ASSUMED_ICE_FLOOR_DELTA if ice_floor_delta is None
+                       else float(ice_floor_delta))
     v = np.asarray(v, float); t = np.asarray(t, float); z = np.asarray(z, float)
     lap_frac = np.asarray(lap_frac, float)
     is_x = np.asarray(is_x_mode, bool)
@@ -328,6 +333,14 @@ def build_window_constraints(v, t, z, lap_frac, is_x_mode, in_zone, rpm,
     mo_any = mo[:-1] | mo[1:]
     pk_lo, pk_hi = p_k_bounds(v_cap, zone_any, rpm_hi, thr_hi, regs, mo_any)
     pice_hi = p_ice_max(rpm_hi, thr_hi, regs)
+    # The ICE floor, and it is the only thing that bounds drag from below.
+    # Evaluated at the *lower* endpoint of revs and pedal so the floor holds
+    # across the whole interval: claiming a floor the car did not meet would
+    # exclude the truth, which is the one failure a set-membership method
+    # cannot afford.
+    rpm_lo = np.minimum(rpm[:-1], rpm[1:])
+    thr_lo = np.minimum(throttle[:-1], throttle[1:])
+    pice_lo = p_ice_min(rpm_lo, thr_lo, regs, ice_floor_delta)
 
     # per-interval contributions, zeroed where the interval is unusable so a
     # window containing a hole contributes nothing rather than nonsense
@@ -338,6 +351,7 @@ def build_window_constraints(v, t, z, lap_frac, is_x_mode, in_zone, rpm,
     bud_hi = g * dt * eta_d * (pice_hi + pk_hi)
     bud_lo = g * dt * eta_d * pk_lo
     pice_sum = g * dt * pice_hi
+    pice_floor_sum = g * dt * pice_lo
 
     rows_A, rows_b, n_up, n_dn = [], [], 0, 0
     reasons = {"window_had_hole": 0, "braking_lower_dropped": 0}
@@ -389,7 +403,8 @@ def build_window_constraints(v, t, z, lap_frac, is_x_mode, in_zone, rpm,
         n_up += 1
         if not brake[i:j + 1].any():
             rows_A.append(-row)
-            rows_b.append(-(pk_lo_tot - known - slack))
+            rows_b.append(-(eta_d * pice_floor_sum[sl].sum() + pk_lo_tot
+                            - known - slack))
             n_dn += 1
         else:
             reasons["braking_lower_dropped"] += 1
@@ -404,3 +419,96 @@ def build_window_constraints(v, t, z, lap_frac, is_x_mode, in_zone, rpm,
     return Constraints(A=A, b=b, n_intervals=len(starts), n_upper=n_up,
                        n_lower=n_dn, n_dropped=reasons["window_had_hole"],
                        drop_reasons=reasons)
+
+
+def kinetic_energy_shed(v, t, z, lap_frac, m_published: float = M_REF_KG,
+                        fuel_start: float = 70.0,
+                        fuel_burn_per_lap: float = 1.15, brake=None) -> float:
+    """Total mechanical energy given up while decelerating, J.
+
+    An upper bound on what the friction brakes can have dissipated, measured
+    straight off the speed trace with no parameters in it. Some of this went to
+    drag and some to the MGU-K; the friction brakes cannot have taken more than
+    all of it.
+    """
+    v = np.asarray(v, float); z = np.asarray(z, float)
+    m = m_published + fuel_mass(np.asarray(lap_frac, float)[:-1], fuel_start,
+                                fuel_burn_per_lap)
+    d_e = m * (0.5 * np.diff(v ** 2) + G * np.diff(z))
+    shed = np.clip(-d_e, 0.0, None)
+    if brake is not None:
+        # Friction brakes cannot dissipate anything while they are off, so a
+        # coast-down contributes nothing here. Including it inflated the bound
+        # from 100 MJ to 177 MJ over a 12-lap stint, which was enough on its own
+        # to make the fuel-closure constraint vacuous.
+        b = np.asarray(brake, float) > 0.5
+        shed = np.where(b[:-1] | b[1:], shed, 0.0)
+    return float(np.sum(shed))
+
+
+def fuel_closure_constraint(v, t, z, lap_frac, is_x_mode, gap_s, rho: float,
+                            fuel_burned_kg: float, brake=None, cda_scale=None,
+                            eta_d: float = 0.95, m_published: float = M_REF_KG,
+                            fuel_start: float = 70.0,
+                            fuel_burn_per_lap: float = 1.15,
+                            fuel_sigma_kg: float = None,
+                            n_sigma: float = 2.0) -> Constraints:
+    """One race-level half-space: the ICE work has to go somewhere.
+
+    Over a race the ICE does a known amount of mechanical work, and the only
+    places it can go are drag, rolling resistance, the friction brakes and the
+    store -- and the store cannot absorb more than 4 MJ net. So
+
+        E_drag + E_rr >= eta_d * (E_ice_min - E_store_max) - E_friction_max
+
+    with E_friction_max measured directly from the trace as the kinetic energy
+    shed while decelerating.
+
+    This is the bound that does not care about the harvest rule, which is why it
+    survives the post-Miami change that gutted the local one. It is an average
+    over the race rather than a per-window statement, so it constrains mean drag
+    and cannot localise -- but a floor on the mean is a floor.
+
+    ASSUMED: the fuel's heating value, the thermal efficiency, and the mass
+    actually burned. The last is the loose one, hence `fuel_sigma_kg`.
+    """
+    from .regs import ASSUMED_FUEL_MASS_FRAC_SIGMA
+    if fuel_sigma_kg is None:
+        # Fractional, not absolute. A +/-5 kg figure is a race-level number and
+        # is 60% of a 12-lap stint's 16.8 kg: at 2 sigma it took E_ice_min from
+        # 305 MJ down to 127 MJ and killed the constraint by itself.
+        fuel_sigma_kg = ASSUMED_FUEL_MASS_FRAC_SIGMA * float(fuel_burned_kg)
+    v = np.asarray(v, float); t = np.asarray(t, float); z = np.asarray(z, float)
+    lap_frac = np.asarray(lap_frac, float)
+    is_x = np.asarray(is_x_mode, bool)
+    scale = np.ones_like(v) if cda_scale is None else np.asarray(cda_scale, float)
+
+    dt = np.diff(t)
+    v0, v1 = v[:-1], v[1:]
+    good = np.isfinite(dt) & (dt > 1e-6) & (dt <= GAP_LIMIT_S)
+    g = good.astype(float)
+    vbar = 0.5 * (v0 + v1)
+    v3bar = 0.5 * (v0 ** 3 + v1 ** 3)
+    scale_i = 0.5 * (scale[:-1] + scale[1:])
+    m_nom = m_published + fuel_mass(lap_frac[:-1], fuel_start, fuel_burn_per_lap)
+
+    f_max = tow_f_max(np.asarray(gap_s, float)[:-1]) if gap_s is not None else 0.0
+    drag_x = float(np.sum(g * dt * 0.5 * rho * scale_i * v3bar * is_x[:-1]
+                          * (1.0 - f_max)))
+    drag_z = float(np.sum(g * dt * 0.5 * rho * scale_i * v3bar * (~is_x[:-1])
+                          * (1.0 - f_max)))
+    rr = float(np.sum(g * dt * vbar * (m_nom / M_REF_KG)))
+    d_e_net = float(np.sum(g * m_nom * (0.5 * np.diff(v ** 2) + G * np.diff(z))))
+
+    fuel_lo = max(float(fuel_burned_kg) - n_sigma * float(fuel_sigma_kg), 0.0)
+    e_ice_min = ice_work_from_fuel(fuel_lo)
+    e_friction_max = kinetic_energy_shed(v, t, z, lap_frac, m_published,
+                                         fuel_start, fuel_burn_per_lap, brake)
+    rhs_lo = eta_d * (e_ice_min - E_STORE_MAX) - e_friction_max
+
+    A = -np.array([[drag_x, drag_z, rr, d_e_net]])
+    b = -np.array([rhs_lo - d_e_net])
+    return Constraints(A=A, b=b, n_intervals=1, n_upper=0, n_lower=1,
+                       n_dropped=0,
+                       drop_reasons={"fuel_closure_e_ice_min_j": e_ice_min,
+                                     "fuel_closure_e_friction_max_j": e_friction_max})

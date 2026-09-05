@@ -55,6 +55,37 @@ ASSUMED_MIAMI_2026 = date(2026, 5, 3)
 # rather than at zero.
 COAST_THROTTLE_FRAC = 0.08
 
+# Pedal position at or above which the ICE is treated as making its permitted
+# maximum, less delta below.
+FULL_THROTTLE_FRAC = 0.95
+
+# ---------------------------------------------------- the ICE floor (delta)
+# A speed trace cannot bound drag area from below. With P_ice >= 0, "engine at
+# idle, motor harvesting" explains every straight and CdA = 0 is feasible. The
+# lower bound has to come from a claim about ICE *output*, and that claim is not
+# in the trace -- it is an assumption, tagged as one.
+#
+# At full throttle a competitive team is not leaving a tenth of the permitted
+# fuel flow unused, so P_ice >= (1 - delta) * P_ice_max.
+#
+# What this buys depends on the regulation variant, and the difference is worth
+# stating: pre-Miami the harvest cap is 250 kW, so 400*(1-delta) - 250 = 110 kW
+# must go somewhere on a steady full-throttle straight, which pins CdA above
+# about 0.44 at 300 km/h. Post-Miami super-clipping raises the cap to 350 kW and
+# the same arithmetic leaves 10 kW. The April rule change made drag area
+# lower-unidentifiable from power bounds alone.
+ASSUMED_ICE_FLOOR_DELTA = 0.10
+
+# ------------------------------------------------- fuel closure (the global bound)
+# Independent of any harvest rule, and that is the point. Over a race the ICE
+# does a known amount of work, and it has nowhere to go but drag, rolling
+# resistance, the friction brakes and the store -- which cannot absorb more than
+# 4 MJ net. No deployment strategy evades it.
+ASSUMED_FUEL_LHV_MJ_PER_KG = 39.0   # pump-spec F1 fuel, lower heating value
+ASSUMED_FUEL_MASS_FRAC_SIGMA = 0.03  # how well the burned mass is known, as a
+                                     # fraction: teams know a stint's fuel far
+                                     # better than a race's absolute load
+
 
 @dataclass(frozen=True)
 class RegSet:
@@ -146,6 +177,29 @@ def p_ice_max(rpm, throttle, regs: RegSet | None = None):
     thr = np.clip(np.asarray(throttle, dtype=float), 0.0, 1.0)
     fuel_w = (EF_SLOPE_MJ_PER_H_PER_RPM * n + EF_INTERCEPT_MJ_PER_H) * 1e6 / 3600.0
     return np.minimum(fuel_w * ASSUMED_ICE_THERMAL_EFF, float(P_ICE_MAX)) * thr
+
+
+def p_ice_min(rpm, throttle, regs: RegSet | None = None,
+              delta: float = ASSUMED_ICE_FLOOR_DELTA):
+    """Lower bound on ICE output. ASSUMED -- see ASSUMED_ICE_FLOOR_DELTA.
+
+    Zero unless the pedal is on the floor, because below full throttle the
+    driver's intent is unknown and no floor is defensible.
+    """
+    thr = np.asarray(throttle, dtype=float)
+    return np.where(thr >= FULL_THROTTLE_FRAC,
+                    (1.0 - delta) * p_ice_max(rpm, 1.0, regs), 0.0)
+
+
+def ice_work_from_fuel(fuel_kg, lhv_mj_per_kg: float = ASSUMED_FUEL_LHV_MJ_PER_KG,
+                       thermal_eff: float = None) -> float:
+    """Mechanical work the ICE must have done to burn this much fuel, J.
+
+    thermal_eff defaults to the value the fuel-flow schedule implies at maximum
+    revs (0.48), so the local and global bounds rest on the same number.
+    """
+    eff = ASSUMED_ICE_THERMAL_EFF if thermal_eff is None else thermal_eff
+    return float(np.asarray(fuel_kg, float) * lhv_mj_per_kg * 1e6 * eff)
 
 
 def p_k_bounds(v_ms, in_zone, rpm, throttle, regs: RegSet,
