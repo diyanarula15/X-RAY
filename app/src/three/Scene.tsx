@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Bloom, EffectComposer, Noise, Vignette, SMAA } from '@react-three/postprocessing';
+import { Bloom, EffectComposer, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import type { Car, Geometry } from '../lib/api';
-import type { CarSample } from '../lib/carState';
+import { sampleCar } from '../lib/carState';
 import { C } from '../lib/theme';
 import { usePlayback } from '../store/playback';
 import { BeliefCloud, CloudAxis } from './BeliefCloud';
@@ -90,39 +90,123 @@ function Rig({ subject, rival, radius, centre }: {
   return null;
 }
 
-/** Trails are accumulated inside the canvas, on the render clock, so they are
- *  smooth regardless of how often React re-renders. */
-function Trails({ sPose, rPose, sSample, rSample, lite }: any) {
-  const a = useRef<{ p: THREE.Vector3; flow: number }[]>([]);
-  const b = useRef<{ p: THREE.Vector3; flow: number }[]>([]);
-  const acc = useRef(0);
+/**
+ * Watches actual frame pacing and drops quality if the machine cannot hold it.
+ *
+ * The demo may run on a borrowed laptop through a projector, and a stuttering
+ * scene reads as a broken instrument. Rather than hoping, measure: if the median
+ * frame is slower than 28 ms for two seconds straight, fall back to the light
+ * pipeline and say so on screen.
+ */
+function AutoQuality() {
+  const lite = usePlayback((s) => s.lite);
+  const setLite = usePlayback((s) => s.setLite);
+  const times = useRef<number[]>([]);
+  const warmup = useRef(0);
+  const strikes = useRef(0);
+  const tripped = useRef(false);
   useFrame((_, dt) => {
-    acc.current += dt;
-    if (acc.current < 1 / 30) return;
-    acc.current = 0;
-    const push = (arr: any, pose: any, smp: any) => {
-      if (!pose || !smp) return;
-      arr.current.push({ p: pose.p.clone(),
-        flow: ((smp.deploy ?? 0) - (smp.harvest ?? 0)) / 350 });
-      if (arr.current.length > 70) arr.current.shift();
-    };
-    push(a, sPose, sSample); push(b, rPose, rSample);
+    if (lite || tripped.current) return;
+    // Ignore the first few seconds: shader compilation and the intro orbit make
+    // every scene look slow, and tripping there would demote a machine that is
+    // perfectly capable.
+    if (warmup.current < 240) { warmup.current++; return; }
+    times.current.push(dt * 1000);
+    if (times.current.length < 120) return;
+    const sorted = [...times.current].sort((a, b) => a - b);
+    const median = sorted[Math.floor(sorted.length / 2)];
+    times.current = [];
+    // two bad windows in a row, so one hitch does not demote the whole demo
+    strikes.current = median > 30 ? strikes.current + 1 : 0;
+    if (strikes.current >= 2) {
+      tripped.current = true;
+      setLite(true);
+      usePlayback.setState({ autoLite: true });
+    }
   });
+  return null;
+}
+
+
+function Actors({ geo, subject, rival, radius, centre }: {
+  geo: Geometry; subject: Car | null; rival: Car | null;
+  radius: number; centre: THREE.Vector3;
+}) {
+  const lite = usePlayback((s) => s.lite);
+  const showCloud = usePlayback((s) => s.showCloud);
+
+  const sPos = useRef(new THREE.Vector3());
+  const rPos = useRef(new THREE.Vector3());
+  const sRot = useRef({ heading: 0, bank: 0, v: 0, ghost: true });
+  const rRot = useRef({ heading: 0, bank: 0, v: 0, ghost: true });
+  const cloudRef = useRef<number[]>([]);
+  const trailS = useRef<{ p: THREE.Vector3; flow: number }[]>([]);
+  const trailR = useRef<{ p: THREE.Vector3; flow: number }[]>([]);
+  const acc = useRef(0);
+
+  useFrame((_, dt) => {
+    const t = usePlayback.getState().raceTime;
+    const L = geo.length;
+    const a = sampleCar(subject, t, L);
+    const b = sampleCar(rival, t, L);
+    if (a) {
+      const p = poseAt(geo, a.s);
+      sPos.current.copy(p.p);
+      sRot.current = { heading: p.heading, bank: p.bank, v: a.v, ghost: !a.onTrack };
+    }
+    if (b) {
+      const p = poseAt(geo, b.s);
+      rPos.current.copy(p.p);
+      rRot.current = { heading: p.heading, bank: p.bank, v: b.v, ghost: !b.onTrack };
+      if (rival?.cloud?.length) {
+        const k = Math.min(Math.floor(b.idx / (rival.cloud_stride ?? 4)),
+          rival.cloud.length - 1);
+        cloudRef.current = rival.cloud[Math.max(k, 0)] ?? [];
+      }
+    }
+    acc.current += dt;
+    if (acc.current >= 1 / 30) {
+      acc.current = 0;
+      if (a) {
+        trailS.current.push({ p: sPos.current.clone(),
+          flow: ((a.deploy ?? 0) - (a.harvest ?? 0)) / 350 });
+        if (trailS.current.length > 70) trailS.current.shift();
+      }
+      if (b) {
+        trailR.current.push({ p: rPos.current.clone(),
+          flow: ((b.deploy ?? 0) - (b.harvest ?? 0)) / 350 });
+        if (trailR.current.length > 70) trailR.current.shift();
+      }
+    }
+  });
+
   return (
     <>
-      <EnergyTrail history={a.current} lite={lite} />
-      <EnergyTrail history={b.current} lite={lite} />
+      <CarMesh position={sPos.current} heading={sRot.current.heading}
+        bank={sRot.current.bank} accent={C.amber} speed={sRot.current.v}
+        ghost={sRot.current.ghost} />
+      <CarMesh position={rPos.current} heading={rRot.current.heading}
+        bank={rRot.current.bank} accent={C.red} speed={rRot.current.v}
+        ghost={rRot.current.ghost} />
+      {!lite && <EnergyTrail history={trailS.current} lite={lite} />}
+      {!lite && <EnergyTrail history={trailR.current} lite={lite} />}
+      {showCloud && (
+        <>
+          <BeliefCloud particlesRef={cloudRef} target={rPos.current}
+            count={lite ? 120 : 400} height={1.15} spread={0.20} offset={0.42} />
+          <CloudAxis target={rPos.current} height={1.15} offset={0.42} />
+        </>
+      )}
+      <Rig subject={sPos.current} rival={rPos.current} radius={radius} centre={centre} />
     </>
   );
 }
 
-export function Scene({ geo, subject, rival, sSample, rSample, obs }: {
-  geo: Geometry; subject: Car | null; rival: Car | null;
-  sSample: CarSample | null; rSample: CarSample | null; obs: any;
+export function Scene({ geo, subject, rival, obs }: {
+  geo: Geometry; subject: Car | null; rival: Car | null; obs: any;
 }) {
   const lite = usePlayback((s) => s.lite);
   const paint = usePlayback((s) => s.paintMode);
-  const showCloud = usePlayback((s) => s.showCloud);
   const { geometry, n } = useRibbon(geo);
 
   const { radius, centre } = useMemo(() => {
@@ -166,21 +250,10 @@ export function Scene({ geo, subject, rival, sSample, rSample, obs }: {
   useEffect(() => { paintRibbon(geometry, n, paint, fields.dep, fields.ob, fields.ref); },
     [geometry, n, paint, fields]);
 
-  const sPose = sSample ? poseAt(geo, sSample.s) : poseAt(geo, 0);
-  const rPose = rSample ? poseAt(geo, rSample.s) : poseAt(geo, 60);
-
-  const cloud = useMemo(() => {
-    if (!rival?.cloud?.length || !rSample) return [];
-    const k = Math.min(Math.floor(rSample.idx / (rival.cloud_stride ?? 4)),
-      rival.cloud.length - 1);
-    return rival.cloud[Math.max(k, 0)] ?? [];
-  }, [rival, rSample?.idx]);
-
   return (
     <Canvas
-      shadows={!lite}
       camera={{ position: [0, radius * 1.2, radius * 2], fov: 42, near: 0.05, far: 20000 }}
-      gl={{ antialias: false, powerPreference: 'high-performance' }}
+      gl={{ antialias: !lite, powerPreference: 'high-performance' }}
       dpr={lite ? 1 : [1, 1.75]}
       style={{ position: 'absolute', inset: 0 }}
     >
@@ -190,12 +263,11 @@ export function Scene({ geo, subject, rival, sSample, rSample, obs }: {
           made the circuit look half-drawn. */}
       <fog attach="fog" args={['#07070A', radius * 3.2, radius * 14]} />
 
+      {/* No shadow maps. In a scene this dark they cost most of the frame budget
+          and buy almost nothing; the emissive accents and bloom do the work. */}
       <directionalLight
         position={[radius * 0.8, radius * 1.4, radius * 0.5]} intensity={3.0}
-        color="#FFE2B8" castShadow={!lite}
-        shadow-mapSize={[1024, 1024]} shadow-camera-far={radius * 6}
-        shadow-camera-left={-radius} shadow-camera-right={radius}
-        shadow-camera-top={radius} shadow-camera-bottom={-radius} />
+        color="#FFE2B8" />
       <hemisphereLight args={['#8FB2DC', '#1A1A24', 1.15]} />
       <ambientLight intensity={0.55} />
       {/* a low fill from the opposite side so the cars are not silhouettes */}
@@ -207,30 +279,15 @@ export function Scene({ geo, subject, rival, sSample, rSample, obs }: {
       <TrackDressing geo={geo} lite={lite} />
       <TrackEdges geo={geo} />
 
-      <CarMesh position={sPose.p} heading={sPose.heading} bank={sPose.bank}
-        accent={C.amber} speed={sSample?.v ?? 0} ghost={sSample ? !sSample.onTrack : true} />
-      <CarMesh position={rPose.p} heading={rPose.heading} bank={rPose.bank}
-        accent={C.red} speed={rSample?.v ?? 0} ghost={rSample ? !rSample.onTrack : true} />
-
-      {!lite && <Trails sPose={sPose} rPose={rPose} sSample={sSample}
-        rSample={rSample} lite={lite} />}
-
-      {showCloud && rSample?.onTrack && (
-        <>
-          <BeliefCloud particles={cloud} target={rPose.p} count={lite ? 120 : 400}
-            height={1.15} spread={0.20} offset={0.42} />
-          <CloudAxis target={rPose.p} height={1.15} offset={0.42} />
-        </>
-      )}
-
-      <Rig subject={sPose.p} rival={rPose.p} radius={radius} centre={centre} />
+      <AutoQuality />
+      <Actors geo={geo} subject={subject} rival={rival} radius={radius} centre={centre} />
 
       {!lite && (
         <EffectComposer>
-          <SMAA />
-          <Bloom intensity={0.75} luminanceThreshold={0.62} resolutionScale={0.5} mipmapBlur />
+          {/* Bloom carries the energy-flow look and earns its cost. SMAA and
+              film grain did not, so they are gone. */}
+          <Bloom intensity={0.8} luminanceThreshold={0.62} resolutionScale={0.35} mipmapBlur />
           <Vignette offset={0.3} darkness={0.55} />
-          <Noise opacity={0.022} />
         </EffectComposer>
       )}
     </Canvas>

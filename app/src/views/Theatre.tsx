@@ -1,9 +1,10 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo } from 'react';
 import type { Car, RaceDetail } from '../lib/api';
 import { sampleCar } from '../lib/carState';
 import { C } from '../lib/theme';
 import { usePlayback } from '../store/playback';
+import { useThrottledTime } from '../store/clock';
 import { EnergyBar, Panel, Refusal } from '../components/Readouts';
 import { ScrubBar } from '../components/ScrubBar';
 import { SpeedTrace } from '../components/SpeedTrace';
@@ -13,7 +14,9 @@ import { Scene } from '../three/Scene';
 export function Theatre({ race, subject, rival, obs }: {
   race: RaceDetail; subject: Car | null; rival: Car | null; obs: any;
 }) {
-  const raceTime = usePlayback((s) => s.raceTime);
+  // The 3D scene reads the clock itself, inside its own loop. The overlays
+  // sample it at a readable rate instead of forcing a React render per frame.
+  const raceTime = useThrottledTime(12);
   const setTime = usePlayback((s) => s.setTime);
   const [t0, t1] = usePlayback((s) => s.tRange);
   const playing = usePlayback((s) => s.playing);
@@ -43,14 +46,14 @@ export function Theatre({ race, subject, rival, obs }: {
   }, [sS, rS, L]);
 
   // the one clock, advancing in seconds of race time
-  const tRef = useRef(raceTime); tRef.current = raceTime;
   useEffect(() => {
     if (!playing) return;
     let raf = 0, last = performance.now();
     const tick = () => {
       const now = performance.now();
       const dt = Math.min((now - last) / 1000, 0.1); last = now;
-      const next = tRef.current + dt * speed;
+      // read the authoritative clock, not the throttled copy
+      const next = usePlayback.getState().raceTime + dt * speed;
       if (next >= t1) { usePlayback.getState().pause(); setTime(t1); return; }
       setTime(next);
       raf = requestAnimationFrame(tick);
@@ -62,8 +65,9 @@ export function Theatre({ race, subject, rival, obs }: {
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       if (e.code === 'Space') { e.preventDefault(); usePlayback.getState().toggle(); }
-      if (e.code === 'ArrowRight') setTime(Math.min(tRef.current + 5, t1));
-      if (e.code === 'ArrowLeft') setTime(Math.max(tRef.current - 5, t0));
+      const now = usePlayback.getState().raceTime;
+      if (e.code === 'ArrowRight') setTime(Math.min(now + 5, t1));
+      if (e.code === 'ArrowLeft') setTime(Math.max(now - 5, t0));
     };
     window.addEventListener('keydown', k);
     return () => window.removeEventListener('keydown', k);
@@ -73,8 +77,7 @@ export function Theatre({ race, subject, rival, obs }: {
 
   return (
     <div style={{ position: 'absolute', inset: 0 }}>
-      <Scene geo={race.circuit_geometry} subject={subject} rival={rival}
-        sSample={sS} rSample={rS} obs={obs} />
+      <Scene geo={race.circuit_geometry} subject={subject} rival={rival} obs={obs} />
 
       <div style={{ position: 'absolute', top: 18, left: 18, pointerEvents: 'none' }}>
         <div className="display" style={{ fontSize: 26, lineHeight: 1 }}>{race.event}</div>
@@ -113,9 +116,11 @@ export function Theatre({ race, subject, rival, obs }: {
           <EnergyBar label={`RIVAL — ${rival?.driver ?? '—'}`}
             mean={rS?.usable ?? null} p10={rS?.p10} p90={rS?.p90} colour={C.red}
             unknown={!showCloud}
-            sub={rS ? (rS.usable < 0.02
-              ? 'store spent · nothing left to deploy at you'
-              : `band ±${((rS.p90 - rS.p10) / 2).toFixed(2)} MJ · reconstructed`)
+            sub={rS ? (rS.stale
+              ? 'telemetry gap — estimate suspended'
+              : rS.usable < 0.02
+                ? 'store spent · nothing left to deploy at you'
+                : `band ±${((rS.p90 - rS.p10) / 2).toFixed(2)} MJ · reconstructed`)
               : undefined} />
           {rival && (
             <div style={{ borderTop: `1px solid ${C.panelBorder}`, paddingTop: 9,
@@ -192,7 +197,14 @@ export function Theatre({ race, subject, rival, obs }: {
 
       {lite && (
         <div style={{ position: 'absolute', bottom: 16, right: 18, color: C.dim,
-                      fontSize: 11 }}>lite mode</div>
+                      fontSize: 11, textAlign: 'right', lineHeight: 1.5 }}>
+          lite mode
+          {usePlayback.getState().autoLite && (
+            <><br /><span style={{ color: C.amber }}>
+              dropped automatically — this machine could not hold 30 fps
+            </span></>
+          )}
+        </div>
       )}
     </div>
   );

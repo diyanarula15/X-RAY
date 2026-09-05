@@ -2,11 +2,12 @@ import { useMemo } from 'react';
 import type { Car } from '../lib/api';
 import { C } from '../lib/theme';
 import { usePlayback } from '../store/playback';
+import { useThrottledTime } from '../store/clock';
 
 /** Scrub over RACE TIME, with lap ticks, cut-outs and coast phases.
  *  When the user scrubs, everything moves together and instantly. */
 export function ScrubBar({ car, rival }: { car: Car | null; rival: Car | null }) {
-  const raceTime = usePlayback((s) => s.raceTime);
+  const raceTime = useThrottledTime(12);
   const setTime = usePlayback((s) => s.setTime);
   const [t0, t1] = usePlayback((s) => s.tRange);
   const playing = usePlayback((s) => s.playing);

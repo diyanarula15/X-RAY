@@ -80,7 +80,7 @@ export function paintRibbon(
 
 export function TrackMesh({ geometry }: { geometry: THREE.BufferGeometry }) {
   return (
-    <mesh geometry={geometry} receiveShadow>
+    <mesh geometry={geometry}>
       <meshStandardMaterial
         vertexColors side={THREE.DoubleSide}
         roughness={0.88} metalness={0.04}

@@ -10,6 +10,8 @@ export type CarSample = {
   harvest: number;      // kW
   usable: number; p10: number; p90: number;   // MJ
   dry: boolean; coast: boolean;
+  stale: boolean;       // sitting inside a telemetry hole: position guessed,
+                        // estimate suspended
   onTrack: boolean;     // false outside the car's observed window
 };
 
@@ -33,8 +35,12 @@ export function sampleCar(car: Car | null, raceTime: number, trackLength: number
   const i = locate(t, raceTime);
   const j = Math.min(i + 1, t.length - 1);
   const dt = t[j] - t[i];
-  // Don't interpolate across a hole: a 1 s gap at 300 km/h invents 80 m.
-  const f = dt > 0 && dt < 3.0 ? Math.min(Math.max((raceTime - t[i]) / dt, 0), 1) : 0;
+  // Interpolate position across a hole -- the car really did travel it, and
+  // freezing then teleporting is what made the replay stutter. What we do NOT do
+  // is trust the estimate there: `stale` says the reconstruction is suspended,
+  // and the UI dims it rather than pretending.
+  const f = dt > 0 ? Math.min(Math.max((raceTime - t[i]) / dt, 0), 1) : 0;
+  const stale = dt > 1.0;
   const lerp = (a: number[] | undefined) => {
     if (!a) return 0;
     const x = a[i] ?? 0, y = a[j] ?? x;
@@ -48,7 +54,7 @@ export function sampleCar(car: Car | null, raceTime: number, trackLength: number
     idx: f < 0.5 ? i : j, s, lap: tr.lap[i], v: lerp(tr.v),
     deploy: lerp(tr.deploy_kw), harvest: lerp(tr.harvest_kw),
     usable: lerp(tr.usable_mean), p10: lerp(tr.usable_p10), p90: lerp(tr.usable_p90),
-    dry: !!tr.dry[i], coast: !!tr.coast[i],
+    dry: !!tr.dry[i], coast: !!tr.coast[i], stale,
     onTrack: raceTime >= t[0] - 2 && raceTime <= t[t.length - 1] + 2,
   };
 }

@@ -4,35 +4,51 @@ import * as THREE from 'three';
 import { C } from '../lib/theme';
 
 /**
- * Deliberately low-poly and flat-shaded. This is a simulation of a car, not an
- * attempt at one: chunky boxes, eight-sided wheels, visible facets, no bevels
- * and no smoothing. Reading as "model" rather than "photograph" is the honest
- * signal here -- the same restraint the statistical views get. It also has no
- * livery and no team identity, so there is no licensing question.
+ * A simple, smooth open-wheel silhouette.
  *
- * Forward is +X. Wheels spin with road speed.
+ * The body is one extruded side-profile rather than a pile of boxes: a handful
+ * of polygons, a clean wedge, and no attempt at realism. It reads as a model of
+ * a car, which is the honest signal, without looking like it was assembled out
+ * of bricks. No livery and no team identity, so no licensing question.
+ *
+ * Forward is +X. Wheels turn at road speed.
  */
-const WHEEL_R = 0.38;
-const WHEEL_SEG = 8;      // octagonal: you can see it turn
+const WHEEL_R = 0.36;
 
-function Wheel({ x, z, w, spin, ghost }: {
-  x: number; z: number; w: number;
+/** Side profile, in metres, nose to the right. */
+function bodyProfile() {
+  const p = new THREE.Shape();
+  p.moveTo(-2.75, 0.10);          // rear floor
+  p.lineTo(-2.75, 0.62);          // rear wing post
+  p.lineTo(-2.30, 0.66);
+  p.quadraticCurveTo(-1.60, 0.92, -0.85, 0.86);   // engine cover
+  p.quadraticCurveTo(-0.45, 0.84, -0.30, 0.72);   // airbox shoulder
+  p.lineTo(0.28, 0.70);                            // cockpit rim
+  p.quadraticCurveTo(0.95, 0.66, 1.35, 0.48);      // nose shoulder
+  p.quadraticCurveTo(2.30, 0.34, 2.95, 0.26);      // nose tip
+  p.lineTo(2.95, 0.12);
+  p.lineTo(2.30, 0.10);
+  p.lineTo(-2.75, 0.10);
+  return p;
+}
+
+function Wheel({ x, z, w, r, spin, ghost }: {
+  x: number; z: number; w: number; r: number;
   spin: React.MutableRefObject<number>; ghost: boolean;
 }) {
   const g = useRef<THREE.Group>(null);
   useFrame(() => { if (g.current) g.current.rotation.z = -spin.current; });
   return (
-    <group position={[x, WHEEL_R, z]}>
+    <group position={[x, r, z]}>
       <group ref={g}>
-        <mesh rotation={[Math.PI / 2, 0, 0]} castShadow={!ghost}>
-          <cylinderGeometry args={[WHEEL_R, WHEEL_R, w, WHEEL_SEG]} />
-          <meshStandardMaterial color="#1C1C22" roughness={1} metalness={0}
-            flatShading transparent={ghost} opacity={ghost ? 0.35 : 1} />
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[r, r, w, 16]} />
+          <meshStandardMaterial color="#17171C" roughness={0.95} metalness={0}
+            transparent={ghost} opacity={ghost ? 0.35 : 1} />
         </mesh>
-        {/* one flat face so rotation is unmistakable */}
-        <mesh position={[0, WHEEL_R * 0.55, 0]}>
-          <boxGeometry args={[0.16, WHEEL_R * 0.7, w + 0.02]} />
-          <meshStandardMaterial color="#6E6E7A" flatShading roughness={1}
+        <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
+          <cylinderGeometry args={[r * 0.5, r * 0.5, w + 0.015, 12]} />
+          <meshStandardMaterial color="#5C5C68" roughness={0.5} metalness={0.6}
             transparent={ghost} opacity={ghost ? 0.35 : 1} />
         </mesh>
       </group>
@@ -55,76 +71,73 @@ export function CarMesh({
     spin.current += (speed / WHEEL_R) * dt;
   });
 
+  const body = useMemo(() => {
+    const geo = new THREE.ExtrudeGeometry(bodyProfile(), {
+      depth: 0.78, bevelEnabled: true, bevelSize: 0.05, bevelThickness: 0.05,
+      bevelSegments: 2, steps: 1, curveSegments: 6,
+    });
+    geo.rotateY(0);
+    geo.translate(0, 0, -0.39);
+    return geo;
+  }, []);
+
   const shell = useMemo(() => new THREE.MeshStandardMaterial({
-    color: ghost ? '#8A8A94' : '#D8D8E0', roughness: 1, metalness: 0,
-    flatShading: true, transparent: ghost, opacity: ghost ? 0.32 : 1,
+    color: ghost ? '#8A8A94' : '#DCDCE4', roughness: 0.55, metalness: 0.15,
+    transparent: ghost, opacity: ghost ? 0.32 : 1,
   }), [ghost]);
   const dark = useMemo(() => new THREE.MeshStandardMaterial({
-    color: '#25252E', roughness: 1, metalness: 0, flatShading: true,
+    color: '#22222A', roughness: 0.8, metalness: 0.1,
     transparent: ghost, opacity: ghost ? 0.3 : 1,
   }), [ghost]);
   const acc = useMemo(() => new THREE.MeshStandardMaterial({
     color: accent, emissive: new THREE.Color(accent),
-    emissiveIntensity: ghost ? 0.25 : 0.65, roughness: 1, metalness: 0,
-    flatShading: true, transparent: ghost, opacity: ghost ? 0.35 : 1,
+    emissiveIntensity: ghost ? 0.25 : 0.55, roughness: 0.5, metalness: 0.1,
+    transparent: ghost, opacity: ghost ? 0.35 : 1,
   }), [accent, ghost]);
 
-  const sh = !ghost;
   return (
     <group ref={g}>
       <group scale={1 / 12}>
-        {/* floor slab */}
-        <mesh position={[-0.1, 0.16, 0]} material={dark} castShadow={sh}>
-          <boxGeometry args={[4.6, 0.12, 1.5]} />
+        <mesh geometry={body} material={shell} />
+        {/* engine cover stripe carries the identity colour along the spine */}
+        <mesh position={[-1.15, 0.9, 0]} material={acc}>
+          <boxGeometry args={[2.4, 0.06, 0.30]} />
         </mesh>
-        {/* tub */}
-        <mesh position={[0.35, 0.48, 0]} material={acc} castShadow={sh}>
-          <boxGeometry args={[2.9, 0.5, 0.72]} />
+        {/* cockpit opening and halo */}
+        <mesh position={[0.15, 0.72, 0]} material={dark}>
+          <boxGeometry args={[0.9, 0.07, 0.44]} />
         </mesh>
-        {/* nose wedge: one box, no cone */}
-        <mesh position={[2.2, 0.38, 0]} material={shell} castShadow={sh}>
-          <boxGeometry args={[1.5, 0.3, 0.42]} />
+        <mesh position={[0.42, 0.85, 0]} rotation={[Math.PI / 2, 0, 0]} material={dark}>
+          <torusGeometry args={[0.34, 0.03, 6, 14, Math.PI]} />
         </mesh>
-        {/* sidepods */}
-        {[-0.66, 0.66].map((z) => (
-          <mesh key={z} position={[-0.5, 0.42, z]} material={shell} castShadow={sh}>
-            <boxGeometry args={[2.0, 0.44, 0.44]} />
+        {/* sidepod inlets */}
+        {[-0.5, 0.5].map((z) => (
+          <mesh key={z} position={[-0.35, 0.42, z * 0.86]} material={dark}>
+            <boxGeometry args={[1.7, 0.34, 0.10]} />
           </mesh>
         ))}
-        {/* engine cover */}
-        <mesh position={[-1.5, 0.66, 0]} material={shell} castShadow={sh}>
-          <boxGeometry args={[1.5, 0.4, 0.5]} />
-        </mesh>
-        {/* airbox */}
-        <mesh position={[-0.35, 0.92, 0]} material={dark}>
-          <boxGeometry args={[0.5, 0.36, 0.4]} />
-        </mesh>
-        {/* helmet: a low-poly ball, obviously faceted */}
-        <mesh position={[0.5, 0.85, 0]} material={dark}>
-          <sphereGeometry args={[0.19, 6, 4]} />
-        </mesh>
         {/* front wing */}
-        <mesh position={[2.9, 0.13, 0]} material={acc} castShadow={sh}>
-          <boxGeometry args={[0.7, 0.09, 2.0]} />
+        <mesh position={[2.92, 0.11, 0]} material={acc}>
+          <boxGeometry args={[0.62, 0.05, 1.95]} />
         </mesh>
-        {[-1.0, 1.0].map((z) => (
-          <mesh key={z} position={[2.9, 0.3, z]} material={dark}>
-            <boxGeometry args={[0.7, 0.34, 0.07]} />
+        {[-0.97, 0.97].map((z) => (
+          <mesh key={z} position={[2.92, 0.26, z]} material={dark}>
+            <boxGeometry args={[0.62, 0.3, 0.05]} />
           </mesh>
         ))}
         {/* rear wing */}
-        <mesh position={[-2.65, 1.0, 0]} material={acc} castShadow={sh}>
-          <boxGeometry args={[0.6, 0.1, 1.15]} />
+        <mesh position={[-2.78, 1.0, 0]} material={acc}>
+          <boxGeometry args={[0.52, 0.055, 1.1]} />
         </mesh>
-        {[-0.57, 0.57].map((z) => (
-          <mesh key={z} position={[-2.65, 0.7, z]} material={dark}>
-            <boxGeometry args={[0.6, 0.6, 0.07]} />
+        {[-0.54, 0.54].map((z) => (
+          <mesh key={z} position={[-2.78, 0.8, z]} material={dark}>
+            <boxGeometry args={[0.52, 0.42, 0.05]} />
           </mesh>
         ))}
-        <Wheel x={1.85} z={0.86} w={0.42} spin={spin} ghost={ghost} />
-        <Wheel x={1.85} z={-0.86} w={0.42} spin={spin} ghost={ghost} />
-        <Wheel x={-1.75} z={0.9} w={0.54} spin={spin} ghost={ghost} />
-        <Wheel x={-1.75} z={-0.9} w={0.54} spin={spin} ghost={ghost} />
+        <Wheel x={1.85} z={0.85} w={0.4} r={WHEEL_R} spin={spin} ghost={ghost} />
+        <Wheel x={1.85} z={-0.85} w={0.4} r={WHEEL_R} spin={spin} ghost={ghost} />
+        <Wheel x={-1.85} z={0.9} w={0.52} r={WHEEL_R * 1.08} spin={spin} ghost={ghost} />
+        <Wheel x={-1.85} z={-0.9} w={0.52} r={WHEEL_R * 1.08} spin={spin} ghost={ghost} />
       </group>
     </group>
   );
