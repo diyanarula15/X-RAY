@@ -118,6 +118,54 @@ the hot kernels ported to C++/Rust. Nothing is ported now. What is done now:
 4. **No live-only code paths yet.** No threads, no ring buffers, no sockets. If a
    change is only useful for live, it waits.
 
+## Identification invariants (learned by measurement on the v2 path — do not re-derive)
+
+1. **A speed trace has no lower bound on drag.** Harvesting can explain any
+   deceleration, and over a closed lap the kinetic term vanishes, so the balance bounds
+   CdA from above only. The floor must come from a claim about ICE output, and there
+   are exactly two: (a) local — P_ice ≥ (1−δ)·P_ice,max at full throttle, which works
+   pre-Miami (250 kW super-clip) and is dead post-Miami (350 kW) at every δ; (b) global —
+   fuel closure, E_drag ≥ η_ice·(fuel burned)·LHV − E_rr − (kinetic shed on brakes-on
+   intervals). Use (b); it is independent of δ and of the harvest rule. Both are tagged
+   `ASSUMED_*`. The friction bound is brakes-on intervals only — including coast-downs
+   makes it vacuous. Fuel uncertainty is fractional per stint, not ±kg per race.
+2. **Prior edges are unphysically wide, and `at_box_edge` is the thing to read.** A
+   0.30 prior box hid a 0.396 data floor for a full iteration and reported "prior". If a
+   projection sits on a box edge, the box is the answer, not the data. Drag edges are
+   0.05; widen anything else that a projection touches.
+3. **Windows, not intervals.** Interval intersection keeps the single tightest bound and
+   never averages noise down. Aggregate over windows (kinetic terms telescope, so the
+   measurement error stays at one interval's while the signal grows). ~8 s; cut at HMM
+   mode transitions and zone edges. Assert window homogeneity (no window has nonzero
+   coefficients in both drag columns).
+4. **Label intervals conservatively.** Braking if b_k ∨ b_{k+1}; throttle for the
+   upper bound is max(θ_k, θ_{k+1}). Lower-bound violations on exact-parameter data are
+   zero by construction. The L1 relaxation is an alarm that names samples; if it trims
+   anything on clean data, that is a labelling bug, not a budget to raise.
+5. **Inside the polytope the trace is uninformative by construction.** Every θ ∈ 𝒫
+   explains the data exactly — that is what set membership means. So the filter's only
+   informative terms are (a) the store box, (b) store closure per lap
+   (deployed ≈ harvested, ± Manual Override allowance), and (c) the strategy prior on
+   P_K. Without (c), whatever assigns P_K within the band (midpoint, uniform) sets the
+   flows, the store-floor penalty becomes the only selection pressure, and it biases
+   CdA low (less drag → less inferred deployment → fuller store → fewer floor hits).
+   Anyone tuning the floor penalty is trading drag bias against energy accuracy on one
+   knob. The fix is not a better penalty: wire the policy prior in as the P_K proposal
+   inside the band, and make the store box a rejection, not a weight.
+6. **Deployable energy does not need a cut-out detector.** The store is known up to a
+   constant, E_k = c + F_k with F_k the cumulative flow from the band. If the driver has
+   touched the reserve at least once, deployable D_k = F_k − min_{j≤k} F_j exactly;
+   before that it is a lower bound. Report the running-minimum form. A detector
+   ("deployment stops while θ = 1") cannot distinguish a reserve hit from a policy
+   cut-off without a policy, and its false positives at a full store are what broke the
+   band. If a detector is kept, a reserve hit is a *sustained* deviation from the policy
+   prior — deploy predicted, none observed, persisting past the next corner exit.
+7. **Particle count is measured, not set.** With honest priors the discriminator is band
+   coverage, not MAPE. Re-measure after any change to the polytope or the priors; do not
+   inherit a count from an earlier fixture.
+8. **Pool τ across the grid**, precision-weighted, with a half-normal prior. Ten team
+   pairs do not support per-team method-of-moments.
+
 ## House style (the codebase has a voice — keep it)
 
 Comments explain *why the wrong version was wrong*, with the measured consequence
