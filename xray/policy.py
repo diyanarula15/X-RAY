@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from .constants import E_STORE_MAX, P_MGUK_MAX, p_mguk_ceiling
 
 GAP_WINDOW_S = 1.5  # gaps closer than this start to modulate deployment
+_WEIGHTS: dict = {}   # (track, policy) -> {zone name: weight}
 
 
 @dataclass(frozen=True)
@@ -19,18 +20,32 @@ class DeploymentPolicy:
     reserve: float                # 0..1  fraction of the store held back as buffer
     gap_sensitivity: float        # 0..2  extra deployment per unit closing gap
     zone_preference: dict         # {"A": 1.0, "B": 0.6, "C": 0.3} relative priority
+    # An attack the decision engine has called: on this lap, in this zone, spend
+    # everything and ignore the buffer. This is what closes the loop -- the
+    # recommendation changes the physics, and the overtake then either happens
+    # or it does not.
+    attack_lap: int | None = None
+    attack_zone: str | None = None
+    save_until: int | None = None   # hold the store back until this lap
 
     # ---------------------------------------------------------------- weights
     def zone_weight(self, track, zone) -> float:
-        """Zone priority, skewed early or late by ``front_loading``."""
+        """Zone priority, skewed early or late by ``front_loading``.
+
+        Cached per track: this is called twice per simulator timestep, and
+        rebuilding the name list to find an index every time was pure waste.
+        """
         if zone is None:
-            # baseline lap deployment: half the least-favoured zone
             return 0.5 * min(self.zone_preference.values())
-        names = [z.name for z in track.zones]
-        i = names.index(zone.name)
-        span = max(len(names) - 1, 1)
-        skew = 1.0 + self.front_loading * (1.0 - 2.0 * i / span)
-        return self.zone_preference[zone.name] * skew
+        cache = _WEIGHTS.get((id(track), id(self)))
+        if cache is None:
+            names = [z.name for z in track.zones]
+            span = max(len(names) - 1, 1)
+            cache = {n: self.zone_preference.get(n, 0.0)
+                     * (1.0 + self.front_loading * (1.0 - 2.0 * i / span))
+                     for i, n in enumerate(names)}
+            _WEIGHTS[(id(track), id(self))] = cache
+        return cache.get(zone.name, 0.0)
 
     def effective_reserve(self, laps_left: int) -> float:
         """The buffer is released over the last three laps of the stint."""
@@ -38,13 +53,27 @@ class DeploymentPolicy:
 
     # ----------------------------------------------------------------- demand
     def demand(self, track, s: float, v: float, E: float, gap_ahead: float,
-               gap_behind: float, laps_left: int, is_corner: bool = False) -> float:
+               gap_behind: float, laps_left: int, is_corner: bool = False,
+               lap: int = -1) -> float:
         """Requested store-side MGU-K power, in W."""
         if is_corner:
             return 0.0
         zone = track.zone_at(s)
         if zone is not None and s >= zone.s_straight_end:
             return 0.0  # inside the zone's braking area / apex
+
+        # The called attack: everything, here, now. This is what closes the loop
+        # -- the recommendation changes the physics, and the pass then either
+        # happens or it does not.
+        if (self.attack_lap is not None and lap == self.attack_lap
+                and zone is not None
+                and (self.attack_zone is None or zone.name == self.attack_zone)):
+            return min(P_MGUK_MAX, p_mguk_ceiling(v))
+
+        # Saving for a called attack: bank anything above a working level.
+        if self.save_until is not None and 0 <= lap < self.save_until:
+            if E < 0.55 * E_STORE_MAX:
+                return 0.0
 
         usable = E - self.effective_reserve(laps_left) * E_STORE_MAX * (1.0 - 0.0)
         if usable <= 0.0:

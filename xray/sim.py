@@ -149,7 +149,7 @@ class Simulator:
                 pt = tr.point(st[c].s)
                 demand = self.policies[c].demand(
                     tr, st[c].s, st[c].v, st[c].E, gap_ahead, gap_behind,
-                    laps_left, is_corner=pt[2])
+                    laps_left, is_corner=pt[2], lap=st[c].lap)
                 out = step(tr, st[c], params, demand, dt,
                            tow_factor=tow_factor if is_behind else 1.0,
                            grip=grip if is_behind else 1.0)

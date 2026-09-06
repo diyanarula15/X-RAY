@@ -99,6 +99,13 @@ class Track:
         self._inv_ds = 1.0 / self.GRID_DS
         self._pt = self._build_point_table()
         self.zones = self._build_zones()
+        # zone index per grid cell: zone_at is called twice per timestep by the
+        # policy, and scanning the zone list with a modulo each time was the
+        # single hottest line in the simulator
+        self._grid_zone = np.full(len(self._grid_s), -1, dtype=np.int8)
+        for zi, z in enumerate(self.zones):
+            m = (self._grid_s >= z.s_straight_start) & (self._grid_s < z.s_end)
+            self._grid_zone[m] = zi
         self.detection_points = [z.detection_point for z in self.zones]
         self._xy = None
 
@@ -180,11 +187,11 @@ class Track:
         return np.where(self.is_corner(s), self.aero_cda_ratio, 1.0)
 
     def zone_at(self, s) -> Optional[Zone]:
-        s = float(s) % self.length
-        for z in self.zones:
-            if z.s_straight_start <= s < z.s_end:
-                return z
-        return None
+        i = int((float(s) % self.length) * self._inv_ds)
+        if i >= len(self._grid_zone):
+            i = len(self._grid_zone) - 1
+        zi = self._grid_zone[i]
+        return self.zones[zi] if zi >= 0 else None
 
     def zone_by_name(self, name: str) -> Zone:
         return next(z for z in self.zones if z.name == name)
