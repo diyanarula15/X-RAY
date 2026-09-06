@@ -50,6 +50,11 @@ MO_TAPER_V_ZERO_KMH = 350.0  # which is the whole point of the override
 # most worth checking against the published calendar before quoting a result.
 ASSUMED_MIAMI_2026 = date(2026, 5, 3)
 
+# Pedal position below which the ICE is treated as making nothing. The feed
+# publishes throttle as a percentage, and a real trace idles at a few percent
+# rather than at zero.
+COAST_THROTTLE_FRAC = 0.08
+
 
 @dataclass(frozen=True)
 class RegSet:
