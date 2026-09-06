@@ -354,14 +354,27 @@ def build_window_constraints(v, t, z, lap_frac, is_x_mode, in_zone, rpm,
     pice_floor_sum = g * dt * pice_lo
 
     rows_A, rows_b, n_up, n_dn = [], [], 0, 0
-    reasons = {"window_had_hole": 0, "braking_lower_dropped": 0}
+    reasons = {"window_had_hole": 0, "braking_lower_dropped": 0,
+               "cut_at_mode_change": 0, "cut_at_zone_edge": 0}
     n = len(v)
+    # Windows are cut at aero-mode transitions and zone edges, not only at a
+    # fixed length. Splitting the drag sum across CdA_X and CdA_Z makes a mixed
+    # window *arithmetically* exact, but it is not epistemically clean: the
+    # samples either side of a transition are the ones the HMM is least sure
+    # about, and a window that straddles one inherits that doubt across its
+    # whole coefficient vector. Cutting there keeps each window's labels
+    # homogeneous and confident, at the cost of some short windows.
+    mode_change = np.flatnonzero(is_x[:-1] != is_x[1:]) + 1
+    zone_edge = np.flatnonzero(in_zone[:-1] != in_zone[1:]) + 1
+    breaks = set(mode_change.tolist()) | set(zone_edge.tolist())
+    reasons["cut_at_mode_change"] = int(len(mode_change))
+    reasons["cut_at_zone_edge"] = int(len(zone_edge))
     starts = []
     i = 0
     while i < n - 1:
         j = i
         t_end = t[i] + window_s
-        while j < n - 1 and t[j + 1] <= t_end:
+        while j < n - 1 and t[j + 1] <= t_end and (j + 1) not in breaks:
             j += 1
         if j <= i:
             j = i + 1

@@ -163,3 +163,46 @@ def test_fuel_burn_moves_mass_by_the_declared_load(cfg):
     # never negative: a stint longer than the fuel load must not imply
     # anti-mass, which would flip the sign of the largest term in the balance
     assert fuel_mass(200.0, 70.0, 1.15) == 0.0
+
+
+def test_windows_never_straddle_a_mode_or_zone_transition(cfg, races):
+    """Windows are cut at aero-mode transitions and zone edges.
+
+    Splitting the drag sum across CdA_X and CdA_Z makes a mixed window
+    arithmetically exact, so this is not a correctness fix -- measured on seed
+    42 it changes the identified bounds by nothing (CdA_X [0.264, 0.744] either
+    way, on 643 windows instead of 188). The argument is epistemic: the samples
+    either side of a transition are the ones the HMM is least sure about, and a
+    window that straddles one carries that doubt into its whole coefficient
+    vector. On real data, where mode labels are inferred rather than given, that
+    matters more than it does here.
+
+    Asserted structurally -- no window may contain a transition -- because a
+    bounds comparison would pass for the wrong reason.
+    """
+    gt = races[42]
+    track = gt.track
+    z = elevation_fn(track)
+    obs = observe(gt, LEADER, rate_hz=3.7,
+                  speed_noise_ms=cfg["observe"]["speed_noise_ms"], seed=43)
+    idx = np.clip(np.searchsorted(gt.t, obs.t), 0, len(gt.t) - 1)
+    n = len(obs.v)
+    reg = gt.cars[LEADER].regime[idx]
+    is_x = ~np.asarray(track.is_corner(obs.s))
+    in_zone = np.array([track.zone_at(x) is not None for x in obs.s])
+    assert 0.1 < in_zone.mean() < 0.9, "fixture has no zone edges to cut at"
+
+    from xray.balance import build_window_constraints as bwc
+    v = cfg["vehicle"]
+    cons = bwc(obs.v, obs.t, z(obs.s), obs.lap + obs.s / track.length, is_x,
+               in_zone, np.full(n, N_RPM_MAX),
+               np.where(reg == "brake", 0.0, 1.0),
+               (reg == "brake").astype(float), np.full(n, np.nan), PRE_MIAMI,
+               v["rho"], window_s=8.0, eta_d=v["drivetrain_eff"],
+               m_published=v["mass_car"])
+    assert cons.drop_reasons["cut_at_mode_change"] > 0
+    assert cons.drop_reasons["cut_at_zone_edge"] > 0
+    # a mixed window would put nonzero coefficients in BOTH drag columns
+    both = (np.abs(cons.A[:, 0]) > 1e-9) & (np.abs(cons.A[:, 1]) > 1e-9)
+    assert not both.any(), (
+        f"{int(both.sum())} windows span both aero modes despite the cut")

@@ -45,9 +45,16 @@ MO_TAPER_V_FULL_KMH = 337.0  # Manual Override holds full power far higher,
 MO_TAPER_V_ZERO_KMH = 350.0  # which is the whole point of the override
 
 # --------------------------------------------------------- regulation dates
-# The mid-season change. The spec calls the variants "pre-Miami" and
-# "post-Miami"; the exact changeover date is ASSUMED here and is the one input
-# most worth checking against the published calendar before quoting a result.
+# The mid-season change. 3 May 2026 is the Miami Grand Prix race date, and the
+# package applied from that weekend per the F1 statement -- so this is the right
+# date rather than a placeholder. Still tagged ASSUMED because it has not been
+# checked against the FIA event document, which is the source that would settle
+# it; the check belongs with the first real-data run, since that is when the
+# document gets fetched anyway.
+#
+# Getting it wrong is not a graceful failure: the deployment cap moves 100 kW,
+# which is 30% of the quantity being estimated, and the local drag floor goes
+# from usable to dead. A mislabelled race produces a confidently wrong answer.
 ASSUMED_MIAMI_2026 = date(2026, 5, 3)
 
 # Pedal position below which the ICE is treated as making nothing. The feed
