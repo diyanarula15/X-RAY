@@ -233,7 +233,41 @@ is that `E_k = c + F_k` with `c` unidentified, so rejecting on a sampled `c`'s
 walk conflates "wrong theta" with "wrong c". The box's only c-free statement
 about theta is that a feasible `c` exists at all: `max(F) - min(F) <= 4 MJ`.
 
-**Then the shape likelihood found real signal.** For each theta the band
+**The dead band is where drag is actually identified, and the statistic is
+exact.** Between the deployment cut-off v_cut and the super-clip onset v_harv
+the policy says P_K = 0, so the balance there is pure ICE against drag and the
+residual is `delta_CdA * 0.5 rho v^3` with no other regressor -- Stage 1's
+high-speed window relocated to a speed that exists. Swept against the *true*
+dead band on seed 42 (446 samples, 283-347 km/h) the rms residual minimises at
+**CdA_X = 0.66, exactly the truth**, with the mean residual crossing zero there
+(+0.4 kW).
+
+That the simulator has a speed-separable dead band at all is worth recording:
+the fraction of full-throttle brakes-off samples with true P_K = 0 rises
+monotonically from 0.00 below 279 km/h to 0.83 at 336-355 km/h.
+
+**The filter cannot yet exploit it, and the reason is instructive.** v_cut has
+to be inferred jointly, and every weighting scheme tried either lets particles
+escape the test or over-constrains:
+
+| scheme | CdA_X | what happened |
+|---|---|---|
+| sum of squared residuals | 0.336 | an empty dead band costs nothing, so escaping is free |
+| mean, with a population-mean fallback | 0.325 | escaping still cheaper than being tested and wrong |
+| mean, untestable particles rejected | **0.407** | v_cut posterior 243 km/h against a true 300-330 |
+
+At the middle setting the diagnostic was unambiguous: v_cut collapsed to 98 m/s
+(353 km/h, above the car's top speed) where the dead band is empty, and
+`corr(CdA, log weight) = -0.00` -- the likelihood was exerting no pressure on
+drag at all while appearing wired in.
+
+**The next step follows from the diagnostic rather than from more tuning.** The
+dead band is directly observable, so v_cut should be estimated *first*, as a
+changepoint in the P_K = 0 fraction against speed, instead of being inferred
+jointly inside the filter. The dead-band residual then becomes a one-parameter
+least squares for CdA, which the sweep above shows lands on the truth.
+
+**The earlier all-samples shape likelihood also found signal.** For each theta the band
 implies a P_K(t), and implied P_K is linear in CdA through the v^3 drag term, so
 a wrong CdA leaves a residual proportional to `delta_CdA * v^3` once the policy
 step is fitted out. Regressing implied P_K on `[step(v), 1, v^3]` and penalising
@@ -268,12 +302,19 @@ the posterior lies inside it.
 
 ## What does not work
 
-**Drag area is still recovered at the bottom half of its identified set** -- 0.408 against a true
-0.660 inside [0.264, 0.744], so 38% low rather than 59%. The residual bias is
-in the implied-P_K construction: it assumes the ICE sits at its cap, so where
-throttle is below full the implied deployment is overstated and its v^3 content
-is not purely `delta_CdA`. Narrowing the set is still the more reliable route --
-the fuel-closure bound and field pooling, not the filter.
+**Drag area is still recovered at the bottom half of its identified set** --
+0.407 against a true 0.660 inside [0.264, 0.744], so 38% low rather than 59%.
+Not because the statistic is wrong -- it is exact, see the sweep above -- but
+because v_cut is inferred jointly with it and the filter has no way to prefer a
+testable policy claim over an untestable one without also over-constraining.
+Estimating v_cut first is the fix.
+
+The store box is now the binding constraint rather than a formality: 3,146
+rejections against 643 from untestability, and the ensemble empties at the very
+last sample. That is a real tension -- the dead-band likelihood pushes drag up,
+which raises implied deployment, which widens range(F) towards the 4 MJ the
+store allows -- and `first_empty_sample` plus the two rejection counts are
+reported so it cannot be mistaken for either a clean run or a crash.
 
 Also short of the plan: pooling reduces error 66% but width only to 0.87x. Six fixes have now been tried and measured: an accelerating gate on
 the cut-out detector, hysteresis on it, 10x wider reserve jitter, the

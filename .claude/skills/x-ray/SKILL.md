@@ -174,6 +174,13 @@ the hot kernels ported to C++/Rust. Nothing is ported now. What is done now:
    always report the assumption-free polytope and the policy-tilted posterior as two
    numbers. If the filter's CdA sits at a polytope wall, something is rejecting, not
    discriminating — histogram survivors against the uniform draw before touching priors.
+   The store box constrains θ only through range(F) ≤ 4 MJ; never sample an initial
+   store and reject on its walk (c is unidentified, so that rejects θ for c's sins).
+   Apply the shape likelihood only on full-throttle, brakes-off samples — partial
+   throttle needs an ICE map, which is not to be built. Sharpest form: the dead band
+   v_c < v < v_h, where the policy says P_K = 0, is pure ICE-vs-drag; the v³ residual
+   there is δCdA with no regressor collinearity. That is the Stage 1 high-speed window
+   at a speed that exists. Post-Miami (350 kW super-clip) the band narrows.
 10. **One `Rules(D)` object, and a test that the simulator and the fixture agree on it.**
     The simulator ran 350 kW harvest while fixtures assumed 250 kW for an entire
     iteration; every measurement was 0.71× on harvest. The blindfold forbids the
