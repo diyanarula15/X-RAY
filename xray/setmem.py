@@ -47,11 +47,18 @@ from .balance import N_PARAMS, PARAM_NAMES, Constraints
 # Drag area, the quantity actually being identified, keeps a range no prior
 # could be accused of setting.
 #
+# The drag edges are deliberately far below anything physical (0.05 m^2 is not
+# an F1 car) because a tight prior edge *masks* the data. With the lower edge at
+# 0.30 the fuel-closure floor of 0.396 was invisible: the projection reported
+# 0.300 and `at_box_edge` said "prior", when in fact the data had something to
+# say. A prior edge should only ever be reached when the data genuinely has no
+# opinion.
+#
 # A projection that lands *on* a box edge is reported in `at_box_edge`, because
 # that is the estimator hitting its own prior rather than the data.
 DEFAULT_BOX = np.array([
-    [0.30, 3.00],    # CdA_X, m^2 -- an F1 car in its lowest-drag state
-    [0.30, 3.00],    # CdA_Z, m^2 -- and its highest-downforce state
+    [0.05, 3.00],    # CdA_X, m^2 -- an F1 car in its lowest-drag state
+    [0.05, 3.00],    # CdA_Z, m^2 -- and its highest-downforce state
     [62.0, 124.0],   # F_rr, N at M_REF_KG: crr in [0.008, 0.016] on 790 kg
     [-6.0, 6.0],     # dm, kg -- 3 sigma of the spec's N(published, 2 kg)
 ])

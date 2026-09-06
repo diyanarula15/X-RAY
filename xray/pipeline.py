@@ -10,10 +10,10 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .balance import build_window_constraints
+from .balance import build_window_constraints, fuel_closure_constraint
 from .modes import ModePath, infer
 from .regs import RegSet, regs_for
-from .setmem import IdentifiedSet, identify
+from .setmem import IdentifiedSet, identify, intersect
 
 
 @dataclass(frozen=True)
@@ -67,7 +67,7 @@ def identify_car(feed: Feed, rho: float, race_date=None, window_s: float = 8.0,
                  eta_d: float = 0.95, m_published: float = 790.0,
                  speed_sigma_ms: float | None = None, causal: bool = False,
                  fuel_start: float = 70.0, fuel_burn_per_lap: float = 1.15,
-                 **kw) -> Identification:
+                 fuel_burned_kg: float | None = None, **kw) -> Identification:
     regs = regs_for(race_date)
     modes = infer(feed.v, feed.brake, feed.throttle,
                   accel_from_speed(feed.v, feed.t), feed.in_zone,
@@ -80,5 +80,16 @@ def identify_car(feed: Feed, rho: float, race_date=None, window_s: float = 8.0,
         fuel_burn_per_lap=fuel_burn_per_lap,
         **({} if speed_sigma_ms is None else {"speed_sigma_ms": speed_sigma_ms}),
         **kw)
+    # The global bound. Without it the polytope is open below on drag area --
+    # measured, the floor sat on its prior edge -- because nothing local can
+    # rule out "engine idling, motor harvesting". Fuel closure does not care
+    # what the harvest rule is, which is why it survives the post-Miami change
+    # that gutted the local ICE floor.
+    if fuel_burned_kg is not None:
+        cons = intersect(cons, fuel_closure_constraint(
+            feed.v, feed.t, feed.z, feed.lap_frac, modes.is_x, feed.gap_s, rho,
+            fuel_burned_kg, brake=feed.brake, eta_d=eta_d,
+            m_published=m_published, fuel_start=fuel_start,
+            fuel_burn_per_lap=fuel_burn_per_lap))
     return Identification(modes=modes, identified=identify(cons), regs=regs,
                           window_s=window_s, n_constraints=len(cons))
