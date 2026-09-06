@@ -53,27 +53,65 @@ derivative, and it matters because real 2026 telemetry arrives at 4.17 Hz.
 
 ## The three results that changed the plan
 
-### 1. Drag area has no lower bound from a speed trace
+### 1. Drag area is bounded below only by a claim about ICE output
 
-Recovery can always account for a deceleration. A 3 s coast shedding 5 m/s
-dissipates 0.267 MJ; the rules permit 0.75 MJ of harvesting over the same
-window, and post-Miami super-clipping raises that to 1.05 MJ.
+A speed trace alone gives no floor: with `P_ice >= 0`, "engine at idle, motor
+harvesting" explains every straight and `CdA = 0` is feasible. A 3 s coast
+shedding 5 m/s dissipates 0.267 MJ where the rules permit 0.75 MJ of recovery,
+1.05 MJ post-Miami. Over a closed lap the kinetic term vanishes, so the balance
+bounds drag above and is trivially satisfied at zero below.
 
-The integral caps do not rescue it. Over a closed lap the kinetic term vanishes,
-so the balance reads `E_drag + E_rr = eta(E_ice + E_K)` with `E_K` in
-[-4, +4] MJ. That bounds drag from above and is trivially satisfied at `CdA = 0`
-below. Adding the per-lap harvest cap and the store bound moved the projection
-by nothing.
+The floor has to come from an assumption about the engine, and there are two.
 
-So `CdA_X` reports `[0.300, 0.744]` on the Stage 1 fixture -- upper bound from
-the data, lower bound sitting on its prior edge and flagged in `at_box_edge`.
-Step 5 was expected to close it, on the argument that a bounded store cannot
-absorb unlimited recovery. It does not: the floor penalty pushes the other way,
-because low drag means less deployment, a fuller store and fewer floor
-violations. Before theta was constrained to the polytope this drove `CdA_X` to
-0.335 against a true 0.660.
+**Local** -- `P_ice >= (1 - delta) P_ice_max` at full throttle. Measured floors
+on `CdA_X`, true value 0.660:
 
-**The polytope and the filter are not separable the way steps 2-5 assume.**
+| delta | pre-Miami | post-Miami |
+|---|---|---|
+| 0.00 | 0.134 | prior edge |
+| 0.05 | 0.095 | prior edge |
+| 0.10 | 0.057 | prior edge |
+| 0.20 | prior edge | prior edge |
+
+The post-Miami column is the result: `400(1-delta) - 350` leaves 10 kW at
+`delta = 0.10`, so **super-clipping made drag area lower-unidentifiable from
+power bounds alone.** That is a fact about the April change, not the estimator.
+
+**Global -- fuel closure**, and this is the one that works. Over the stint the
+ICE does a known amount of work with nowhere to go but drag, rolling
+resistance, the friction brakes and a store that cannot absorb more than 4 MJ
+net. `CdA_X >= 0.264` with the HMM's mode labels, 0.396 with the circuit's aero
+gate, independent of `delta` and of the harvest rule. The set is now two-sided:
+**[0.264, 0.744] bracketing 0.660.**
+
+Two inputs each killed this constraint on their own before being fixed: the
+fuel-mass uncertainty has to be fractional (a race-level +/-5 kg figure is 60%
+of a 12-lap stint and took `E_ice_min` from 296 MJ to 127 MJ), and the friction
+bound has to be restricted to intervals where the brakes are actually on
+(counting coast-downs inflated it from 100 MJ to 177 MJ).
+
+The prior box was also masking the answer. With the lower edge at 0.30 the
+0.264 floor was invisible. The drag edges are now 0.05, deliberately below
+anything physical, because a prior edge should only be reached when the data
+genuinely has no opinion.
+
+**The step-5 low-drag bias is not fixed by the floor.** With the set two-sided
+the filter still sits at 0.277. Sweeping the floor penalty is decisive:
+
+| FLOOR_PENALTY | CdA_X posterior | store coverage | MAPE | ESS |
+|---|---|---|---|---|
+| 0.0 | 0.505 | 0.32 | 344.7% | 400 |
+| 0.5 | 0.340 | 0.38 | 67.7% | 270 |
+| 2.0 | 0.382 | 0.52 | 16.4% | 43 |
+| 6.0 | 0.277 | 0.69 | 10.9% | 12 |
+
+At zero the posterior is exactly the uniform draw mean and the energy estimate
+is useless. **The floor penalty is the only informative likelihood term**, so it
+does double duty: it is what makes the energy estimate work at all, and it
+biases drag down and collapses the ensemble while doing it. The missing term is
+store closure over the race -- deployed must equal harvested to within one
+store -- which constrains the deployment level without punishing particles.
+That is the fix and it is not yet implemented.
 
 ### 2. Interval intersection is robust but statistically inefficient
 
@@ -134,7 +172,19 @@ particles collapses (ESS 1 of 100, 39.6% error), 400 works, 1,600 buys nothing.
 ## What does not work
 
 **The reserve is not separately identified, so the deployable-energy band is
-unusable.** Inferred buffer 0.97 +/- 0.32 MJ for a driver whose policy holds
+unusable.** Six fixes have now been tried and measured: an accelerating gate on
+the cut-out detector, hysteresis on it, 10x wider reserve jitter, the
+buffer-release ramp, a `v_cut` policy gate, and detecting on the deployment
+lower bound instead of the band midpoint. The `k/k+1` convention on the
+likelihood *was* wrong and is fixed. Deployable energy is now also reported as
+`since_reserve`, the net flow integral since the last reserve hit, which is
+identified without separating E from R -- but it inherits the detector's
+reliability, resets about twice a lap, and so correlates only +0.18 with the
+truth.
+
+The detector fires in mostly the right places (true store 0.02 MJ median at
+hits) with a few false positives at a nearly full store (2.81 MJ max), and those
+are enough to hold R at its prior. Inferred buffer 0.97 +/- 0.32 MJ for a driver whose policy holds
 0.00. Because `U = max(E - R, 0)` is then exactly zero for every particle, the
 band collapses to 0.06 MJ wide and covers the truth 4% of the time.
 
