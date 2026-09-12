@@ -36,7 +36,7 @@ export function Decision({ raceId, car, rival }:
       .attr('fill', C.gray).attr('font-size', 11.5).attr('text-anchor', 'middle')
       .text('pass probability');
 
-    // the sensitivity fan: the recommendation across sampled opponent policies
+    // Backend-provided sensitivity curves, when available.
     (d.fan?.curves ?? []).forEach((row: number[]) => {
       svg.append('path').datum(row.map((q, i) => [laps[i]?.lap ?? i, q]))
         .attr('d', d3.line<any>().x((p) => x(p[0])).y((p) => y(p[1])) as any)
@@ -74,8 +74,6 @@ export function Decision({ raceId, car, rival }:
       <h2 className="display" style={{ fontSize: 26, margin: 0 }}>Decision explorer</h2>
       <p style={{ color: C.gray, maxWidth: 820, fontSize: 13.5, lineHeight: 1.65 }}>
         {car} attacking {rival}. Every number here decomposes — click a lap.
-        The faint fan behind the threshold is the same recommendation re-solved
-        across {d.fan?.n_policies ?? 200} sampled opponent policies.
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 310px', gap: 20,
                     marginTop: 14 }}>
@@ -85,14 +83,15 @@ export function Decision({ raceId, car, rival }:
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div className="panel" style={{ padding: 15 }}>
             <div style={{ color: C.gray, fontSize: 10.5, letterSpacing: '0.09em',
-                          fontWeight: 700, marginBottom: 9 }}>ROBUSTNESS</div>
+                          fontWeight: 700, marginBottom: 9 }}>MODEL</div>
             <div className="num" style={{ fontSize: 30, fontWeight: 800, color: C.green }}>
-              {((d.fan?.consensus_fraction ?? 0) * 100).toFixed(0)}%
+              {(((d.call?.confidence ?? d.laps?.[0]?.confidence ?? 0) as number) * 100).toFixed(0)}%
             </div>
             <div style={{ color: C.gray, fontSize: 12.5, marginTop: 6, lineHeight: 1.6 }}>
-              of {d.fan?.n_policies} sampled opponent policies give the same call
-              {d.fan?.consensus_lap ? ` (lap ${d.fan.consensus_lap})` : ''}.
-              Computed by re-solving, not asserted.
+              Decision model: {d.metadata?.decision_model ?? 'Core DP'}<br />
+              Physics: {d.metadata?.physics ?? 'cached longitudinal simulation'}<br />
+              Opponent state: {d.metadata?.opponent_state ?? 'inferred'}<br />
+              Pass model: {d.metadata?.pass_model ?? 'synthetic placeholder logistic'}
             </div>
           </div>
           <div className="panel" style={{ padding: 15 }}>
@@ -119,9 +118,14 @@ export function Decision({ raceId, car, rival }:
                 <tbody>
                   <tr><td>opportunity q</td><td style={{ textAlign: 'right', color: C.white }}>{sel.q.toFixed(3)}</td></tr>
                   <tr><td>threshold τ</td><td style={{ textAlign: 'right', color: C.white }}>{sel.tau.toFixed(3)}</td></tr>
-                  <tr><td>your energy</td><td style={{ textAlign: 'right', color: C.amber }}>{sel.own_mj.toFixed(2)} MJ</td></tr>
+                  <tr><td>value attack</td><td style={{ textAlign: 'right', color: C.white }}>{sel.value_attack.toFixed(3)}</td></tr>
+                  <tr><td>value hold</td><td style={{ textAlign: 'right', color: C.white }}>{sel.value_wait.toFixed(3)}</td></tr>
+                  <tr><td>gap</td><td style={{ textAlign: 'right', color: C.white }}>{sel.gap_s.toFixed(3)} s</td></tr>
+                  <tr><td>delta v</td><td style={{ textAlign: 'right', color: C.white }}>{sel.predicted_delta_v_mps.toFixed(2)} m/s</td></tr>
+                  <tr><td>your usable</td><td style={{ textAlign: 'right', color: C.amber }}>{sel.own_mj.toFixed(2)} MJ</td></tr>
                   <tr><td>rival deployable</td><td style={{ textAlign: 'right', color: C.red }}>{sel.rival_mj.toFixed(2)} MJ</td></tr>
                   <tr><td>best zone</td><td style={{ textAlign: 'right', color: C.white }}>{sel.zone}</td></tr>
+                  <tr><td>gap source</td><td style={{ textAlign: 'right', color: C.gray }}>{sel.gap_source}</td></tr>
                 </tbody>
               </table>
               <div style={{ marginTop: 10, fontSize: 12.5,

@@ -49,7 +49,7 @@ class CarState:
     fuel: float = 70.0        # kg
     harvested_lap: float = 0.0
     deployed_lap: float = 0.0
-    mom_credit: float = 0.0   # J, unspent Manual Override allocation
+    manual_overtake_allocation_j: float = 0.0   # J, legal allocation, not stored energy
     lap: int = 0
 
     @property

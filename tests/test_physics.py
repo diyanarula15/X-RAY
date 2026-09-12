@@ -4,8 +4,9 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from xray.constants import (E_STORE_MAX, P_MGUK_MAX, TAPER_V_END, TAPER_V_START,
-                            p_mguk_ceiling)
+from xray.constants import (E_STORE_MAX, P_MGUK_MAX, TAPER_V_END,
+                            TAPER_V_START, mguk_power_limit_normal,
+                            mguk_power_limit_overtake, p_mguk_ceiling)
 from xray.sim import FOLLOWER, LEADER, run_sim
 from xray.track import circuit_sigma
 from xray.vehicle import VehicleParams, braking_distance
@@ -16,7 +17,7 @@ CARS = (LEADER, FOLLOWER)
 def test_taper_ceiling():
     assert p_mguk_ceiling(289 / 3.6) == pytest.approx(P_MGUK_MAX)
     assert p_mguk_ceiling(TAPER_V_START) == pytest.approx(P_MGUK_MAX)
-    assert p_mguk_ceiling(356 / 3.6) == 0.0
+    assert p_mguk_ceiling(346 / 3.6) == 0.0
     assert p_mguk_ceiling(TAPER_V_END) == 0.0
     vs = np.linspace(TAPER_V_START, TAPER_V_END, 200)
     ceil = p_mguk_ceiling(vs)
@@ -25,13 +26,36 @@ def test_taper_ceiling():
     assert ceil[-1] == pytest.approx(0.0)
 
 
+def test_2026_mguk_power_curve_boundaries():
+    eps = 0.01 / 3.6
+    assert mguk_power_limit_normal((290 / 3.6) - eps) == pytest.approx(P_MGUK_MAX)
+    assert mguk_power_limit_normal(290 / 3.6) == pytest.approx(P_MGUK_MAX)
+    assert mguk_power_limit_normal((290 / 3.6) + eps) < P_MGUK_MAX
+    assert mguk_power_limit_normal(337.5 / 3.6) == pytest.approx(112_500.0)
+    assert mguk_power_limit_normal(340 / 3.6) == pytest.approx(100_000.0)
+    assert mguk_power_limit_normal((345 / 3.6) - eps) > 0.0
+    assert mguk_power_limit_normal(345 / 3.6) == 0.0
+    assert mguk_power_limit_normal(355 / 3.6) == 0.0
+
+    assert mguk_power_limit_overtake(337.5 / 3.6) == pytest.approx(P_MGUK_MAX)
+    assert mguk_power_limit_overtake((337.5 / 3.6) + eps) < P_MGUK_MAX
+    assert mguk_power_limit_overtake(340 / 3.6) == pytest.approx(300_000.0)
+    assert mguk_power_limit_overtake((345 / 3.6) - eps) > mguk_power_limit_normal((345 / 3.6) - eps)
+    assert mguk_power_limit_overtake(345 / 3.6) == pytest.approx(200_000.0)
+    assert mguk_power_limit_overtake((355 / 3.6) - eps) > 0.0
+    assert mguk_power_limit_overtake(355 / 3.6) == 0.0
+
+
 def test_energy_balance_closes(gt):
-    """Per lap: E_end - E_start == harvested + manual-override - deployed."""
+    """Per lap: E_end - E_start == harvested - deployed.
+
+    Manual Override is a legal deployment allocation, not instant stored energy.
+    """
     for car in CARS:
         tr = gt.cars[car]
         k = gt.n_laps - 1
         delta = np.diff(tr.e_lap_open)[:k]
-        flows = (tr.harvested_lap - tr.deployed_lap)[:k] + tr.mom_lap[1:k + 1]
+        flows = (tr.harvested_lap - tr.deployed_lap)[:k]
         assert np.abs(delta - flows).max() < 1000.0, f"{car} energy does not close"
 
 

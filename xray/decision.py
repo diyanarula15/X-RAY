@@ -407,6 +407,64 @@ class ExogenousSolution:
         return float(self.tau[k, int(_bin_index(self.model.bins, e_own))])
 
 
+def explain_exogenous_action(sol: ExogenousSolution, laps_left: int,
+                             own_usable_energy_j: float) -> dict:
+    """Expose the DP terms behind the exogenous-rival recommendation.
+
+    This is the canonical inspection interface used by the API and tests. It
+    reads values out of the solved finite-horizon problem rather than rebuilding
+    a separate web threshold or pass-probability calculation.
+    """
+    model = sol.model
+    bins = model.bins
+    k = int(np.clip(laps_left, 0, sol.V.shape[0] - 1))
+    i = int(_bin_index(bins, own_usable_energy_j))
+    lap = sol._lap_of(k)
+    rival_usable_energy_j = float(sol.rival_track[lap])
+    own_grid_energy_j = float(bins[i])
+    own_next_j = float(np.clip(own_grid_energy_j + model.recharge_per_lap
+                              - model.own_spend_per_lap, 0.0, E_STORE_MAX))
+    wait_i = int(_bin_index(bins, own_next_j))
+    attack_next_j = float(np.clip(own_next_j - model.attack_cost, 0.0, E_STORE_MAX))
+    attack_i = int(_bin_index(bins, attack_next_j))
+    v_next = sol.V[k - 1] if k > 0 else sol.V[0]
+    value_wait = float(v_next[wait_i])
+    value_fail = float((1.0 - model.fail_cost) * v_next[attack_i])
+    reward = R_PASS * k / max(model.n_laps, 1)
+
+    rows = []
+    for zi, zm in enumerate(model.zones):
+        own_deploy_j = min(own_grid_energy_j, model.attack_cost)
+        rival_deploy_j = min(rival_usable_energy_j, model.attack_cost)
+        dv = delta_v(zm, own_deploy_j, rival_deploy_j)
+        q = p_pass(dv, model.gap_s, zm)
+        value_attack = float(q * reward + (1.0 - q) * value_fail)
+        rows.append({
+            "zone_index": zi,
+            "zone": zm.name,
+            "pass_probability": float(q),
+            "predicted_delta_v_mps": float(dv),
+            "predicted_own_speed_mps": float(np.interp(own_deploy_j, zm.energy_grid,
+                                                       zm.speed_grid)),
+            "predicted_rival_speed_mps": float(np.interp(rival_deploy_j, zm.energy_grid,
+                                                         zm.speed_grid)),
+            "value_attack": value_attack,
+        })
+    best_row = max(rows, key=lambda r: r["value_attack"]) if rows else None
+    selected = int(sol.best_zone[k, i]) if k < sol.best_zone.shape[0] else -1
+    return {
+        "laps_left": k,
+        "own_usable_energy_j": float(own_usable_energy_j),
+        "rival_usable_energy_j": rival_usable_energy_j,
+        "attack_threshold": float(sol.threshold(k, own_usable_energy_j)),
+        "value_wait": value_wait,
+        "best_zone": None if selected < 0 else model.zones[selected].name,
+        "decision": "HOLD" if selected < 0 else "ATTACK",
+        "best_attack": best_row,
+        "zones": rows,
+    }
+
+
 def solve_exogenous(model: DecisionModel, rival_track: np.ndarray) -> ExogenousSolution:
     bins = model.bins
     nb = len(bins)

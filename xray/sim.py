@@ -8,7 +8,7 @@ from typing import Any
 
 import numpy as np
 
-from .constants import E_STORE_MAX, MOM_BONUS, MOM_GAP_S
+from .constants import E_STORE_MAX, MOM_DEPLOYMENT_ALLOWANCE_J, MOM_GAP_S
 from .overtake import p_pass
 from .policy import DeploymentPolicy, get_policy
 from .track import Track, circuit_sigma
@@ -182,7 +182,7 @@ class Simulator:
                         if (_crossed(s_prev, st[c].s, s_d, tr.length) and gap <= MOM_GAP_S
                                 and mom_lap_granted[c] != st[c].lap):
                             mom_lap_granted[c] = st[c].lap
-                            pending_mom[c] = MOM_BONUS
+                            pending_mom[c] = MOM_DEPLOYMENT_ALLOWANCE_J
                             events.append(Event(t, max(st[c].lap, 0), "mom_grant", c,
                                                 {"detection_s": s_d, "gap_s": gap}))
 
@@ -197,9 +197,8 @@ class Simulator:
                     st[c].deployed_lap = 0.0
                     st[c].harvested_lap = 0.0
                     if pending_mom[c] > 0.0 and st[c].lap < self.n_laps + 1:
-                        added = min(pending_mom[c], E_STORE_MAX - st[c].E)
-                        st[c].E += added
-                        per_lap[c]["mom"][st[c].lap] = added
+                        st[c].manual_overtake_allocation_j += pending_mom[c]
+                        per_lap[c]["mom"][st[c].lap] = pending_mom[c]
                         pending_mom[c] = 0.0
                     if st[c].lap < len(per_lap[c]["open"]):
                         per_lap[c]["open"][st[c].lap] = st[c].E

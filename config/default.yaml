@@ -41,7 +41,7 @@ estimator:
   savgol_seconds: 0.8
   cda_prior_wind_sigma: 3.0   # m/s, weak prior pulling the wind nuisance to zero
   deploy_scale_sigma: 0.06    # per-particle systematic deployment-scale spread
-  dry_event_e_scale: 4.0e5    # J, likelihood scale for a "ran dry" observation
+  dry_event_e_scale: 100000.0 # J, synthetic likelihood scale for a "ran dry" observation
   floor_violation_penalty: 6.0
 
 render:

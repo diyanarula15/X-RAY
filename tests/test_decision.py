@@ -4,9 +4,9 @@ from __future__ import annotations
 import numpy as np
 
 from xray.decision import (blind_chooser, build_model, compare_exogenous,
-                           compare_policies, delta_v, policy_posterior,
-                           rival_energy_at_zone, robustness, simulate_stint,
-                           solve, solve_exogenous)
+                           compare_policies, delta_v, explain_exogenous_action,
+                           policy_posterior, rival_energy_at_zone, robustness,
+                           simulate_stint, solve, solve_exogenous)
 from xray.overtake import COEFFS, p_pass
 from xray.sim import FOLLOWER, LEADER
 from xray.vehicle import VehicleParams
@@ -43,6 +43,12 @@ def test_pass_model_shape():
     # monotone in closing speed and in proximity
     assert p_pass(2.0, 0.3, Z(1.0)) < p_pass(9.0, 0.3, Z(1.0))
     assert p_pass(6.0, 1.4, Z(1.0)) < p_pass(6.0, 0.1, Z(1.0))
+
+
+def test_pass_model_gap_sensitivity():
+    class Z:
+        braking_severity = 1.0
+    assert p_pass(6.0, 0.2, Z()) > p_pass(6.0, 1.0, Z()) > p_pass(6.0, 1.5, Z())
 
 
 import pytest  # noqa: E402
@@ -99,6 +105,22 @@ def test_decision_waits_when_the_rival_is_strong(cfg, races):
     # the rival is strongest on the opening lap, so that is when to hold
     assert rival_track[0] == rival_track.max()
     assert calls[0] is None
+
+
+def test_explanation_matches_exogenous_solver_choice(cfg, races):
+    g, obs, bel, model, _sol, _believed = _setup(cfg, races)
+    rival_track = rival_energy_at_zone(bel, obs, g.track, g.n_laps)
+    sol = solve_exogenous(model, rival_track)
+    e_own = float(g.cars[FOLLOWER].E.max())
+    laps_left = 5
+    detail = explain_exogenous_action(sol, laps_left, e_own)
+    assert detail["best_zone"] == sol.action(laps_left, e_own)
+    best_attack_value = max(z["value_attack"] for z in detail["zones"])
+    assert detail["best_attack"]["value_attack"] == pytest.approx(best_attack_value)
+    if detail["decision"] == "ATTACK":
+        assert best_attack_value > detail["value_wait"]
+    else:
+        assert best_attack_value <= detail["value_wait"]
 
 
 def test_robustness_is_computed_not_asserted(cfg, races):

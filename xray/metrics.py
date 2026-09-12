@@ -50,6 +50,9 @@ class Score:
     soc_rmse_mj: float
     cda_error_pct: float
     n_laps_scored: int
+    deployed_posterior_mape: float = float("nan")
+    deployed_posterior_rmse_mj: float = float("nan")
+    deployed_posterior_bias_mj: float = float("nan")
     extra: dict = field(default_factory=dict)
 
 
@@ -70,6 +73,15 @@ def score_estimate(gt, car_id: str, obs: Observation, belief: BeliefTrace,
     idx = _at_obs_times(gt, obs)
     true_soc = trace.E[idx]
     true_usable = np.maximum(true_soc - true_reserve_floor(gt, car_id, obs.lap), 0.0)
+    dep_post = getattr(belief, "deployed_lap_posterior_mean", None)
+    if dep_post is None:
+        dep_post_mape = dep_post_rmse = dep_post_bias = float("nan")
+    else:
+        good = true_dep > 1.0e4
+        err = dep_post[ok][good] - true_dep[good]
+        dep_post_mape = float(100.0 * np.mean(np.abs(err) / true_dep[good]))
+        dep_post_rmse = float(np.sqrt(np.mean(err * err)) / 1e6)
+        dep_post_bias = float(np.mean(err) / 1e6)
 
     return Score(
         car_id=car_id, rate_hz=obs.sample_rate_hz,
@@ -84,6 +96,9 @@ def score_estimate(gt, car_id: str, obs: Observation, belief: BeliefTrace,
         soc_rmse_mj=float(np.sqrt(np.mean((belief.soc_mean - true_soc) ** 2)) / 1e6),
         cda_error_pct=float(100.0 * (belief.nuisance.cda_hat - cda_true) / cda_true),
         n_laps_scored=int(ok.sum()),
+        deployed_posterior_mape=dep_post_mape,
+        deployed_posterior_rmse_mj=dep_post_rmse,
+        deployed_posterior_bias_mj=dep_post_bias,
         extra={"deploy_scale_sigma": belief.deploy_scale_sigma,
                "n_taper_samples": belief.nuisance.n_samples,
                "dry_events": int(belief.dry_events.sum())})

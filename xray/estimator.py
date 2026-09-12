@@ -46,7 +46,7 @@ PHI_PRIOR_SIGMA = 0.29     # std of Uniform[0,1]: we know the bounds, nothing mo
 RESERVE_MAX_FRAC = 0.35    # racing prior: a driver holds back at most about a
                            # third of the store as buffer. The actual buffer is
                            # inferred per particle -- it is a policy parameter.
-RESERVE_SIGMA = 2.5e5      # J, how tightly a cut-out pins the store to the buffer
+RESERVE_SIGMA = 1.0e5      # J, how tightly a cut-out pins the store to the buffer
 RESERVE_RELEASE_LAPS = 3.0  # a buffer held all stint is spent over the last few
                             # laps. That release is what makes the buffer -- and
                             # so the absolute level of the store -- observable at
@@ -103,13 +103,15 @@ class BeliefTrace:
     usable_mean: np.ndarray    # J, belief about energy the rival can actually
     usable_p10: np.ndarray     # spend: store minus the buffer they hold back.
     usable_p90: np.ndarray     # This is the identified quantity -- see README.
-    deployed_lap: np.ndarray       # per-lap totals, J
-    harvested_lap: np.ndarray
+    deployed_lap: np.ndarray       # J, point-estimate deployed store energy per lap
+    harvested_lap: np.ndarray      # J, point-estimate recovered store energy per lap
     nuisance: NuisanceFit
     deploy_scale_sigma: float
     lap_index: np.ndarray          # lap id for each entry of *_lap
     p_mguk_mean: np.ndarray = field(default=None)   # W, per sample
     harvest_mean: np.ndarray = field(default=None)  # W, per sample
+    deployed_lap_posterior_mean: np.ndarray = field(default=None)   # J, posterior mean lap flow
+    harvested_lap_posterior_mean: np.ndarray = field(default=None)  # J, posterior mean lap flow
     ess: np.ndarray = field(default=None)           # effective sample size per lap
     dry_events: np.ndarray = field(default=None)    # bool per sample
     reserve_mean: float = 0.0                       # J, inferred driver buffer
@@ -488,7 +490,8 @@ def estimate(obs: Observation, track, priors: PublicPriors = PublicPriors(),
         white = nuisance.residual_rms * band_scale * dt * window * np.sqrt(n_eff)
         syst = nuisance.systematic_rms * band_scale * dt * n_accel
         dep_ref = max(float(np.sum(mguk_pt) * dt) / n_laps_seen, 1.0e5)
-        deploy_scale_sigma = float(np.clip(np.hypot(white, syst) / dep_ref, 0.02, 0.40))
+        deploy_scale_sigma = float(np.clip(np.hypot(white, syst) / dep_ref,
+                                           0.02, 0.40))
 
     # Recovery is a different kind of estimate and deserves its own error scale.
     # The 350 kW cap binds through almost every braking event, so recovered
@@ -529,6 +532,8 @@ def estimate(obs: Observation, track, priors: PublicPriors = PublicPriors(),
     n_laps_total = int(laps.max()) + 1
     dep_lap = np.zeros(len(laps))
     har_lap = np.zeros(len(laps))
+    dep_lap_post = np.zeros(len(laps))
+    har_lap_post = np.zeros(len(laps))
     ess_lap = np.zeros(len(laps))
 
     for li, lap in enumerate(laps):
@@ -587,15 +592,14 @@ def estimate(obs: Observation, track, priors: PublicPriors = PublicPriors(),
         use_p10[sl], use_p90[sl] = _weighted_quantiles(Uh, W, (0.10, 0.90))
         mguk_mean[sl] = np.sum(mguk * W, axis=0)
         harv_mean[sl] = np.sum(harv * W, axis=0)
-        # Per-lap flows are reported from the point estimate, not from the
-        # particle cloud. Two reasons: the SoC weights carry information about
-        # the store's absolute *level*, which is only weakly identified (see the
-        # README on the reserve degeneracy) and would import that ambiguity into
-        # a quantity the power balance measures directly; and clipping
-        # deployment at zero is convex, so averaging it over a spread of drag
-        # draws biases the total upward.
+        # Keep the public/internal `deployed_lap` field as the physically direct
+        # single reconstructed lap total. The posterior expectation is useful
+        # for diagnostics, but it is not the same quantity and should not
+        # silently replace the interval-flow estimate.
         dep_lap[li] = float(np.sum(mguk_pt[sl]) * dt)
         har_lap[li] = float(np.sum(harv_pt[sl]) * dt)
+        dep_lap_post[li] = float(np.sum(mguk_mean[sl]) * dt)
+        har_lap_post[li] = float(np.sum(harv_mean[sl]) * dt)
 
         w = W[:, -1]
         ess_lap[li] = 1.0 / np.sum(w ** 2)
@@ -620,5 +624,7 @@ def estimate(obs: Observation, track, priors: PublicPriors = PublicPriors(),
         usable_mean=use_mean, usable_p10=use_p10, usable_p90=use_p90,
         deployed_lap=dep_lap, harvested_lap=har_lap, nuisance=nuisance,
         deploy_scale_sigma=deploy_scale_sigma, lap_index=laps, p_mguk_mean=mguk_mean, harvest_mean=harv_mean,
+        deployed_lap_posterior_mean=dep_lap_post,
+        harvested_lap_posterior_mean=har_lap_post,
         ess=ess_lap, dry_events=dry,
         reserve_mean=float(np.mean(reserve)), reserve_sigma=float(np.std(reserve)))
