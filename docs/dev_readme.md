@@ -37,8 +37,8 @@ tests/        pytest suite, one file per invariant (§5)
 simulation/   everything that turns an analysed race into something to look at:
                 api/      FastAPI app (simulation/api/main.py), serves out/races/*.json
                 app/      React + three.js viewer (six views under src/views/)
-                sim2vid/  shot.mjs + its own package.json/requirements.txt —
-                          Playwright screenshot capture, unrelated to xray/'s deps
+                sim2vid/  shot.mjs + its own package.json — Playwright
+                          screenshot capture, Node-only, no Python deps
 prediction/   currently empty, untracked by git — reserved, nothing built here yet
 ```
 
@@ -51,31 +51,25 @@ by that move.
 
 ## 1. Environment
 
-Python **3.11+** is a hard floor: `numpy==2.3.5` and `pandas==3.0.2` publish no
+Python **3.11+** is a hard floor: `numpy==2.3.5` and `pandas==2.3.3` publish no
 wheels for 3.10. `ffmpeg` on the path is needed only by `scripts/06.b_make_video.py`.
 Node 20+ and `npm` are needed only for `simulation/app/` and `simulation/sim2vid/`.
 
-**There is no root `requirements.txt` or `package.json` any more** — the
-2026-09-12 "folder cleanups" commit deleted them along with `docs/` and did
-not replace them (§7 item 1). `simulation/sim2vid/requirements.txt` and
-`simulation/sim2vid/package.json` exist but only cover Playwright for
-`shot.mjs`; nothing pins the actual Stage 2 stack (fastf1, pandas, fastapi,
-pyarrow, ...). This machine's `.venv/` already has that stack installed
-(below) from before the cleanup — do not delete it without saving a `pip
-freeze` first, since there is currently no other way to reconstruct it.
+The full Python stack is pinned in the root **`requirements.txt`**:
 
 ```powershell
 py -3.14 -m venv .venv                 # or any 3.11+
-.\.venv\Scripts\python -m pip install numpy scipy matplotlib PyYAML pytest `
-    fastf1 pandas==2.3.3 fastapi uvicorn pyarrow
+.\.venv\Scripts\python -m pip install -r requirements.txt
 .\.venv\Scripts\python -m pytest -q
 ```
 
-Stage 1 alone needs only the light half: `numpy scipy matplotlib PyYAML pytest`.
-`pandas==2.3.3`, not `3.0.2`, is the correct pin — it's what fastf1 accepts
-(`pandas<3.0.0`) and the repo's own pandas usage (`pd.DataFrame`, `concat`,
-`isna`, `to_parquet` in `xray/data/ingest.py` and `circuits.py`) doesn't care
-about the difference either way.
+The manifest is one file in two commented blocks. Stage 1 alone needs only the
+first (`numpy scipy matplotlib PyYAML pytest`); the second adds the Stage 2
+real-data and API half. `pandas==2.3.3`, not a 3.x, is the correct pin — it's
+what fastf1 accepts (`pandas<3.0.0,>=2.1.1`, declared in fastf1's own metadata,
+so pip enforces it regardless) and the repo's own pandas usage (`pd.DataFrame`,
+`concat`, `isna`, `to_parquet` in `xray/data/ingest.py` and `circuits.py`)
+doesn't care about the difference either way.
 
 **State of this machine, 2026-09-12.** `.venv/` exists on **Python 3.14.4** with
 all of the above installed: fastf1 3.8.3, pandas 2.3.3, numpy 2.3.5, scipy
@@ -93,7 +87,9 @@ race JSON.
 
 `pip` here fails intermittently with `NameResolutionError` on
 `files.pythonhosted.org` part-way through a large download, leaving nothing
-installed. Install in small batches and re-run; it succeeds on retry.
+installed. Re-run `-r requirements.txt`; it succeeds on retry and skips what
+already landed. If a whole-file install keeps dying, install the two commented
+blocks separately.
 
 The two `package.json` files serve unrelated purposes: `simulation/sim2vid/`
 carries Playwright (for `shot.mjs`); the web app's own dependencies are in
@@ -246,14 +242,14 @@ script's output.
 | Script | In | Out | Data |
 |---|---|---|---|
 | `01.run_sim.py` | `--seed --config --laps --out --save` | stdout: lap times, energy balance, overtakes, final order. With `--save`, `out/ground_truth.npz` (`t`, `gap`, per-car `s/v/E/P_mguk`) | `config/default.yaml`; nothing on disk |
-| `02.run_estimator.py` | `--seed --config --laps --rate (Hz list, default 100 3.7) --car (default LEADER FOLLOWER) --particles` | stdout only: per car/rate Stage A (CdA fit) and Stage C (deployment, reserve, band width) blocks, a score table, and an aggregated JSON | `config/default.yaml`; no files read or written. `--car LEADER` is required in practice — FOLLOWER is tow-bound and raises (§7 item 7) |
+| `02.run_estimator.py` | `--seed --config --laps --rate (Hz list, default 100 3.7) --car (default LEADER FOLLOWER) --particles` | stdout only: per car/rate Stage A (CdA fit) and Stage C (deployment, reserve, band width) blocks, a score table, and an aggregated JSON | `config/default.yaml`; no files read or written. `--car LEADER` is required in practice — FOLLOWER is tow-bound and raises (§7 item 6) |
 | `05.run_ablation.py` | `--seed --config --laps --out --rates (Hz list) --seeds (default 42 7 13) --cars (default LEADER)` | `out/ablation_mape_vs_rate.png` (or `--out`); always also `out/ablation.json` (`rates`, `mape`, `coverage`, `cda_abs_err_pct`, `failures`) | `config/default.yaml`. `out/ablation.json` is consumed by `06.a_make_summary.py` |
 | `03.b_run_decision_eval.py` | `--seed --config --laps --mode {fast,full} (default fast) --races (default 50)` | stdout: pass rates and positions-gained CI for X-RAY vs blind | `config/default.yaml`; nothing on disk. `--mode full` reruns a full 200 Hz sim per race — minutes, not seconds |
 | `03.a_validate_decision.py` | `--seeds (default 30) --rate (default 3.7) --particles (default 300) --leader/--follower (policy names) --verbose` | stdout: EV/p(pass)/lap table for best-possible, ORACLE, X-RAY, BLIND(first-chance), BLIND(random); agreement-with-oracle and significance stats | `config/default.yaml`; nothing on disk. Uses `xray.decision.solve_exogenous` against ground-truth vs reconstructed rival energy — ground truth only to build ORACLE and to score |
 | `04.simulate_attack.py` | `--seeds (default 40) --rate (default 4.17) --particles (default 250) --leader/--follower --verbose` | stdout: outcome table (passed / ahead-at-flag / best chance seen) for oracle, xray, blind, passive arms, plus significance vs blind and passive | `config/default.yaml`. Closed-loop: re-runs the race with the called attack actually executed, so outcomes come from the simulator's own pass model, not a score function |
 | `06.a_make_summary.py` | `--seed --config --laps --out` | `out/xray_summary.png` (6-panel deck figure) | `config/default.yaml` **and** `out/ablation.json` — exits with `SystemExit` if that file is missing, so run `05.run_ablation.py` first |
 | `06.b_make_video.py` | `--seed --config --laps --out --fps --rate` | `out/xray_demo.mp4` | `config/default.yaml`; needs `ffmpeg` on PATH (not a Python dependency) |
-| `99.make_golden.py` | `--seed --config --laps --out` (only `--seed` should ever be changed — see its docstring) | `tests/golden/belief_seed<seed>_3.7hz.npz` (scalar + array belief outputs) | `config/default.yaml`. Pinned to `tests/conftest.py`'s exact configuration (seed 42, LEADER, 3.7 Hz, obs seed+1, estimate seed+2); run only when a numerics change is intended (§4, §7 item 3) |
+| `99.make_golden.py` | `--seed --config --laps --out` (only `--seed` should ever be changed — see its docstring) | `tests/golden/belief_seed<seed>_3.7hz.npz` (scalar + array belief outputs) | `config/default.yaml`. Pinned to `tests/conftest.py`'s exact configuration (seed 42, LEADER, 3.7 Hz, obs seed+1, estimate seed+2); run only when a numerics change is intended (§4, §7 item 2) |
 
 ### Stage 2 — real telemetry and the app
 
@@ -318,7 +314,7 @@ xray/analysis.py            whole pipeline over one session -> one JSON
 simulation/api/main.py      serves those JSONs; computes only the RDD live;
                             calls xray/decision_service.py for the decision routes
 simulation/app/             React + three.js, six views (src/views/)
-simulation/sim2vid/shot.mjs Playwright screenshot capture (§7 item 9)
+simulation/sim2vid/shot.mjs Playwright screenshot capture (§7 item 8)
 ```
 
 ---
@@ -387,10 +383,16 @@ re-derived here): deployable-band coverage 0.67 / 0.72 / 0.80 on seeds 42/7/13;
 per-lap deployed 9.9 / 15.2 / 14.0% MAPE; CdA_X 0.597 / 0.571 / 0.494 against a
 true 0.660; identified set for CdA_X on seed 42 `[0.264, 0.744]`, two-sided.
 
-**Suite, measured here:** `pytest -q` is **111 tests in 126 s** — 109 passed,
-2 failed, both environmental rather than numerical (§7 items 2 and 3). The
-126 s is against the 52 s in `docs/status.md`; different machine, no conclusion
+**Suite, measured here (re-measured 2026-09-12, second pass):** `pytest -q`
+collects **227 in 174 s** — 223 passed, **3 failed**, 1 xfailed. All three
+failures are environmental rather than numerical (§7 items 1 and 2). The
+174 s is against the 52 s in `docs/status.md`; different machine, no conclusion
 drawn.
+
+An earlier revision of this line recorded "111 tests, 109 passed, 2 failed".
+That was a partial collection, not a smaller suite — the count and the failure
+list are both superseded by the numbers above. Re-measure rather than trusting
+a written-down count.
 
 The v2 numbers are worse and that is the point: they are produced under honest
 priors and reported with the assumption-free identified set beside them. Do not
@@ -406,28 +408,33 @@ touched, before and after, and paste the table into your summary.
 
 ## 7. Known broken / open, in priority order
 
-Items 1–3 are environment breakage found while building this venv on
-2026-09-12; items 4 onward are the project's own open work.
+Items 1–2 are environment breakage found while building this venv on
+2026-09-12; items 3 onward are the project's own open work.
 
-1. **Root `requirements.txt` and `package.json` no longer exist.** They were
-   deleted (not moved) in the 2026-09-12 "folder cleanups" commit along with
-   `README.md`, `PROJECT_BRIEF.md`, and all of `docs/`. Before that commit,
-   `requirements.txt` had been repinned to `pandas==2.3.3` (from `3.0.2`, which
-   conflicted with fastf1's `pandas<3.0.0`) — that fix is now undocumented
-   anywhere except this file and this machine's already-installed `.venv`
-   (§1). There is no manifest to reinstall the Stage 2 stack from; the pinned
-   package list above (§1) is reconstructed from `pip list` on this machine,
-   not from a committed source of truth. Restoring a real manifest (a root
-   `requirements.txt` or a `pyproject.toml`) is open work, not done.
-2. **`tests/test_live_readiness.py::test_kernels_are_pure` fails on Windows**
-   with `UnicodeDecodeError: 'charmap' codec can't decode byte 0x81`. It calls
-   `path.read_text()` with no `encoding=`, so it gets cp1252; `xray/realfit.py`
-   has a UTF-8 `§` in its docstring. A one-word fix (`encoding="utf-8"`), but it
-   is an invariant-guarding test — the look-ahead/kernel-purity check — so change
-   it deliberately, not in passing. `test_estimator_is_blind` in
-   `test_estimator.py` reads the same way and will hit this the moment a non-ASCII
-   character lands in `estimator.py`.
-3. **`tests/test_golden.py::test_belief_matches_golden` fails on a clean
+> **Resolved — the manifest was never lost.** An earlier revision of this file
+> claimed the root `requirements.txt` had been *deleted* in the "folder cleanups"
+> commit and that nothing pinned the Stage 2 stack. That was wrong, and it is
+> recorded here because it cost real time. Git logged the change as
+> `R100  requirements.txt → simulation/sim2vid/requirements.txt` — a
+> 100%-identical **rename**, still tracked the whole time. The claim conflated it
+> with `package.json`, which genuinely *is* Playwright-only. The file has since
+> been moved back to root; `git log --follow -- requirements.txt` shows the
+> unbroken lineage, including the `pandas==3.0.2` → `2.3.3` repin at `522cd43`.
+> Check `git log --follow` / `git diff-tree -M` before concluding a file is gone.
+
+1. **Two tests fail on Windows with `UnicodeDecodeError: 'charmap' codec can't
+   decode byte 0x81`** — `tests/test_live_readiness.py::test_kernels_are_pure`
+   and `tests/test_physics.py::test_one_regulation_curve_and_every_module_uses_it`.
+   Same root cause in both: they `rglob("*.py")` over `xray/` and call
+   `path.read_text()` with no `encoding=`, so they get cp1252, and
+   `xray/realfit.py` opens with a UTF-8 `§` in its docstring ("Stage 2 §2").
+   A one-word fix each (`encoding="utf-8"`), but both are invariant-guarding —
+   the look-ahead/kernel-purity check and the single-regulation-curve check — so
+   change them deliberately, not in passing. `test_estimator_is_blind` in
+   `test_estimator.py` reads the same way and will hit this the moment a
+   non-ASCII character lands in `estimator.py`. Any *new* test that scans source
+   files must pass `encoding="utf-8"`; this pattern has now bitten three times.
+2. **`tests/test_golden.py::test_belief_matches_golden` fails on a clean
    checkout here** — 51 of 3972 `soc_p10` samples off by up to 2.6e-4 J, a
    relative 9.1e-8 against `rtol=1e-9`. No code changed (`git status` clean), so
    this is the golden `.npz` being platform-specific at that tolerance, not a
@@ -435,33 +442,33 @@ Items 1–3 are environment breakage found while building this venv on
    is precisely the silent-rebaseline this harness exists to prevent. The right
    fix is either a tolerance that reflects cross-platform float64 accumulation,
    argued in the commit, or a golden regenerated on a named reference platform.
-4. **`overtake.py` holds the one invented number in the codebase** — `b0..b3`,
+3. **`overtake.py` holds the one invented number in the codebase** — `b0..b3`,
    with `b1`/`b2` from the design brief and `b0`/`b3` solved to hit its two shape
    anchors. They propagate into every decision claim. They cannot be fitted until
    the estimates feeding them are validated on real data, which is item 3 of
    `docs/status.md`. If you touch that file, say explicitly which number is still
    assumed.
-5. **Band calibration.** Deployable coverage 0.67–0.80 where it should be ≥ 0.85.
+4. **Band calibration.** Deployable coverage 0.67–0.80 where it should be ≥ 0.85.
    The missing variance is named rather than tuned away: the CdA posterior is not
    propagated into the flows, and the per-lap drift nuisance is uniform where the
    real thing is a strategy.
-6. **The fixed-policy fixture is the largest unfalsified assumption in the
+5. **The fixed-policy fixture is the largest unfalsified assumption in the
    stack.** The shape likelihood is trivially well specified against a driver
    whose v_cut never moves. A drifting-v_cut simulator variant is the next test;
    if step 14's gain does not survive it, the polytope becomes the headline.
-7. **`scripts/02.run_estimator.py --seed 42` raises an unhandled traceback** on a
+6. **`scripts/02.run_estimator.py --seed 42` raises an unhandled traceback** on a
    *correct* refusal (the tow-bound FOLLOWER). Pass `--car LEADER`. The fix is to
    catch `EstimatorError` and print the refusal — not to make the estimator
    return a number.
-8. **Seed 42 band coverage runs 0.94–0.97** on the Stage 1 path, above both the
+7. **Seed 42 band coverage runs 0.94–0.97** on the Stage 1 path, above both the
    stated 0.86–0.90 and the test's own 0.92 ceiling; it passes only because the
    test averages three seeds. Understand the over-coverage; do not widen the
    ceiling.
-9. **`shot.mjs` hardcodes `/Users/apple/Desktop/x-ray/out/shots`**, the original
+8. **`shot.mjs` hardcodes `/Users/apple/Desktop/x-ray/out/shots`**, the original
    author's macOS path. It writes nowhere useful on Windows or Linux.
-10. **`_decision_cached` in `api/main.py` is dead** — `decision()` calls
+9. **`_decision_cached` in `simulation/api/main.py` is dead** — `decision()` calls
    `_decision_payload` directly, and its local imports are unused.
-11. **`docs/status.md` item 3 names the wrong races.** It asks for "one pre-Miami
+10. **`docs/status.md` item 3 names the wrong races.** It asks for "one pre-Miami
     race (Bahrain or Jeddah)". In the 2026 schedule fastf1 returns, Miami is
     round 4 on 2026-05-03, so the only pre-Miami rounds are **1 Melbourne,
     2 Shanghai, 3 Suzuka**. Bahrain is round 16 on 2026-10-04 — post-Miami, and
@@ -470,7 +477,7 @@ Items 1–3 are environment breakage found while building this venv on
     `Location` as "Kuala Lumpur", which is wrong and matters because
     `xray/data/circuits.py` keys geometry off the circuit. Check the schedule
     before picking a round, and pick from 1–3 for the pre-Miami check.
-12. **Five races is not enough to power the RDD**; roughly ten would be. The RDD
+11. **Five races is not enough to power the RDD**; roughly ten would be. The RDD
    running variable is also the gap at the start/finish line rather than at each
    Manual Override detection point, which adds noise and costs power.
 

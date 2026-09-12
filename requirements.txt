@@ -1,10 +1,15 @@
+# Stage 1 — simulator, estimator, decision. No network.
 numpy==2.3.5
 scipy==1.16.3
 matplotlib==3.10.8
 PyYAML==6.0.3
 pytest==9.0.2
 
-# Stage 2: real data + interactive interface
+# Stage 2 — real telemetry + API. Adds to the above, does not replace it.
+# pandas is held at 2.x: fastf1 3.8.3 declares pandas<3.0.0,>=2.1.1, so a 3.x
+# pin (this file carried ==3.0.2 until 522cd43) makes the resolve unsatisfiable.
+# xray/data/ingest.py and circuits.py use only DataFrame/concat/isna/to_parquet,
+# which behave identically either side of the 3.0 boundary.
 fastf1==3.8.3
 fastapi==0.121.2
 uvicorn==0.41.0

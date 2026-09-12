@@ -24,15 +24,20 @@ in `./.venv/bin/python` on macOS/Linux.
 py -3.14 -m venv .venv                 # or any 3.11+
 ```
 
-Every setup below installs into this same `.venv`. Two dependency tiers:
+Every setup below installs into this same `.venv` from the root
+`requirements.txt`, which is the committed manifest. It is one file in two
+commented blocks:
 
 - **Light** (Stage 1 only): `numpy scipy matplotlib PyYAML pytest`
 - **Full** (adds Stage 2 real-data + API): light tier +
   `fastf1 pandas==2.3.3 fastapi uvicorn pyarrow`
 
-`pandas==2.3.3`, not a newer 3.x, is required — fastf1 pins `pandas<3.0.0`.
-There is no committed `requirements.txt`/`package.json` to install from (see
-`dev_readme.md` §7 item 1); the install lines below are the full manifest.
+`-r requirements.txt` installs both blocks, which is what every setup below
+does and what Setups C–E require. For a Stage-1-only machine (Setup A or B)
+you may instead install just the first block by hand.
+
+`pandas==2.3.3`, not a newer 3.x, is required — fastf1 pins
+`pandas<3.0.0,>=2.1.1` in its own metadata, so pip enforces it either way.
 
 ---
 
@@ -42,14 +47,14 @@ The minimal "does it work" path: simulate a race, then reconstruct the
 hidden energy state from public telemetry alone.
 
 ```powershell
-.\.venv\Scripts\python -m pip install numpy scipy matplotlib PyYAML pytest
+.\.venv\Scripts\python -m pip install -r requirements.txt
 
 .\.venv\Scripts\python scripts\01.run_sim.py --seed 42
 .\.venv\Scripts\python scripts\02.run_estimator.py --seed 42 --car LEADER
 ```
 
 `--car LEADER` is required — `FOLLOWER` is tow-bound and raises by design
-(`dev_readme.md` §7 item 7).
+(`dev_readme.md` §7 item 6).
 
 ---
 
@@ -59,7 +64,7 @@ Everything in Setup A, plus ablation, decision evaluation, attack
 simulation, and the summary figure / demo video.
 
 ```powershell
-.\.venv\Scripts\python -m pip install numpy scipy matplotlib PyYAML pytest
+.\.venv\Scripts\python -m pip install -r requirements.txt
 
 .\.venv\Scripts\python scripts\01.run_sim.py --seed 42
 .\.venv\Scripts\python scripts\02.run_estimator.py --seed 42 --car LEADER
@@ -85,8 +90,7 @@ frontend involved. Needs network on first run per round (FastF1 caches to
 `xray/data/cache/` after that).
 
 ```powershell
-.\.venv\Scripts\python -m pip install numpy scipy matplotlib PyYAML pytest `
-    fastf1 pandas==2.3.3 fastapi uvicorn pyarrow
+.\.venv\Scripts\python -m pip install -r requirements.txt
 
 .\.venv\Scripts\python scripts\07.a_feasibility.py --round 10     # -> out/feasibility/r10.json
 .\.venv\Scripts\python scripts\08.a_feasibility_report.py         # -> out/feasibility.md
@@ -96,7 +100,7 @@ frontend involved. Needs network on first run per round (FastF1 caches to
 `08.a_feasibility_report.py` reads every `out/feasibility/r*.json` and exits
 with `SystemExit` if none exist — run `07.a_feasibility.py` at least once
 first. Pick rounds 1–3 (Melbourne/Shanghai/Suzuka) for a pre-Miami check —
-see `dev_readme.md` §7 item 11 for why later "pre-Miami" round numbers are
+see `dev_readme.md` §7 item 10 for why later "pre-Miami" round numbers are
 wrong in the 2026 schedule.
 
 ---
@@ -108,8 +112,7 @@ React app — useful for hitting `GET /api/*` directly (curl, browser,
 Postman) while iterating on the backend.
 
 ```powershell
-.\.venv\Scripts\python -m pip install numpy scipy matplotlib PyYAML pytest `
-    fastf1 pandas==2.3.3 fastapi uvicorn pyarrow
+.\.venv\Scripts\python -m pip install -r requirements.txt
 
 .\.venv\Scripts\python scripts\08.b_analyse_race.py --round 10    # -> out/races/<id>.json
 .\.venv\Scripts\python -m uvicorn simulation.api.main:app --port 8011
@@ -132,8 +135,7 @@ GET /api/race/{rid}/battle/{a}/{b}     GET /api/rdd
 Everything in Setup D, plus the built React/three.js viewer served at `/`.
 
 ```powershell
-.\.venv\Scripts\python -m pip install numpy scipy matplotlib PyYAML pytest `
-    fastf1 pandas==2.3.3 fastapi uvicorn pyarrow
+.\.venv\Scripts\python -m pip install -r requirements.txt
 
 .\.venv\Scripts\python scripts\08.b_analyse_race.py --round 10
 
@@ -164,8 +166,7 @@ npm run dev              # Vite dev server with hot reload
 ## Setup F — Tests only
 
 ```powershell
-.\.venv\Scripts\python -m pip install numpy scipy matplotlib PyYAML pytest `
-    fastf1 pandas==2.3.3 fastapi uvicorn pyarrow    # full tier: some tests exercise Stage 2 modules
+.\.venv\Scripts\python -m pip install -r requirements.txt    # full manifest: some tests exercise Stage 2 modules
 
 .\.venv\Scripts\python -m pytest -q
 ```
@@ -179,7 +180,7 @@ tier is needed for `test_decision_service.py` (imports
 `simulation/api/main.py`).
 
 **Do not** run `scripts\99.make_golden.py` to silence a golden-baseline
-failure — see `dev_readme.md` §7 item 3 for the known cross-platform
+failure — see `dev_readme.md` §7 item 2 for the known cross-platform
 tolerance issue and why regenerating the baseline defeats the point of the
 test.
 

@@ -1,6 +1,6 @@
 ---
 name: x-ray
-description: Working rules for the X-RAY codebase — reconstructing a rival F1 car's hidden electrical energy state (deployable energy, CdA) from public speed telemetry alone, in a Stage 1 simulator (`xray/`, `tests/`) and a Stage 2 real-data pipeline (FastF1 ingest, `xray/regs.py`/`setmem.py`/`rbpf.py`/`pooling.py`/`qmdp.py`, `api/`, `app/`). Use this whenever touching any `xray/*.py` module, the simulator, `overtake.py`, `analyse_race.py`, `feasibility.py`, the tests, the API, or the frontend; whenever asked to make the simulation or filter faster; and whenever writing or editing comments in this repo. Consult it even for small edits — the repo has hard invariants (blindfold, bracket-not-threshold, decline-not-guess, regulation-variant agreement) that a well-meaning change can silently break.
+description: Working rules for the X-RAY codebase — reconstructing a rival F1 car's hidden electrical energy state (deployable energy, CdA) from public speed telemetry alone, in a Stage 1 simulator (`xray/`, `tests/`) and a Stage 2 real-data pipeline (FastF1 ingest, `xray/regs.py`/`setmem.py`/`rbpf.py`/`pooling.py`/`qmdp.py`, `simulation/api/`, `simulation/app/`). Use this whenever touching any `xray/*.py` module, the simulator, `overtake.py`, `08.b_analyse_race.py`, `07.a_feasibility.py`, the tests, the API, or the frontend; whenever asked to make the simulation or filter faster; and whenever writing or editing comments in this repo. Consult it even for small edits — the repo has hard invariants (blindfold, bracket-not-threshold, decline-not-guess, regulation-variant agreement) that a well-meaning change can silently break.
 ---
 
 # X-RAY
@@ -39,8 +39,8 @@ never collapse it to one number.
 | `xray/estimator.py` | Stage 1's older, simulator-facing estimator. Must never import the simulator — see invariant 1. |
 | `xray/vehicle.py`, `xray/sim.py`, `xray/track.py`, `xray/policy.py` | The simulator: physics ground truth the estimator is blind to. |
 | `xray/decision.py`, `xray/decision_service.py`, `xray/overtake.py` | The decision layer consuming the belief. |
-| `xray/realfit.py`, `xray/analysis.py` | Real-telemetry fitting and race analysis, driven by `scripts/analyse_race.py`. |
-| `api/main.py`, `app/` | FastAPI service + React/Three.js frontend that serve the six-view instrument (see Stage 2 section). |
+| `xray/realfit.py`, `xray/analysis.py` | Real-telemetry fitting and race analysis, driven by `scripts/08.b_analyse_race.py`. |
+| `simulation/api/main.py`, `simulation/app/` | FastAPI service + React/Three.js frontend that serve the six-view instrument (see Stage 2 section). |
 
 `theta = (CdA_X, CdA_Z, F_rr, dm)`: the two aero states, rolling resistance as a
 force at a reference mass, and dry mass minus published weight.
@@ -110,7 +110,7 @@ force at a reference mass, and dry mass minus published weight.
 
 Simulator / fixture seeds 42, 7, 13 at 3.7 Hz (`docs/model.md`, `docs/status.md`
 were the source of these before deletion — reproduce via the scripts named
-there, e.g. `scripts/run_ablation.py`, `scripts/make_golden.py`):
+there, e.g. `scripts/05.run_ablation.py`, `scripts/99.make_golden.py`):
 
 | Metric | Value |
 |---|---|
@@ -125,7 +125,7 @@ there, e.g. `scripts/run_ablation.py`, `scripts/make_golden.py`):
 | Field pooling | 48% mean-absolute-error reduction over 20 cars |
 | LP cost | 11–18 ms for a 12-lap race |
 
-Real 2026 telemetry (`scripts/feasibility.py`, `scripts/analyse_race.py`):
+Real 2026 telemetry (`scripts/07.a_feasibility.py`, `scripts/08.b_analyse_race.py`):
 
 | Metric | Value |
 |---|---|
@@ -134,14 +134,14 @@ Real 2026 telemetry (`scripts/feasibility.py`, `scripts/analyse_race.py`):
 | Identifiability by circuit | Zandvoort 97%, Spa 78%, Melbourne 72%, Silverstone 0%, Monaco 0% |
 | Per-lap energy, real races | 3.5–4.7 MJ deployed vs 3.3–4.6 MJ recovered (energy-neutral inside a 4 MJ store) |
 | RDD at 1.000 s boundary | −0.20 MJ, SE 0.242, p = 0.41, MDE 0.68 MJ vs 0.5 MJ allocation (5 races, 1,851 car-laps) — a null, not a finding either way |
-| Decision quality (`scripts/validate_decision.py`) | at full rate: oracle's exact lap 100% of races; at real 4.17 Hz: exact 40%, within one lap 100%, EV cost of the miss ≈ nil |
+| Decision quality (`scripts/03.a_validate_decision.py`) | at full rate: oracle's exact lap 100% of races; at real 4.17 Hz: exact 40%, within one lap 100%, EV cost of the miss ≈ nil |
 
 If a change moves any of these outside noise, that is a finding to report, not a
 test to relax.
 
 ## Gotchas (found, not read — verify they are still true before relying on them)
 
-- `python scripts/run_estimator.py --seed 42` crashes with an unhandled
+- `python scripts/02.run_estimator.py --seed 42` crashes with an unhandled
   traceback. Cause: correct refusal on the tow-bound `FOLLOWER`, uncaught by the
   script. Use `--car LEADER`. The right fix is to catch the refusal and print
   it, not to make the estimator return a number. (Still open per `docs/status.md`
@@ -166,10 +166,10 @@ test to relax.
   name them `ASSUMED_*` and comment the derivation (e.g. `ASSUMED_MIAMI_2026`
   for the pre/post-Miami changeover date — the single most worth re-checking).
 - Stage 2 requires `pip install -r requirements.txt` (adds `fastf1`, `fastapi`,
-  `uvicorn`), `python scripts/analyse_race.py --round N` (downloads real
+  `uvicorn`), `python scripts/08.b_analyse_race.py --round N` (downloads real
   telemetry via FastF1 — slow, network-bound, cache it), and
-  `cd app && npm install && npm run build` before the API/frontend serve
-  anything real. Check `.venv/` contents and whether `out/`/`app/dist` exist
+  `cd simulation/app && npm install && npm run build` before the API/frontend serve
+  anything real. Check `.venv/` contents and whether `out/`/`simulation/app/dist` exist
   before assuming Stage 2 has been run locally.
 - An earlier version rejected a whole lap on a single telemetry gap, discarding
   ~⅔ of every real race. Gaps are handled at sample level (grid cells spanning a
@@ -277,7 +277,7 @@ better.
    peeking at future samples) — treat it as seriously as
    `test_estimator_is_blind`.
 3. **Golden outputs define correctness.** Keep a fixed-seed `.npz` of estimator
-   outputs per test trace (`scripts/make_golden.py`, `tests/test_golden.py`).
+   outputs per test trace (`scripts/99.make_golden.py`, `tests/test_golden.py`).
    Every optimisation must match golden to a stated tolerance before it merges.
 4. **No live-only code paths yet.** No threads, no ring buffers, no sockets. A
    change only useful for live operation waits.
