@@ -178,11 +178,45 @@ def test_empty_set_is_an_alarm_not_a_fit(cfg, races):
     cannot tell "no informative data" from "the data contradict the rulebook";
     a polytope reports the first as a wide projection and the second as an
     empty set with the size of the contradiction attached.
+
+    Measured violation fraction against the 3% outlier budget, true eta = 0.95:
+
+        eta     old linear taper      corrected curve
+        0.60          0.48%                0.16%
+        0.50          0.80%                0.16%
+        0.40          3.2%  (empty)        1.93%
+        0.30          7.2%  (empty)        6.1%  (empty)
+
+    The refusal boundary moved from eta ~= 0.40 to eta ~= 0.35, so this test now
+    claims eta = 0.30. That is a real, reported loss of falsification power, not
+    a threshold widened to suit: the budget is untouched at 3%, and 0.40 was
+    never a safe choice even before -- 3.2% against a 3% budget is 0.2 points of
+    margin on a fixture that was meant to be obviously contradictory. 0.30 is
+    asserted at 2x the budget, and the monotonicity check below is what actually
+    pins the refusal, because no single eta can be tuned to satisfy it.
     """
-    S = identify(_cons(cfg, races[42], eta=0.40))
-    assert S.empty, "a 0.40 drivetrain efficiency should contradict the data"
+    S = identify(_cons(cfg, races[42], eta=0.30))
+    assert S.empty, "a 0.30 drivetrain efficiency should contradict the data"
     assert S.min_violation > 0.0
     assert any("cannot be satisfied together" in n for n in S.notes)
+
+
+def test_contradiction_grows_as_the_claimed_efficiency_leaves_the_truth(cfg, races):
+    """The falsification must be ordered, not just present at one point.
+
+    A single eta can be chosen to pass. An ordering cannot: if the polytope's
+    refusal did not strengthen monotonically as the claim gets worse, the
+    "contradiction size" it reports would be noise wearing a unit.
+    """
+    gt = races[42]
+    worst = []
+    for eta in (0.95, 0.70, 0.50, 0.30, 0.20):
+        S = identify(_cons(cfg, gt, eta=eta))
+        worst.append(S.min_violation if S.empty else 0.0)
+    for a, b in zip(worst, worst[1:]):
+        assert b >= a, f"contradiction not monotone in eta: {worst}"
+    assert worst[0] == 0.0, "the true efficiency must not be contradicted"
+    assert worst[-1] > 0.0, "a grossly wrong efficiency must be contradicted"
 
 
 def test_outlier_budget_survives_a_single_bad_sample(cfg, races):

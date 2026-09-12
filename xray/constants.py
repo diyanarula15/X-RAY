@@ -65,6 +65,33 @@ MOM_DEPLOYMENT_ALLOWANCE_J = POWER_UNIT_2026.overtake_allocation_j  # J, legal a
 MOM_BONUS = MOM_DEPLOYMENT_ALLOWANCE_J  # Backward-compatible alias; do not add to store energy.
 MOM_GAP_S = 1.0  # s, eligibility threshold at detection point
 
+# The allocation is exactly the gap between the two recharge ceilings. Asserted
+# rather than trusted: the three numbers are published separately and a typo in
+# any one of them would silently hand a car free energy.
+assert abs((POWER_UNIT_2026.max_recharge_with_overtake_j
+            - POWER_UNIT_2026.max_recharge_without_overtake_j)
+           - POWER_UNIT_2026.overtake_allocation_j) < 1.0
+
+
+def recharge_allowance_j(overtake_active: bool = False) -> float:
+    """Per-lap legal recharge ceiling, J.
+
+    This is the ONLY thing the 0.5 MJ Manual Override allocation does to the
+    energy budget: it raises how much the car may legally *recover* on that lap,
+    from 7.0 to 7.5 MJ. It is not stored energy. The previous model ran
+    `st.E += 0.5 MJ` at the lap boundary, which materialised half a megajoule
+    out of a rulebook and closed the per-lap balance only because the test added
+    the same term to both sides.
+    """
+    return float(POWER_UNIT_2026.max_recharge_with_overtake_j if overtake_active
+                 else POWER_UNIT_2026.max_recharge_without_overtake_j)
+
+
+def mguk_power_limit(v, overtake_active: bool = False):
+    """Permitted MGU-K deployment power at speed v, W. Single dispatch point."""
+    return (mguk_power_limit_overtake(v) if overtake_active
+            else mguk_power_limit_normal(v))
+
 G = 9.80665  # m/s^2
 
 # ------------------------------------------------------------------- public

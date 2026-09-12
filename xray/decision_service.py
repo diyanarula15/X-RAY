@@ -104,7 +104,16 @@ def evaluate_overtake_decision(inp: OvertakeDecisionInput) -> dict[str, Any]:
         "gap_confidence": gap_confidence,
         "gap_age_s": inp.gap_age_s,
         "gap_method": inp.gap_method,
-        "value_attack": best["value_attack"],
+        # -inf is the DP's honest value for an attack it rejected, and it is not
+        # representable in JSON. Publish null plus the flag, and keep the
+        # hypothetical separately so the panel can still show what an attack
+        # would have been worth.
+        "value_attack": (float(best["value_attack"])
+                         if np.isfinite(best["value_attack"]) else None),
+        "value_attack_ranked": (float(best["value_attack"])
+                                if np.isfinite(best["value_attack"]) else -1.0e18),
+        "value_attack_hypothetical": float(best["value_attack_hypothetical"]),
+        "attack_affordable": bool(detail["attack_affordable"]),
         "value_wait": detail["value_wait"],
         "confidence": confidence,
         "physics_model": "cached longitudinal vehicle.step zone speed map",
@@ -175,17 +184,31 @@ def _evaluate_lap(payload: dict[str, Any], track, params: VehicleParams,
     rival_trace = payload["cars"][rival]["trace"]
     candidates = []
     n_laps = len(laps)
-    for zone in track.zones:
-        own_e = belief_at_position(own_trace, lap, zone.s_straight_start)
-        rival_e = belief_at_position(rival_trace, lap, zone.s_straight_start)
-        gap = gap_at_position(payload, car, rival, lap, zone.s_straight_end)
+    for zi, zone in enumerate(track.zones):
+        # One decision point per opportunity, and every input is read at it.
+        # The gap used to be taken at `s_straight_end` -- the braking point,
+        # which the ego reaches ~160 m AFTER the instant its energy belief is
+        # sampled. That is a future observation feeding a past decision, and no
+        # amount of "it is only 2 s later" makes it causal. Both the belief and
+        # the gap are now read at the zone entry; carrying that gap into
+        # `p_pass` as the gap at braking is an approximation, and it is labelled
+        # one (`gap_reference_s`) rather than fixed by peeking.
+        decision_s = zone.s_straight_start
+        own_e = belief_at_position(own_trace, lap, decision_s)
+        rival_e = belief_at_position(rival_trace, lap, decision_s)
+        gap = gap_at_position(payload, car, rival, lap, decision_s)
         dyn = _historical_dynamics(payload, car, rival, lap)
         laps_left = n_laps - i
+        # The DP is given THIS zone only. Handing it every zone made it run its
+        # own argmax over zones while the loop below ran a second one, so the
+        # reported zone could be a zone whose gap and energy were never the ones
+        # evaluated. One selection, here.
+        zone_model = zones[zi]
         model = DecisionModel(
-            zones=zones, recharge_per_lap=dyn["recharge_per_lap_j"],
+            zones=[zone_model], recharge_per_lap=dyn["recharge_per_lap_j"],
             own_spend_per_lap=dyn["own_spend_per_lap_j"],
             rival_spend_per_lap=dyn["rival_spend_per_lap_j"],
-            attack_cost=float(zones[0].energy_grid.max()), defend_cost=0.0,
+            attack_cost=float(zone_model.energy_grid.max()), defend_cost=0.0,
             gap_s=gap.gap_s, n_laps=laps_left, fail_cost=fail_cost_from_geometry(gap.gap_s),
             bins=make_bins())
         rival_track = _rival_energy_forecast(rival_e.usable_energy_j, dyn, laps_left)
@@ -200,11 +223,17 @@ def _evaluate_lap(payload: dict[str, Any], track, params: VehicleParams,
             gap_method=gap.method, model=model, rival_track_j=rival_track)
         res = evaluate_overtake_decision(inp)
         candidate = {**res, "lap": lap, "requested_zone": zone.name,
+                     "gap_reference_s": float(decision_s),
+                     "decision_point_s": float(decision_s),
+                     "decision_time_s": float(own_e.sample_time_s),
                      "own_sample_index": own_e.sample_index,
                      "rival_sample_index": rival_e.sample_index}
         candidates.append(candidate)
 
-    chosen = max(candidates, key=lambda r: r["value_attack"])
+    # Attack candidates first, ranked by DP value; if none is affordable the
+    # lap is a HOLD and the most valuable hypothetical is shown for context.
+    chosen = max(candidates, key=lambda r: (r["decision"] == "ATTACK",
+                                            r["value_attack_ranked"]))
     return {
         **chosen,
         "q": round(float(chosen["pass_probability"]), 4),

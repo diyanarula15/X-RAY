@@ -78,10 +78,13 @@ def score_estimate(gt, car_id: str, obs: Observation, belief: BeliefTrace,
         dep_post_mape = dep_post_rmse = dep_post_bias = float("nan")
     else:
         good = true_dep > 1.0e4
-        err = dep_post[ok][good] - true_dep[good]
-        dep_post_mape = float(100.0 * np.mean(np.abs(err) / true_dep[good]))
-        dep_post_rmse = float(np.sqrt(np.mean(err * err)) / 1e6)
-        dep_post_bias = float(np.mean(err) / 1e6)
+        if not good.any():
+            dep_post_mape = dep_post_rmse = dep_post_bias = float("nan")
+        else:
+            err = dep_post[ok][good] - true_dep[good]
+            dep_post_mape = float(100.0 * np.mean(np.abs(err) / true_dep[good]))
+            dep_post_rmse = float(np.sqrt(np.mean(err * err)) / 1e6)
+            dep_post_bias = float(np.mean(err) / 1e6)
 
     return Score(
         car_id=car_id, rate_hz=obs.sample_rate_hz,

@@ -41,7 +41,12 @@ estimator:
   savgol_seconds: 0.8
   cda_prior_wind_sigma: 3.0   # m/s, weak prior pulling the wind nuisance to zero
   deploy_scale_sigma: 0.06    # per-particle systematic deployment-scale spread
-  dry_event_e_scale: 100000.0 # J, synthetic likelihood scale for a "ran dry" observation
+  # J, synthetic likelihood scale for a "ran dry" observation. NOTHING READS
+  # THIS KEY: estimate() takes the value from its own RESERVE_SIGMA default, so
+  # editing the yaml alone changes no behaviour at all. It was edited alone once.
+  # Kept, mirrored, and pinned by test_config_dry_event_scale_matches_the_code
+  # so the two cannot silently disagree again.
+  dry_event_e_scale: 100000.0
   floor_violation_penalty: 6.0
 
 render:

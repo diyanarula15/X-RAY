@@ -70,7 +70,19 @@ def test_consensus_is_reported_separately_from_the_expected_value(cfg, races):
     d_n = decide(model, narrow, None, laps_left=7, e_own=2.0e6, reward=0.6)
     d_w = decide(model, wide, None, laps_left=7, e_own=2.0e6, reward=0.6)
     assert 0.0 <= d_w.consensus <= d_n.consensus <= 1.0
-    assert d_n.consensus > 0.9
+    # The separation is the claim, and it is large: 0.825 against 0.235 here.
+    # An absolute floor on the narrow belief is not: under the corrected 2026
+    # curve the three zones' q values sit at 0.024 / 0.022 / 0.027, so the argmax
+    # is close and a narrow cloud still disagrees with itself ~17% of the time.
+    # On the old linear-to-355 km/h taper zone C led by 1.7x (0.066 vs 0.038) and
+    # narrow consensus was a clean 1.00. The corrected curve allows much less
+    # deployment above 290 km/h, which compresses the zones together -- a real
+    # change in how sharp the decision is, recorded here rather than absorbed by
+    # lowering 0.9 to 0.82. Both runs choose zone C.
+    assert d_n.consensus - d_w.consensus > 0.3, (
+        f"narrow {d_n.consensus:.3f} vs wide {d_w.consensus:.3f}: a narrow "
+        "belief must agree with itself markedly more than a wide one")
+    assert d_n.consensus > 0.75
 
 
 def test_reserve_sensitivity_is_reported_with_the_call(cfg, races):

@@ -118,7 +118,10 @@ export function Decision({ raceId, car, rival }:
                 <tbody>
                   <tr><td>opportunity q</td><td style={{ textAlign: 'right', color: C.white }}>{sel.q.toFixed(3)}</td></tr>
                   <tr><td>threshold τ</td><td style={{ textAlign: 'right', color: C.white }}>{sel.tau.toFixed(3)}</td></tr>
-                  <tr><td>value attack</td><td style={{ textAlign: 'right', color: C.white }}>{sel.value_attack.toFixed(3)}</td></tr>
+                  <tr><td>value attack</td><td style={{ textAlign: 'right', color: C.white }}>
+                    {sel.value_attack == null
+                      ? `not affordable (${(sel.value_attack_hypothetical ?? 0).toFixed(3)} if it were)`
+                      : sel.value_attack.toFixed(3)}</td></tr>
                   <tr><td>value hold</td><td style={{ textAlign: 'right', color: C.white }}>{sel.value_wait.toFixed(3)}</td></tr>
                   <tr><td>gap</td><td style={{ textAlign: 'right', color: C.white }}>{sel.gap_s.toFixed(3)} s</td></tr>
                   <tr><td>delta v</td><td style={{ textAlign: 'right', color: C.white }}>{sel.predicted_delta_v_mps.toFixed(2)} m/s</td></tr>
@@ -130,7 +133,16 @@ export function Decision({ raceId, car, rival }:
               </table>
               <div style={{ marginTop: 10, fontSize: 12.5,
                             color: sel.attack ? C.green : C.gray }}>
-                {sel.attack ? 'ATTACK — q clears the threshold' : 'HOLD — q is below the threshold'}
+                {/* The rule is the DP's value comparison, not q against tau. Saying
+                    "q clears the threshold" described the heuristic the API used
+                    before it delegated to the core solver, and the two disagree:
+                    the DP can attack with q below tau, and holds whenever the
+                    attack is unaffordable whatever q says. */}
+                {sel.attack
+                  ? 'ATTACK — V(attack) exceeds V(hold)'
+                  : sel.attack_affordable === false
+                    ? 'HOLD — not enough usable energy to fund an attack'
+                    : 'HOLD — V(hold) is at least V(attack)'}
               </div>
             </div>
           )}

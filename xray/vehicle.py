@@ -9,12 +9,12 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from .constants import (
-    E_HARVEST_LAP,
     E_STORE_MAX,
     G,
     P_ICE_MAX,
     P_MGUK_MAX,
-    p_mguk_ceiling,
+    mguk_power_limit,
+    recharge_allowance_j,
 )
 
 ACCEL, BRAKE, CORNER = "accel", "brake", "corner"
@@ -49,7 +49,10 @@ class CarState:
     fuel: float = 70.0        # kg
     harvested_lap: float = 0.0
     deployed_lap: float = 0.0
-    manual_overtake_allocation_j: float = 0.0   # J, legal allocation, not stored energy
+    manual_overtake_allocation_j: float = 0.0   # J, this lap's extra legal
+                              # RECHARGE allowance. Not stored energy, and
+                              # not deployable on its own.
+    overtake_active: bool = False   # selects the Overtake MGU-K power curve
     lap: int = 0
 
     @property
@@ -145,7 +148,7 @@ def step(track, st: CarState, params: VehicleParams, mguk_demand: float,
         a = (f_trac - resist) / m
     else:  # ACCEL
         p_ice = P_ICE_MAX
-        ceiling = p_mguk_ceiling(v)
+        ceiling = mguk_power_limit(v, st.overtake_active)
         avail = st.E / dt if st.E > 0.0 else 0.0
         cap = ceiling if ceiling < avail else avail
         p_mguk = 0.0 if mguk_demand <= 0.0 else (cap if mguk_demand > cap else mguk_demand)
@@ -161,7 +164,7 @@ def step(track, st: CarState, params: VehicleParams, mguk_demand: float,
     # ------------------------------------------------------- energy bookkeeping
     d_deploy = p_mguk * dt
     room = E_STORE_MAX - (st.E - d_deploy)
-    lap_room = E_HARVEST_LAP - st.harvested_lap
+    lap_room = recharge_allowance_j(st.overtake_active) - st.harvested_lap
     d_harvest = harvest * dt
     if d_harvest > room:
         d_harvest = room

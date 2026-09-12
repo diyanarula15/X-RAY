@@ -242,3 +242,56 @@ def test_cache_reconstruction_preserves_grade_alignment_and_physics():
     reconstructed = _PayloadTrack.from_cache_payload(data)
     assert reconstructed._grid_s.tolist() == data["s_signature"]
     assert reconstructed._grade.tolist() == data["grade_signature"]
+
+
+def test_gap_is_read_at_the_decision_point_not_at_the_braking_point():
+    """The gap must come from the same instant as the energy belief.
+
+    It used to be sampled at `s_straight_end` -- the braking point, which the ego
+    reaches about 160 m after the belief is read. Mutating only the window
+    between the decision point and the braking point is the sharp test: under the
+    old code that window was an input, so this changed gap_s.
+    """
+    payload = _payload()
+    before = evaluate_decision_trace_from_payload(payload, "OWN", "RIV")["laps"][0]
+    cand = before["zone_candidates"][0]
+    assert cand["decision_point_s"] == cand["gap_reference_s"]
+    zone = next(z for z in payload["circuit_geometry"]["zones"]
+                if z["name"] == cand["requested_zone"])
+    assert cand["decision_point_s"] == zone["s_straight_start"]
+
+    changed = copy.deepcopy(payload)
+    for name in ("OWN", "RIV"):
+        tr = changed["cars"][name]["trace"]
+        for i, s in enumerate(tr["s"]):
+            if int(tr["lap"][i]) == int(before["lap"]) and s > zone["s_straight_start"]:
+                tr["s"][i] = 999.0
+                tr["v"][i] = 3.0
+                tr["usable_mean"][i] = 4.0
+    after = evaluate_decision_trace_from_payload(changed, "OWN", "RIV")["laps"][0]
+    a = after["zone_candidates"][0]
+    for key in ("gap_s", "gap_source", "gap_method", "rival_usable_energy_mj",
+                "predicted_delta_v_mps", "pass_probability", "decision"):
+        assert a[key] == cand[key], key
+
+
+def test_every_mutation_after_the_decision_time_is_inert():
+    """Causality as a sweep: for each lap, nothing after its decision time moves it."""
+    payload = _payload()
+    before = evaluate_decision_trace_from_payload(payload, "OWN", "RIV")["laps"]
+    for row in before:
+        t_dec = max(c["decision_time_s"] for c in row["zone_candidates"])
+        changed = copy.deepcopy(payload)
+        for name in ("OWN", "RIV"):
+            tr = changed["cars"][name]["trace"]
+            for i, t in enumerate(tr["t"]):
+                if t > t_dec:
+                    tr["v"][i] = 2.0
+                    tr["usable_mean"][i] = 3.9
+                    tr["usable_p10"][i] = 3.9
+                    tr["usable_p90"][i] = 3.9
+        after = next(r for r in evaluate_decision_trace_from_payload(
+            changed, "OWN", "RIV")["laps"] if r["lap"] == row["lap"])
+        for key in ("decision", "zone", "q", "tau", "gap_s",
+                    "rival_usable_energy_mj", "predicted_delta_v_mps"):
+            assert after[key] == row[key], f"lap {row['lap']} key {key}"

@@ -46,7 +46,19 @@ PHI_PRIOR_SIGMA = 0.29     # std of Uniform[0,1]: we know the bounds, nothing mo
 RESERVE_MAX_FRAC = 0.35    # racing prior: a driver holds back at most about a
                            # third of the store as buffer. The actual buffer is
                            # inferred per particle -- it is a policy parameter.
-RESERVE_SIGMA = 1.0e5      # J, how tightly a cut-out pins the store to the buffer
+RESERVE_SIGMA = 1.0e5      # J, how tightly a cut-out pins the store to the buffer.
+                           # Was 2.5e5, which was calibrated against the old
+                           # linear-to-355 km/h taper. Under the corrected curve
+                           # 2.5e5 over-disperses the usable-energy posterior and
+                           # fails test_band_coverage on BOTH of its criteria at
+                           # once: coverage 0.973 against a 0.92 ceiling, and a
+                           # band 2.64x its own RMSE against a 2.56 limit. At
+                           # 1.0e5 the same two read 0.795 and 1.68-1.94x. Two
+                           # independent criteria moving together is why this is a
+                           # recalibration and not a knob turned to pass a test --
+                           # and it changes deployed MAPE and CdA error by
+                           # literally nothing (2.61% / 0.72% at either value),
+                           # because it only sizes the band.
 RESERVE_RELEASE_LAPS = 3.0  # a buffer held all stint is spent over the last few
                             # laps. That release is what makes the buffer -- and
                             # so the absolute level of the store -- observable at

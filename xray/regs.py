@@ -22,7 +22,8 @@ from datetime import date
 
 import numpy as np
 
-from .constants import E_STORE_MAX, P_ICE_MAX, P_MGUK_MAX
+from .constants import (E_STORE_MAX, POWER_UNIT_2026, P_ICE_MAX, P_MGUK_MAX,
+                        mguk_power_limit_normal, mguk_power_limit_overtake)
 
 # ---------------------------------------------------------------- fuel flow
 # The regulation limits fuel *energy* flow on an RPM schedule, EF(n) =
@@ -39,10 +40,19 @@ ASSUMED_ICE_THERMAL_EFF = P_ICE_MAX / (
     (EF_SLOPE_MJ_PER_H_PER_RPM * N_RPM_MAX + EF_INTERCEPT_MJ_PER_H) * 1e6 / 3600.0)
 
 # ------------------------------------------------------------------- taper
-TAPER_V_FULL_KMH = 290.0     # full deployment permitted up to here
-TAPER_V_ZERO_KMH = 355.0     # zero at and above here
-MO_TAPER_V_FULL_KMH = 337.0  # Manual Override holds full power far higher,
-MO_TAPER_V_ZERO_KMH = 350.0  # which is the whole point of the override
+# These mirror `constants.POWER_UNIT_2026` and are derived from it, never
+# restated. The duplicate cost a full iteration: this module kept a linear
+# 290->355 km/h ramp after constants.py moved to the published piecewise curve
+# (zero at 345 km/h normal, 355 km/h on Overtake). The simulator deploys on the
+# curve, `balance.py` bounded it with the ramp, and at 336-340 km/h the ramp
+# permits 18 kW less than the car actually used -- 18 kW * 5 ms = 91 J, which is
+# exactly the 91.6 J by which the clean-truth containment test found the upper
+# bound excluding the true theta. A set that excludes the truth is not
+# conservative, it is wrong. One curve, imported.
+TAPER_V_FULL_KMH = POWER_UNIT_2026.normal_curve.full_power_until_mps * 3.6
+TAPER_V_ZERO_KMH = POWER_UNIT_2026.normal_curve.zero_at_mps * 3.6
+MO_TAPER_V_FULL_KMH = POWER_UNIT_2026.overtake_curve.full_power_until_mps * 3.6
+MO_TAPER_V_ZERO_KMH = POWER_UNIT_2026.overtake_curve.zero_at_mps * 3.6
 
 # --------------------------------------------------------- regulation dates
 # The mid-season change. 3 May 2026 is the Miami Grand Prix race date, and the
@@ -168,21 +178,22 @@ def regs_for(race_date: date | str | None,
     return POST_MIAMI if race_date >= changeover else PRE_MIAMI
 
 
-def _ramp(v, lo_kmh: float, hi_kmh: float):
-    lo, hi = lo_kmh / 3.6, hi_kmh / 3.6
-    return np.clip((hi - v) / (hi - lo), 0.0, 1.0)
-
-
 def taper(v_ms, manual_override=False):
     """Fraction of the deployment cap the regulation still allows at speed v.
+
+    A fraction, not a power, because `p_dep_max` multiplies it by a zone cap
+    that is 250 kW outside the zone post-Miami. The shape comes from
+    `constants.mguk_power_limit_*` so that this module cannot drift away from
+    the curve the simulator deploys on -- see the note on TAPER_V_FULL_KMH for
+    what the drift cost.
 
     `manual_override` is per sample, not per race: eligibility is decided lap by
     lap at the detection point, so a car can be on the override ramp for one lap
     and the normal ramp for the next.
     """
     v = np.asarray(v_ms, dtype=float)
-    normal = _ramp(v, TAPER_V_FULL_KMH, TAPER_V_ZERO_KMH)
-    mo = _ramp(v, MO_TAPER_V_FULL_KMH, MO_TAPER_V_ZERO_KMH)
+    normal = np.asarray(mguk_power_limit_normal(v), dtype=float) / P_MGUK_MAX
+    mo = np.asarray(mguk_power_limit_overtake(v), dtype=float) / P_MGUK_MAX
     out = np.where(np.asarray(manual_override, dtype=bool), mo, normal)
     return float(out) if out.ndim == 0 else out
 

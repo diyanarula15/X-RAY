@@ -359,26 +359,29 @@ def test_every_particle_stays_inside_the_identified_set(cfg, races):
 
 
 def test_particle_count_is_measured_not_inherited(cfg, races):
-    """Re-measured a third time, after the measured dead band and the two
-    diagnostics it forced. Invariant 7 exists because this table keeps moving.
+    """Re-measured a fourth time, under the corrected 2026 MGU-K curve.
 
-        Np      deployable coverage   MAPE     ESS    ESS/Np
-        100           0.42            9.1%      94     0.94
-        200           0.73            8.7%     185     0.93
-        400           0.67            9.9%     364     0.91
-        800           0.70            9.2%     730     0.91
+        Np      deployable coverage    ESS    ESS/Np
+        100           0.76              94     0.94
+        200           0.81             188     0.94
+        400           0.80             374     0.93
+        800           0.79             746     0.93
 
-    Two things changed shape. Coverage now has a real knee: 100 particles
-    genuinely under-covers (0.42) where before every count read 0.58-0.60, so
-    the discriminator finally discriminates. And ESS is no longer a collapse
-    indicator at all -- it sits at 0.91-0.94 of the count everywhere, against
-    0.17-0.18 before, because there is now one well-scaled likelihood term
-    instead of several fighting each other over the same particles.
+    The knee is gone. The previous table had 100 particles genuinely
+    under-covering at 0.42, and that under-coverage was the discriminator this
+    test asserted. Under the corrected curve -- piecewise to zero at 345 km/h,
+    not linear to 355 -- coverage is flat at 0.76-0.81 from 100 particles up,
+    which is the nominal 0.80 a p10-p90 band should give. The filter got better
+    conditioned, not worse: the same correction also removed the 91 J
+    containment violation in `test_balance` and pulled the band width from
+    2.64x its own RMSE down to 1.94x.
 
-    So the previous version's assertion (that 100 particles must show a
-    collapsed cloud) is now false and is replaced by the coverage knee. MAPE
-    stays explicitly not the criterion -- it is flat within noise across the
-    whole range.
+    So "there must be a knee at 100" is retracted rather than rescaled. It is
+    replaced by the stronger requirement that coverage is calibrated at EVERY
+    count -- which the old table would have failed at 100, 400 and 800 -- plus
+    the unchanged ESS floor. Asserting a knee asserts that a defect exists; this
+    asserts that none does. The default count is left at its configured value:
+    100 now suffices on this seed, but one seed does not retire a default.
     """
     gt = races[42]
     obs, idx, feed, ident = _setup(cfg, gt)
@@ -388,12 +391,19 @@ def test_particle_count_is_measured_not_inherited(cfg, races):
     def cov(b):
         return float(np.mean((u_true >= b.usable_p10) & (u_true <= b.usable_p90)))
 
-    poor = _belief(cfg, gt, ident, feed, n_particles=100)
+    measured = {n: cov(_belief(cfg, gt, ident, feed, n_particles=n))
+                for n in (100, 200, 400, 800)}
+    for n, c in measured.items():
+        assert 0.70 <= c <= 0.90, (
+            f"{n} particles covers {c:.2f}, outside the calibrated 0.70-0.90 "
+            f"band a p10-p90 interval must hold. Full table: {measured}. "
+            "Re-measure the table in this docstring before changing the default")
+    # Coverage must also not depend strongly on the count any more. If a knee
+    # reappears, the posterior has stopped being well conditioned and the table
+    # above is stale -- that is a finding, not a number to widen.
+    spread = max(measured.values()) - min(measured.values())
+    assert spread <= 0.10, f"coverage depends on particle count again: {measured}"
     good = _belief(cfg, gt, ident, feed, n_particles=400)
-    assert cov(good) > cov(poor) + 0.15, (
-        f"the coverage knee has moved: {cov(poor):.2f} at 100 particles against "
-        f"{cov(good):.2f} at 400. Re-measure the table in this docstring "
-        "before changing the default count")
     assert np.median(good.ess) > 0.8 * 400, (
         f"ESS {np.median(good.ess):.0f} of 400 -- the cloud is collapsing "
         "again, so some likelihood term has been rescaled")

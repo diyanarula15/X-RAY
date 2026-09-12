@@ -196,8 +196,20 @@ class Simulator:
                     lap_start_t[c] = t
                     st[c].deployed_lap = 0.0
                     st[c].harvested_lap = 0.0
+                    # Manual Override grants a per-lap LEGAL ALLOWANCE, not a
+                    # battery top-up. It raises this lap's recharge ceiling from
+                    # 7.0 to 7.5 MJ and unlocks the Overtake power curve (full
+                    # 350 kW to 337.5 km/h instead of 290). The old code ran
+                    # `st.E += min(0.5 MJ, room)`, which created energy out of a
+                    # regulation; the per-lap balance test only closed because it
+                    # added the same mom term to both sides. The allowance is
+                    # assigned, not accumulated: eligibility is decided afresh at
+                    # each lap's detection point.
+                    st[c].manual_overtake_allocation_j = 0.0
+                    st[c].overtake_active = False
                     if pending_mom[c] > 0.0 and st[c].lap < self.n_laps + 1:
-                        st[c].manual_overtake_allocation_j += pending_mom[c]
+                        st[c].manual_overtake_allocation_j = pending_mom[c]
+                        st[c].overtake_active = True
                         per_lap[c]["mom"][st[c].lap] = pending_mom[c]
                         pending_mom[c] = 0.0
                     if st[c].lap < len(per_lap[c]["open"]):

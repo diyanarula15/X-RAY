@@ -431,6 +431,13 @@ def explain_exogenous_action(sol: ExogenousSolution, laps_left: int,
     value_wait = float(v_next[wait_i])
     value_fail = float((1.0 - model.fail_cost) * v_next[attack_i])
     reward = R_PASS * k / max(model.n_laps, 1)
+    # The solver masks unaffordable bins to -inf before its argmax. Leaving that
+    # gate out here did not change the recommendation -- `decision` is read from
+    # best_zone either way -- but it published a finite `value_attack` for an
+    # attack the solver had already rejected, so the web could show
+    # V_attack > V_wait next to HOLD. The explanation must be able to reproduce
+    # the choice, not just accompany it.
+    affordable = own_grid_energy_j >= model.attack_cost * 0.75
 
     rows = []
     for zi, zm in enumerate(model.zones):
@@ -438,7 +445,8 @@ def explain_exogenous_action(sol: ExogenousSolution, laps_left: int,
         rival_deploy_j = min(rival_usable_energy_j, model.attack_cost)
         dv = delta_v(zm, own_deploy_j, rival_deploy_j)
         q = p_pass(dv, model.gap_s, zm)
-        value_attack = float(q * reward + (1.0 - q) * value_fail)
+        value_hypothetical = float(q * reward + (1.0 - q) * value_fail)
+        value_attack = value_hypothetical if affordable else -np.inf
         rows.append({
             "zone_index": zi,
             "zone": zm.name,
@@ -448,16 +456,29 @@ def explain_exogenous_action(sol: ExogenousSolution, laps_left: int,
                                                        zm.speed_grid)),
             "predicted_rival_speed_mps": float(np.interp(rival_deploy_j, zm.energy_grid,
                                                          zm.speed_grid)),
-            "value_attack": value_attack,
+            "value_attack": float(value_attack),
+            # What the attack would be worth if it were affordable. Kept apart
+            # from `value_attack` so a rejected attack cannot be displayed as a
+            # real one, and so the panel still has a number to show.
+            "value_attack_hypothetical": value_hypothetical,
+            "affordable": bool(affordable),
         })
-    best_row = max(rows, key=lambda r: r["value_attack"]) if rows else None
     selected = int(sol.best_zone[k, i]) if k < sol.best_zone.shape[0] else -1
+    # Report the zone the solver picked, not a second argmax over the same rows.
+    # They agree on affordable bins, but only one of them decides.
+    if selected >= 0:
+        best_row = next(r for r in rows if r["zone_index"] == selected)
+    else:
+        best_row = (max(rows, key=lambda r: r["value_attack_hypothetical"])
+                    if rows else None)
     return {
         "laps_left": k,
         "own_usable_energy_j": float(own_usable_energy_j),
         "rival_usable_energy_j": rival_usable_energy_j,
         "attack_threshold": float(sol.threshold(k, own_usable_energy_j)),
         "value_wait": value_wait,
+        "value_attack": float(best_row["value_attack"]) if best_row else -np.inf,
+        "attack_affordable": bool(affordable),
         "best_zone": None if selected < 0 else model.zones[selected].name,
         "decision": "HOLD" if selected < 0 else "ATTACK",
         "best_attack": best_row,

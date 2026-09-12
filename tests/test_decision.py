@@ -140,3 +140,46 @@ def test_stint_respects_the_energy_budget(cfg, races):
     # with an empty battery and no recovery surplus the blind rule cannot attack
     # on lap 1; it must wait at least until it can afford the attack
     assert out["lap_passed"] is None or out["lap_passed"] >= 1
+
+
+def test_explanation_cannot_disagree_with_the_solver_at_any_state(cfg, races):
+    """The explanation must be able to reproduce the choice, not just sit beside it.
+
+    The helper originally left out the solver's affordability mask, so for any
+    energy below 0.75 * attack_cost it published a finite `value_attack` for an
+    attack the DP had already rejected -- V_attack > V_wait printed next to HOLD.
+    Swept over the whole grid rather than spot-checked, because the disagreement
+    only existed in the bins a single sample is least likely to land in.
+    """
+    g, obs, bel, model, _sol, _believed = _setup(cfg, races)
+    sol = solve_exogenous(model, rival_energy_at_zone(bel, obs, g.track, g.n_laps))
+    checked_hold = checked_attack = 0
+    for laps_left in range(1, min(6, sol.V.shape[0])):
+        for e_own in np.linspace(0.0, 4.0e6, 25):
+            d = explain_exogenous_action(sol, laps_left, float(e_own))
+            assert d["best_zone"] == sol.action(laps_left, float(e_own))
+            assert d["attack_threshold"] == pytest.approx(
+                sol.threshold(laps_left, float(e_own)))
+            v_att = max(z["value_attack"] for z in d["zones"])
+            assert d["value_attack"] == v_att
+            if d["decision"] == "ATTACK":
+                assert v_att > d["value_wait"]
+                assert d["attack_affordable"]
+                assert np.isfinite(v_att)
+                checked_attack += 1
+            else:
+                assert v_att <= d["value_wait"]
+                checked_hold += 1
+    assert checked_hold and checked_attack, "sweep covered only one branch"
+
+
+def test_unaffordable_attack_is_reported_as_rejected_not_as_valuable(cfg, races):
+    """An attack the DP masked to -inf must not surface as a finite value."""
+    g, obs, bel, model, _sol, _believed = _setup(cfg, races)
+    sol = solve_exogenous(model, rival_energy_at_zone(bel, obs, g.track, g.n_laps))
+    d = explain_exogenous_action(sol, 5, 0.0)
+    assert not d["attack_affordable"]
+    assert d["decision"] == "HOLD"
+    assert d["value_attack"] == -np.inf
+    # the hypothetical is still published, and is a real number
+    assert np.isfinite(d["best_attack"]["value_attack_hypothetical"])
