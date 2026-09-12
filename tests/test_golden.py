@@ -7,7 +7,7 @@ tight enough that a real numerics change cannot hide in it: 1e-9 relative is
 about 4 mJ on a 4 MJ store, against a per-lap energy the estimator only claims
 to 3.5%.
 
-Regenerate with `python scripts/make_golden.py --seed 42` ONLY when a numerics
+Regenerate with `python scripts/99.make_golden.py --seed 42` ONLY when a numerics
 change is intended, and say which headline metric moved.
 """
 from __future__ import annotations
@@ -27,7 +27,7 @@ ATOL = 1e-6   # J. Absolute floor so a zero-valued sample cannot fail on rtol.
 @pytest.fixture(scope="module")
 def golden():
     if not GOLDEN.exists():
-        pytest.skip(f"no golden file at {GOLDEN}; run scripts/make_golden.py")
+        pytest.skip(f"no golden file at {GOLDEN}; run scripts/99.make_golden.py")
     return np.load(GOLDEN)
 
 

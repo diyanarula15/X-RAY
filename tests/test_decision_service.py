@@ -5,7 +5,7 @@ import copy
 
 import numpy as np
 
-from api.main import _decision_payload
+from simulation.api.main import _decision_payload
 from xray.decision_service import (evaluate_decision_trace_from_payload,
                                    params_from_payload, speed_map_cache_key,
                                    _cached_zone_models, _PayloadTrack,

@@ -260,7 +260,7 @@ export function Method({ races, current }:
             </P>
             <P>
               Reproduce with <span className="mono" style={{ color: C.white }}>
-              python scripts/validate_decision.py --seeds 25</span>.
+              python scripts/03.a_validate_decision.py --seeds 25</span>.
             </P>
           </S>
 

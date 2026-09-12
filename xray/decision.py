@@ -300,7 +300,7 @@ def simulate_stint(model: DecisionModel, choose, rng, n_laps: int,
     callable (laps_left, e_own, e_riv_belief) -> zone name or None.
 
     This is a reduced-order race: it decides once per lap rather than
-    integrating the full 200 Hz two-car simulation. `scripts/run_decision_eval.py`
+    integrating the full 200 Hz two-car simulation. `scripts/03.b_run_decision_eval.py`
     reruns the headline comparison at full fidelity.
     """
     e_own, e_riv = float(e_own0), float(e_riv0)

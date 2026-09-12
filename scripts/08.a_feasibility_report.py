@@ -24,12 +24,12 @@ def load():
 def main() -> None:
     rows = load()
     if not rows:
-        raise SystemExit("no feasibility JSON found; run scripts/feasibility.py first")
+        raise SystemExit("no feasibility JSON found; run scripts/07.a_feasibility.py first")
     L = []
     A = L.append
     A("# Stage 2 feasibility — the four reality checks\n")
     A("Measured on real 2026 sessions via FastF1, not assumed. Every number here is\n"
-      "produced by `scripts/feasibility.py`; rerun it to reproduce.\n")
+      "produced by `scripts/07.a_feasibility.py`; rerun it to reproduce.\n")
     A(f"Sessions probed: {len(rows)} — " + ", ".join(f"{d['circuit']} (R{d['round']})" for d in rows) + "\n")
 
     # ---------------------------------------------------------------- 1.1

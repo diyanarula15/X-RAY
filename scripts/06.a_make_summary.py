@@ -235,7 +235,7 @@ def main() -> None:
         d = json.loads(abl.read_text())
         rates, mape = d["rates"], d["mape"]
     else:
-        raise SystemExit("run scripts/run_ablation.py first (needs out/ablation.json)")
+        raise SystemExit("run scripts/05.run_ablation.py first (needs out/ablation.json)")
 
     apply_style()
     fig = plt.figure(figsize=(16, 11.2), dpi=200, facecolor=BG)

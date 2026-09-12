@@ -1,6 +1,6 @@
 """What a golden estimator baseline contains.
 
-Shared by `scripts/make_golden.py` (which writes it) and `tests/test_golden.py`
+Shared by `scripts/99.make_golden.py` (which writes it) and `tests/test_golden.py`
 (which checks against it), so the two cannot drift into disagreeing about which
 fields define correctness.
 """

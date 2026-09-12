@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Stage 2, Phase A: the four reality checks, on one real session.
 
-Writes out/feasibility/r<round>.json. `scripts/feasibility_report.py` turns a
+Writes out/feasibility/r<round>.json. `scripts/08.a_feasibility_report.py` turns a
 set of those into out/feasibility.md.
 """
 from __future__ import annotations
