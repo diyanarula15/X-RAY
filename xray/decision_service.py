@@ -1306,6 +1306,28 @@ def p3_race_evidence(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _position_of(rows: list[dict[str, Any]], driver: str) -> int | None:
+    """Latest known race position for `driver` in a list of lap rows.
+
+    Reads the same `laps[].position` field the race result is built from --
+    no inference, no smoothing.
+    """
+    own = [r for r in rows if r.get("driver") == driver and r.get("position") is not None
+           and r.get("lap") is not None]
+    if not own:
+        return None
+    return int(max(own, key=lambda r: r["lap"])["position"])
+
+
+def _gap_between(rows: list[dict[str, Any]], car: str, rival: str) -> float | None:
+    """Latest known gap between `car` and `rival`, from `gaps[]` in either direction."""
+    pair = [r for r in rows if r.get("gap_s") is not None and r.get("lap") is not None
+            and {r.get("car"), r.get("ahead")} == {car, rival}]
+    if not pair:
+        return None
+    return float(max(pair, key=lambda r: r["lap"])["gap_s"])
+
+
 def historical_replay(payload: dict[str, Any], car: str, rival: str,
                       cutoff_time_s: float, horizon_s: float = 30.0,
                       max_opportunities: int = 12) -> dict[str, Any]:
@@ -1351,13 +1373,45 @@ def historical_replay(payload: dict[str, Any], car: str, rival: str,
     else:
         error = "both cars must have samples at or before the cutoff"
 
+    # Real, already-serialized race result -- not a new measurement. Position
+    # comes from `laps[].position`, gap from `gaps[]`; both are public race
+    # facts, already in the artifact, already used by `snapshots.make_snapshot`
+    # for its own causal split.
+    window_laps = {r.get("lap") for r in snap["evaluation_fields"]["laps"]}
+    position_before = {d: _position_of(snap["input_fields"]["laps_completed"], d)
+                       for d in (car, rival)}
+    position_after = {d: _position_of(snap["evaluation_fields"]["laps"], d)
+                      for d in (car, rival)}
+    gap_before = _gap_between(snap["input_fields"]["gaps_observed"], car, rival)
+    gap_after = _gap_between(
+        [g for g in snap["evaluation_fields"]["gaps"] if g.get("lap") in window_laps],
+        car, rival)
+
+    # Whether `car` actually gained track position on `rival` inside the
+    # evaluation window, read from the same public position field the race
+    # result is made of -- never fabricated, and left `None` (not guessed)
+    # when either side of the comparison is missing.
+    actual_action = None
+    if position_before.get(car) is not None and position_after.get(car) is not None:
+        actual_action = ("attacked" if position_after[car] < position_before[car]
+                         else "held")
+    # A plain comparison of two facts, not a probability: did what the driver
+    # actually did match what P2 would have called. `None` when either side is
+    # unknown -- this must never collapse a missing comparison into "held".
+    matches_recommendation = None
+    if actual_action is not None and decision is not None:
+        matches_recommendation = (
+            (actual_action == "attacked") == (decision["decision"] == "ATTACK"))
+
     observed = {}
     for d in (car, rival):
         fut = (snap["evaluation_fields"]["cars"].get(d) or {})
         v = [float(x) for x in (fut.get("v") or []) if x is not None]
         observed[d] = {"n_samples": fut.get("n_samples", len(v)),
                        "v_max_mps": max(v) if v else None,
-                       "v_mean_mps": (sum(v) / len(v)) if v else None}
+                       "v_mean_mps": (sum(v) / len(v)) if v else None,
+                       "position_at_cutoff": position_before.get(d),
+                       "position_at_window_end": position_after.get(d)}
 
     return {
         "p3_version": P3_VERSION,
@@ -1380,6 +1434,10 @@ def historical_replay(payload: dict[str, Any], car: str, rival: str,
         "p2_recommendation": decision,
         "p2_error": error,
         "later_observable_outcome": observed,
+        "gap_to_rival_at_cutoff_s": gap_before,
+        "gap_to_rival_at_window_end_s": gap_after,
+        "actual_action": actual_action,
+        "matches_recommendation": matches_recommendation,
         "evaluation_fingerprint": snap["provenance"]["evaluation_fingerprint"],
         "quality_flags": snap["quality_flags"],
         "energy_inference_status": p3_status()["energy_inference"]["headline"],

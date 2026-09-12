@@ -127,7 +127,15 @@ export type P3Replay = {
   inferred_energy_mj: Record<string, number> | null;
   p2_recommendation: P2Decision | null; p2_error: string | null;
   later_observable_outcome: Record<string, { n_samples: number;
-    v_max_mps: number | null; v_mean_mps: number | null }>;
+    v_max_mps: number | null; v_mean_mps: number | null;
+    position_at_cutoff: number | null; position_at_window_end: number | null }>;
+  gap_to_rival_at_cutoff_s: number | null;
+  gap_to_rival_at_window_end_s: number | null;
+  // "attacked" | "held" | null -- read from real position change, never guessed.
+  actual_action: 'attacked' | 'held' | null;
+  // null when either side of the comparison is unknown -- must never default
+  // to false/true.
+  matches_recommendation: boolean | null;
   evaluation_fingerprint: string;
   quality_flags: Record<string, boolean>;
   energy_inference_status: string;

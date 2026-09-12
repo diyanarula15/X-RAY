@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
-import type { RaceSummary, P3Status } from '../lib/api';
+import type { RaceSummary } from '../lib/api';
 import { api } from '../lib/api';
-import { ValidationPanel, ModelStatusPanel, DataQualityPanel }
-  from '../components/P3Panel';
 import { C } from '../lib/theme';
 
 /** Stage 1's measured ablation. Real telemetry lands at 4.17 Hz — on the cliff
@@ -22,11 +20,7 @@ export function Method({ races, current }:
   { races: RaceSummary[]; current: RaceSummary | null }) {
   const ref = useRef<SVGSVGElement>(null);
   const [rdd, setRdd] = useState<any>(null);
-  // "What it cannot do" is this view's whole job, so P3's evidence belongs here:
-  // the synthetic result, the negative real result, and every model's status.
-  const [p3, setP3] = useState<P3Status | null>(null);
   useEffect(() => { api.rdd(1.0).then(setRdd).catch(() => {}); }, []);
-  useEffect(() => { api.p3Status().then(setP3).catch(() => setP3(null)); }, []);
 
   useEffect(() => {
     const svg = d3.select(ref.current!); svg.selectAll('*').remove();
@@ -93,16 +87,6 @@ export function Method({ races, current }:
           truth is available, is reported separately below. Where identifiability
           is poor, we say so rather than reporting a confident number.
         </p>
-      </div>
-
-      {/* P3 evidence leads this view. The negative held-out result is the
-          strongest "what it cannot do" statement the project has, so it sits
-          above the older Stage-1 charts rather than after them. */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12,
-                    maxWidth: 1180, marginBottom: 18 }}>
-        <DataQualityPanel p3={p3} />
-        <ValidationPanel p3={p3} />
-        <ModelStatusPanel p3={p3} />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16,

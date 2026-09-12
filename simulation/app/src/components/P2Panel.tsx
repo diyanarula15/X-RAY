@@ -1,5 +1,7 @@
 import type { P2Decision } from '../lib/api';
 import { C } from '../lib/theme';
+import { CandidateActionsTable } from './CandidateActionsTable';
+import { NextBestAction } from './NextBestAction';
 
 /**
  * P2 strategic recommendation — DISPLAY ONLY.
@@ -58,10 +60,6 @@ export function P2Panel({ p2 }: { p2: P2Decision | null }) {
   const nb = p2.next_best_action;
   const synthetic = p2.pass_model_calibration !== 'empirical';
 
-  // UI-ONLY sort: highest backend `value` first, nulls (infeasible) last. The
-  // values themselves are the backend's; this only decides row order.
-  const rows = [...(p2.candidate_actions ?? [])].sort(
-    (a, b) => (b.value ?? -Infinity) - (a.value ?? -Infinity));
   const chosenLabel = attack
     ? `ATTACK(${p2.zone}, ${p2.deployment_budget_mj.toFixed(3)} MJ)`
     : 'HOLD';
@@ -129,64 +127,11 @@ export function P2Panel({ p2 }: { p2: P2Decision | null }) {
             <Row k="expected regret" v={num(p2.expected_regret)} />
           </tbody>
         </table>
-        {nb && (
-          <div style={{ color: C.gray, fontSize: 12.5, marginTop: 9, lineHeight: 1.6 }}>
-            Next best: <span style={{ color: C.white }}>
-              {nb.kind}{nb.zone ? ` zone ${nb.zone}` : ''}
-              {nb.kind === 'ATTACK' ? ` at ${nb.deployment_budget_mj.toFixed(3)} MJ` : ''}
-            </span> — value {num(nb.value)}
-            {p2.decision_margin < 0.01
-              ? ' (a close call: the margin is small)' : ''}
-          </div>
-        )}
+        <NextBestAction nb={nb} decisionMargin={p2.decision_margin} />
       </Section>
 
       <Section title="CANDIDATE ACTIONS">
-        <div style={{ overflowX: 'auto' }}>
-          <table className="num" style={{ width: '100%', fontSize: 11.5,
-                                          borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ color: C.gray }}>
-                <th style={{ textAlign: 'left' }}>action</th>
-                <th style={{ textAlign: 'right' }}>req</th>
-                <th style={{ textAlign: 'right' }}>deployed</th>
-                <th style={{ textAlign: 'right' }}>sat</th>
-                <th style={{ textAlign: 'right' }}>v own</th>
-                <th style={{ textAlign: 'right' }}>v rival</th>
-                <th style={{ textAlign: 'right' }}>Δv</th>
-                <th style={{ textAlign: 'right' }}>P(pass)</th>
-                <th style={{ textAlign: 'right' }}>value</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => {
-                const isChosen = r.action === chosenLabel;
-                return (
-                  <tr key={r.action}
-                      style={{ color: isChosen ? C.white : C.gray,
-                               fontWeight: isChosen ? 700 : 400,
-                               background: isChosen ? 'rgba(0,160,90,0.12)' : undefined }}>
-                    <td style={{ textAlign: 'left' }}>
-                      {isChosen ? '▸ ' : ''}{r.action}</td>
-                    <td style={{ textAlign: 'right' }}>{r.requested_budget_mj.toFixed(3)}</td>
-                    <td style={{ textAlign: 'right' }}>{r.actual_deployed_mj.toFixed(3)}</td>
-                    <td style={{ textAlign: 'right' }}>{r.saturated ? 'yes' : '—'}</td>
-                    <td style={{ textAlign: 'right' }}>{r.own_speed_mps.toFixed(2)}</td>
-                    <td style={{ textAlign: 'right' }}>{r.rival_speed_mps.toFixed(2)}</td>
-                    <td style={{ textAlign: 'right' }}>{r.delta_v_mps.toFixed(2)}</td>
-                    <td style={{ textAlign: 'right' }}>{(r.pass_probability * 100).toFixed(2)}%</td>
-                    <td style={{ textAlign: 'right' }}>
-                      {r.value == null ? 'rejected' : r.value.toFixed(5)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <div style={{ color: C.gray, fontSize: 11, marginTop: 7 }}>
-          Energy in MJ, speeds in m/s. Rows ordered by backend value; the values
-          themselves are the solver's.
-        </div>
+        <CandidateActionsTable rows={p2.candidate_actions} chosenLabel={chosenLabel} />
       </Section>
 
       <Section title="RIVAL-ENERGY SCENARIOS">

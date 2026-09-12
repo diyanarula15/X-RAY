@@ -194,8 +194,16 @@ failing test.
 ```powershell
 .\.venv\Scripts\python scripts\99.make_golden.py --seed 42   # only when a numerics change is intended
 .\.venv\Scripts\python scripts\99.worked_trace.py            # prints one worked decision trace + causality proof
+.\.venv\Scripts\python scripts\99.release_manifest.py        # -> out/release_manifest.json
 ```
 
 `99.make_golden.py` regenerates `tests/golden/belief_seed<seed>_3.7hz.npz`,
 pinned to `tests/conftest.py`'s exact configuration. If you run it, say in
 the commit message which headline metric moved and why (`dev_readme.md` §5).
+
+`99.release_manifest.py` pins a claim to an exact commit, estimator state and
+model fingerprint — reads existing sources of truth (git HEAD, the registry,
+`overtake.COEFFS`, the tyre-compound table) rather than recomputing anything.
+Run it before handing off a build for review; it needs the full manifest
+installed (imports `xray.registry`/`xray.overtake` and reads
+`simulation/api/main.py`'s FastAPI version string, but not a running server).

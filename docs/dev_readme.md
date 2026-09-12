@@ -483,6 +483,29 @@ Items 1–2 are environment breakage found while building this venv on
 
 ---
 
+## 7.1 P4 — the product IA, and where the estimator's status actually lives
+
+P4 reorganized the frontend into seven tabs (`Cockpit, Strategy, Energy, Race
+context, Replay, Evidence, Method & limits`) and added a Cockpit front page,
+but added no new scientific state. The single source of truth for "is the
+hardened estimator activated" is `xray.registry.registry_payload()`, read live
+from whatever P3/P3.5 artifacts exist on disk (`decision_service.p3_status()`,
+exposed at `GET /api/p3/status`) — flipping that verdict later, or regenerating
+the underlying artifacts, requires no frontend or API change: every panel
+(`components/P3Panel.tsx`) already renders both a positive and a negative
+verdict. There is no separate `estimator_status` flag; adding one would just be
+a second, staler opinion about the same fact.
+
+The one new backend surface is `historical_replay()`'s `actual_action` /
+`matches_recommendation` fields (`xray/decision_service.py`), which compare a
+real historical action (read from `laps[].position`/`gaps[]`, already-public
+race results) against the off-policy recommendation — used by the interactive
+scenario walkthrough on the Replay tab (`components/ScenarioWalkthrough.tsx`).
+It is a fact comparison, not a new estimator, and it is `None` rather than a
+guess whenever either side is unknown.
+
+---
+
 ## 8. Before you open a PR
 
 - `pytest -q` passes, `test_estimator_is_blind` included.

@@ -1,4 +1,7 @@
-import type { Car } from '../lib/api';
+import { useEffect, useState } from 'react';
+import type { Car, P3Status } from '../lib/api';
+import { api } from '../lib/api';
+import { EnergyStatusPanel } from '../components/P3Panel';
 import { C } from '../lib/theme';
 
 /** View 5 — the deployment style of a driver, as it accumulates evidence. */
@@ -39,6 +42,10 @@ function radar(car: Car | null, upto: number) {
 export function Fingerprint({ cars, upto }: { cars: (Car | null)[]; upto: number }) {
   const R = 112, cx = 165, cy = 168;
   const fps = cars.map((c) => radar(c, upto));
+  // Energy status sits beside the energy numbers it describes, not beside the
+  // strategy call (moved here from the old Decision view in P4).
+  const [p3, setP3] = useState<P3Status | null>(null);
+  useEffect(() => { api.p3Status().then(setP3).catch(() => setP3(null)); }, []);
   const axes = fps.find(Boolean)?.axes ?? [];
   const pt = (i: number, v: number) => {
     const a = (i / Math.max(axes.length, 1)) * Math.PI * 2 - Math.PI / 2;
@@ -53,6 +60,9 @@ export function Fingerprint({ cars, upto }: { cars: (Car | null)[]; upto: number
         shaded ring is the uncertainty, and it tightens as the race supplies more
         laps — drag the scrub bar in Race Theatre and watch it close.
       </p>
+      <div style={{ maxWidth: 640, marginTop: 14 }}>
+        <EnergyStatusPanel p3={p3} />
+      </div>
       <div style={{ display: 'flex', gap: 34, marginTop: 18, flexWrap: 'wrap' }}>
         <div className="panel" style={{ padding: 16 }}>
           <svg width={330} height={330} viewBox="0 0 330 330">

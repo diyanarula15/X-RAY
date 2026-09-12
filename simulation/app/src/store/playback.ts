@@ -7,7 +7,8 @@ import { create } from 'zustand';
  * 3D scene, every overlay and every chart subscribe to this. Nothing keeps its
  * own timer.
  */
-export type View = 'theatre' | 'observability' | 'rdd' | 'decision' | 'fingerprint' | 'method';
+export type View = 'cockpit' | 'strategy' | 'energy' | 'context' | 'replay'
+  | 'evidence' | 'method';
 
 type State = {
   raceId: string | null; view: View;
@@ -30,7 +31,7 @@ type State = {
 };
 
 export const usePlayback = create<State>((set) => ({
-  raceId: null, view: 'theatre', raceTime: 0, tRange: [0, 1],
+  raceId: null, view: 'cockpit', raceTime: 0, tRange: [0, 1],
   playing: false, speed: 2,
   lite: new URLSearchParams(location.search).get('lite') === '1',
   paintMode: 'neutral', camera: 'chase', subject: null, rival: null,
@@ -48,7 +49,7 @@ export const usePlayback = create<State>((set) => ({
   setCamera: (camera) => set({ camera }),
   setCars: (subject, rival) => set({ subject, rival }),
   startDemo: (t0) => set((s) => ({ demo: true, demoBeat: 0, playing: true, speed: 1,
-    raceTime: t0 ?? s.tRange[0], view: 'theatre', introTick: s.introTick + 1 })),
+    raceTime: t0 ?? s.tRange[0], view: 'replay', introTick: s.introTick + 1 })),
   stopDemo: () => set({ demo: false, demoBeat: -1 }),
   setBeat: (demoBeat) => set({ demoBeat }),
   setShowCloud: (showCloud) => set({ showCloud }),

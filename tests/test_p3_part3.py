@@ -222,14 +222,14 @@ def test_the_p3_panel_computes_no_inference_decision_or_validation_logic():
         r"NO_ROBUST_IMPROVEMENT\s*=": "a derived verdict",
         r"<\s*0\.0[0-9]": "a numeric validation threshold",
     }
-    src = _strip_comments(P3_PANEL.read_text())
+    src = _strip_comments(P3_PANEL.read_text(encoding="utf-8"))
     for pattern, what in banned.items():
         assert not re.search(pattern, src), f"P3Panel contains {what}"
 
 
 def test_the_panel_renders_the_negative_result_unconditionally():
     """Not a tooltip, not behind a disclosure, not conditional on a flag."""
-    src = P3_PANEL.read_text()
+    src = P3_PANEL.read_text(encoding="utf-8")
     assert "CURRENT INFERRED ENERGY DOES NOT ADD ROBUST HELD-OUT PREDICTIVE VALUE" in src
     assert "NOT AVAILABLE" in src          # true battery energy
     head = src.split("DOES NOT ADD ROBUST")[0][-500:]
@@ -238,24 +238,24 @@ def test_the_panel_renders_the_negative_result_unconditionally():
 
 def test_the_panel_never_shows_an_energy_accuracy_percentage():
     """"Energy accuracy: 94%" is the exact claim the project cannot make."""
-    src = _strip_comments(P3_PANEL.read_text())
+    src = _strip_comments(P3_PANEL.read_text(encoding="utf-8"))
     assert not re.search(r"accuracy", src, re.I)
 
 
 def test_the_panel_explains_the_sign_convention_of_the_ablation():
     """A bare "+0.437" next to "X-RAY" reads as a gain unless the sign is stated."""
-    src = P3_PANEL.read_text()
+    src = P3_PANEL.read_text(encoding="utf-8")
     assert "lower is better" in src
     assert "POSITIVE" in src
 
 
 def test_the_panel_says_a_status_is_not_a_quality_claim():
-    src = P3_PANEL.read_text()
+    src = P3_PANEL.read_text(encoding="utf-8")
     assert "never how good it is" in src or "not \"verified\"" in src
 
 
 def test_the_replay_panel_carries_the_off_policy_label_and_the_evaluation_rule():
-    src = P3_PANEL.read_text()
+    src = P3_PANEL.read_text(encoding="utf-8")
     assert "replay.label" in src
     assert "only for evaluation" in src
     assert "did not execute" in src
@@ -263,7 +263,7 @@ def test_the_replay_panel_carries_the_off_policy_label_and_the_evaluation_rule()
 
 def test_the_api_client_declares_only_fields_the_service_returns():
     s = p3_status()
-    src = API_TS.read_text()
+    src = API_TS.read_text(encoding="utf-8")
     block = src[src.index("export type P3Status = {"):]
     block = block[:block.index("\n};")]
     declared = set(re.findall(r"^\s{2}([a-z_][a-z0-9_]*)\s*:", block, re.M))
@@ -272,18 +272,23 @@ def test_the_api_client_declares_only_fields_the_service_returns():
 
 
 def test_the_panels_are_wired_into_the_existing_views_not_a_new_app():
-    dec = (APP / "views" / "Decision.tsx").read_text()
-    meth = (APP / "views" / "Method.tsx").read_text()
-    assert "EnergyStatusPanel" in dec and "api.p3Status()" in dec
-    # An exported panel nobody mounts is not a surface.
-    assert "ReplayPanel" in dec and "api.replay(" in dec
+    """P4 redistributed these panels across the new IA -- energy status beside
+    the energy numbers (Energy tab), replay inside the interactive scenario
+    walkthrough (Replay tab), and validation/registry status onto their own
+    Evidence tab -- rather than leaving two P3 panels crammed into Decision/
+    Method as before. An exported panel nobody mounts is still not a surface."""
+    energy = (APP / "views" / "Fingerprint.tsx").read_text(encoding="utf-8")
+    walkthrough = (APP / "components" / "ScenarioWalkthrough.tsx").read_text(encoding="utf-8")
+    evidence = (APP / "views" / "Evidence.tsx").read_text(encoding="utf-8")
+    assert "EnergyStatusPanel" in energy and "api.p3Status()" in energy
+    assert "ReplayPanel" in walkthrough and "api.replay(" in walkthrough
     for name in ("ValidationPanel", "ModelStatusPanel", "DataQualityPanel"):
-        assert name in meth, name
+        assert name in evidence, name
 
 
 def test_the_api_exposes_the_p3_endpoints_without_reshaping_them():
     main = pathlib.Path(__file__).resolve().parent.parent / "simulation" / "api" / "main.py"
-    src = main.read_text()
+    src = main.read_text(encoding="utf-8")
     for fn, call in (("p3_status_endpoint", "return p3_status()"),
                      ("p3_race_endpoint", "return p3_race_evidence("),
                      ("p3_replay_endpoint", "return historical_replay(")):
@@ -294,12 +299,12 @@ def test_the_api_exposes_the_p3_endpoints_without_reshaping_them():
 
 # ----------------------------------------------------------- documentation
 def test_the_pipeline_doc_shows_the_unified_path_and_the_research_only_stacks():
-    src = (DOCS / "pipeline_layers.md").read_text()
+    src = (DOCS / "pipeline_layers.md").read_text(encoding="utf-8")
     for token in ("grid_lap", "realfit", "decision_service", "RESEARCH_ONLY"):
         assert token in src, token
 
 
 def test_the_docs_record_the_mass_decision_as_measured_but_not_adopted():
-    src = (DOCS / "model_inventory.md").read_text()
+    src = (DOCS / "model_inventory.md").read_text(encoding="utf-8")
     assert "MEASURED — NOT ADOPTED" in src
     assert "790" in src

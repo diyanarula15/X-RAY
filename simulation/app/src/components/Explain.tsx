@@ -5,60 +5,77 @@ import type { View } from '../store/playback';
 
 /** What each view is for, in one sentence, plus what to actually do in it. */
 export const GUIDE: Record<View, { title: string; what: string; do1: string[] }> = {
-  theatre: {
-    title: 'Race theatre',
-    what: 'A real 2026 race, replayed. The amber car is you; the red car is the rival '
-      + 'whose battery you are trying to read. Neither car has ever published its energy '
-      + 'state — the red bar is reconstructed from its speed alone.',
+  cockpit: {
+    title: 'Cockpit',
+    what: 'The one question: attack or hold, right now. Every number here is read '
+      + 'straight off the backend recommendation — nothing is computed in this screen.',
     do1: [
-      'Press play (or Space) to run the battle. Arrow keys jump 5 s.',
-      'Watch the red cloud beside the rival: each dot is one guess at how much energy '
-        + 'they have left. Tight cloud = we can see clearly. Spread out = we cannot.',
-      'The big number top-left is the real gap. Under 1.000 s it turns green — that is '
-        + 'the Manual Override boundary.',
-      'Try the track paint buttons: "deployment" paints where the car spent energy.',
+      'Read the headline call and the one-line explanation beneath it.',
+      'Check the candidate-action table: what attacking or holding actually costs and '
+        + 'is worth, side by side.',
+      'The ENERGY badge says how validated the rival-energy estimate is — open Evidence '
+        + 'for the full story.',
     ],
   },
-  observability: {
-    title: 'Observability map',
-    what: 'The circuit coloured by how much the estimator can learn at each point. '
-      + 'This is the same fact as the breathing cloud, drawn on the ground.',
-    do1: [
-      'Green = the trace tells us about energy here. Red = it tells us nothing.',
-      'Hover any stretch of track to see the score and, where we refuse, why.',
-      'Switch to the drag layer: high-speed running informs the car’s aerodynamics, '
-        + 'not its energy. The two maps are nearly opposites.',
-    ],
-  },
-  rdd: {
-    title: 'RDD explorer',
-    what: 'The test you run to try to break us. There is no public energy channel for a '
-      + 'real car, so we cannot check the estimates directly. Instead we test a rule the '
-      + 'regulation makes: a car within 1.000 s of the one ahead gets extra deployment.',
-    do1: [
-      'Drag the cutoff slider. If our estimates are real, the jump appears at 1.000 s.',
-      'Now hunt: try 0.7, 1.3, 1.8. Finding "effects" where the rules put none means we '
-        + 'are fitting noise.',
-      'Read the UNDERPOWERED panel. Our answer here is a null, and that panel says '
-        + 'whether that means anything.',
-    ],
-  },
-  decision: {
-    title: 'Decision explorer',
-    what: 'When to attack. The white line is the threshold: the quality of chance worth '
-      + 'taking on that lap. Dots above it are worth taking, dots below are not.',
+  strategy: {
+    title: 'Strategy horizon',
+    what: 'Which opportunity, which zone, and why. The white line is the threshold: the '
+      + 'quality of chance worth taking on that lap. Dots above it are worth taking.',
     do1: [
       'Click any dot to see the numbers behind it — your energy, theirs, the zone.',
+      'The opportunity-horizon strip shows the current call plus the forecast '
+        + 'opportunities ahead — faint dots are forecasts, not observed fact.',
       'The faint fan is the same question re-answered for 200 different guesses about '
         + 'the rival’s style. The robustness number is how many agree.',
     ],
   },
-  fingerprint: {
-    title: 'Opponent fingerprint',
-    what: 'Each driver’s deployment style, estimated from the speed trace alone.',
+  energy: {
+    title: 'Energy',
+    what: 'Each driver’s deployment style, estimated from the speed trace alone, plus '
+      + 'the energy-inference status: what kind of number this is, and whether it has '
+      + 'been shown to add real predictive value.',
     do1: [
+      'Read the energy status panel first — it says plainly whether the estimate is '
+        + 'validated.',
       'The shaded ring is uncertainty. It tightens as the race supplies more laps.',
-      'Scrub the race in Race theatre, come back, and watch the ring close.',
+      'Scrub the race in Replay, come back, and watch the ring close.',
+    ],
+  },
+  context: {
+    title: 'Race context',
+    what: 'Everything around the decision: where the estimator can and cannot learn '
+      + '(Observability), and the one test we run to try to break our own estimates (RDD).',
+    do1: [
+      'Observability: green = the trace tells us about energy here, red = it tells us '
+        + 'nothing.',
+      'RDD: drag the cutoff slider. If our estimates are real, the jump appears at '
+        + '1.000 s and nowhere else.',
+      'Read the UNDERPOWERED panel — our RDD answer is a null, and that panel says '
+        + 'whether that means anything.',
+    ],
+  },
+  replay: {
+    title: 'Replay',
+    what: 'A real 2026 race, replayed, plus a step-through of real historical situations. '
+      + 'Neither car has ever published its energy state — the red bar is reconstructed '
+      + 'from speed alone.',
+    do1: [
+      'Press play (or Space) to run the battle. Arrow keys jump 5 s.',
+      'Open "step through real situations" to see X-RAY’s off-policy call at real past '
+        + 'decision points, and what the driver actually did next.',
+      '"Follow" and "disobey" jump between real instances that matched or diverged from '
+        + 'the call — this is never a simulation of what would have happened.',
+    ],
+  },
+  evidence: {
+    title: 'Evidence',
+    what: 'What each model is, and what is known about it — energy inference, pass '
+      + 'model, tyres, CdA and the rest, each with its own status and validation result.',
+    do1: [
+      'The negative held-out result is stated first, at the same weight as everything '
+        + 'else — read it before trusting any energy number elsewhere in the app.',
+      'The model-status table says which components are production and which are '
+        + 'research-only code that never touches a real race.',
     ],
   },
   method: {

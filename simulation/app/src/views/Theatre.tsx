@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Car, RaceDetail } from '../lib/api';
 import { sampleCar } from '../lib/carState';
 import { C } from '../lib/theme';
@@ -9,6 +9,7 @@ import { EnergyBar, Panel, Refusal } from '../components/Readouts';
 import { ScrubBar } from '../components/ScrubBar';
 import { SpeedTrace } from '../components/SpeedTrace';
 import { SceneLegend } from '../components/Explain';
+import { ScenarioWalkthrough } from '../components/ScenarioWalkthrough';
 import { Scene } from '../three/Scene';
 
 export function Theatre({ race, subject, rival, obs }: {
@@ -28,6 +29,7 @@ export function Theatre({ race, subject, rival, obs }: {
   const showCloud = usePlayback((s) => s.showCloud);
   const setShowCloud = usePlayback((s) => s.setShowCloud);
   const lite = usePlayback((s) => s.lite);
+  const [showWalkthrough, setShowWalkthrough] = useState(false);
 
   const L = race.circuit_geometry.length;
   const sS = useMemo(() => sampleCar(subject, raceTime, L), [subject, raceTime, L]);
@@ -203,6 +205,27 @@ export function Theatre({ race, subject, rival, obs }: {
             <><br /><span style={{ color: C.amber }}>
               dropped automatically — this machine could not hold 30 fps
             </span></>
+          )}
+        </div>
+      )}
+
+      {subject && rival && (
+        <div style={{ position: 'absolute', top: 18, right: 366, maxHeight: '78%',
+                      overflowY: 'auto' }}>
+          {!showWalkthrough ? (
+            <button onClick={() => setShowWalkthrough(true)}
+              style={{ padding: '7px 12px', fontSize: 11.5, borderRadius: 7,
+                       border: `1px solid ${C.panelBorder}`, background: 'rgba(11,11,15,.85)',
+                       color: C.gray }}>
+              ▸ step through real situations
+            </button>
+          ) : (
+            <div className="panel" style={{ padding: 13 }}>
+              <button onClick={() => setShowWalkthrough(false)}
+                style={{ float: 'right', border: 'none', background: 'transparent',
+                         color: C.dim, fontSize: 12 }}>✕</button>
+              <ScenarioWalkthrough raceId={race.id} car={subject.driver} rival={rival.driver} />
+            </div>
           )}
         </div>
       )}

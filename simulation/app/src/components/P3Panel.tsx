@@ -340,9 +340,28 @@ export function ReplayPanel({ replay }: { replay: P3Replay | null }) {
             return (
               <tr key={d}><td style={{ color: C.gray }}>{d} observed after cutoff</td>
                 <td style={{ textAlign: 'right' }}>
-                  {o.n_samples} samples · max {mps(o.v_max_mps, 1)}</td></tr>
+                  {o.n_samples} samples · max {mps(o.v_max_mps, 1)}
+                  {o.position_at_cutoff != null && o.position_at_window_end != null
+                    ? ` · P${o.position_at_cutoff} → P${o.position_at_window_end}`
+                    : ''}</td></tr>
             );
           })}
+          <tr><td style={{ color: C.gray }}>gap to rival, cutoff → window end</td>
+              <td style={{ textAlign: 'right' }}>
+                {replay.gap_to_rival_at_cutoff_s == null
+                  ? '—' : `${replay.gap_to_rival_at_cutoff_s.toFixed(3)} s`}
+                {' → '}
+                {replay.gap_to_rival_at_window_end_s == null
+                  ? '—' : `${replay.gap_to_rival_at_window_end_s.toFixed(3)} s`}</td></tr>
+          <tr><td style={{ color: C.gray }}>what the driver actually did</td>
+              <td style={{ textAlign: 'right', color: C.white }}>
+                {replay.actual_action ?? 'unknown — no later position to compare'}</td></tr>
+          <tr><td style={{ color: C.gray }}>matched the recommendation</td>
+              <td style={{ textAlign: 'right',
+                           color: replay.matches_recommendation == null ? C.gray
+                             : replay.matches_recommendation ? C.green : C.amber }}>
+                {replay.matches_recommendation == null ? 'unknown'
+                  : replay.matches_recommendation ? 'yes' : 'no'}</td></tr>
           <tr><td style={{ color: C.gray }}>input fingerprint</td>
               <td style={{ textAlign: 'right', color: C.dim }}>
                 {fp(replay.information_at_cutoff?.input_fingerprint)}</td></tr>
@@ -352,7 +371,10 @@ export function ReplayPanel({ replay }: { replay: P3Replay | null }) {
         Later telemetry is used only for evaluation and never reaches the
         recommendation. The car did not execute this recommendation, so the
         observed outcome is the outcome of what the driver actually did — this
-        cannot show what the recommendation would have achieved.
+        cannot show what the recommendation would have achieved. "Matched" only
+        says the driver's real action agrees with the call; a mismatch is not
+        shown as a worse outcome, because no counterfactual outcome exists for
+        the action not taken.
       </div>
       <div style={{ color: C.amber, fontSize: 11.5, marginTop: 7, fontWeight: 700 }}>
         {replay.energy_inference_status}

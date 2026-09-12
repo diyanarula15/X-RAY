@@ -7,18 +7,21 @@ import { bestBattleTime, sampleCar, timeRange } from './lib/carState';
 import { Theatre } from './views/Theatre';
 import { Observability } from './views/Observability';
 import { RDD } from './views/RDD';
-import { Decision } from './views/Decision';
+import { Strategy } from './views/Strategy';
 import { Fingerprint } from './views/Fingerprint';
 import { Method } from './views/Method';
+import { Cockpit } from './views/Cockpit';
+import { Evidence } from './views/Evidence';
 import { GUIDE, HelpButton, Onboarding } from './components/Explain';
 import { useDemo, DEMO_BEATS } from './lib/demo';
 
 const VIEWS: { id: View; label: string; hint: string }[] = [
-  { id: 'theatre', label: 'Race theatre', hint: 'the battle, replayed' },
-  { id: 'observability', label: 'Observability', hint: 'what can be known where' },
-  { id: 'rdd', label: 'RDD explorer', hint: 'try to break it' },
-  { id: 'decision', label: 'Decision', hint: 'why the engine says what it says' },
-  { id: 'fingerprint', label: 'Fingerprint', hint: 'deployment style' },
+  { id: 'cockpit', label: 'Cockpit', hint: 'attack or hold, right now' },
+  { id: 'strategy', label: 'Strategy', hint: 'the horizon and why' },
+  { id: 'energy', label: 'Energy', hint: 'deployment style' },
+  { id: 'context', label: 'Race context', hint: 'observability + RDD' },
+  { id: 'replay', label: 'Replay', hint: 'the battle, replayed' },
+  { id: 'evidence', label: 'Evidence', hint: 'per-component model status' },
   { id: 'method', label: 'Method & limits', hint: 'what it cannot do' },
 ];
 
@@ -29,6 +32,9 @@ export default function App() {
   const [rival, setRival] = useState<Car | null>(null);
   const [obs, setObs] = useState<any>(null);
   const [err, setErr] = useState<string | null>(null);
+  // "Race context" groups two previously-separate tabs behind one nav label;
+  // this local toggle is the sub-tab, not a new View union member.
+  const [contextTab, setContextTab] = useState<'observability' | 'rdd'>('observability');
   const view = usePlayback((s) => s.view);
   const setView = usePlayback((s) => s.setView);
   const lite = usePlayback((s) => s.lite);
@@ -168,15 +174,36 @@ export default function App() {
           <motion.div key={view} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             exit={{ opacity: 0 }} transition={{ duration: 0.18 }}
             style={{ position: 'absolute', inset: 0 }}>
-            {view === 'theatre' && <Theatre race={race} subject={subject} rival={rival} obs={obs} />}
-            {view === 'observability' && <Observability data={obs} />}
-            {view === 'rdd' && <RDD />}
-            {view === 'decision' && subject && rival &&
-              <Decision raceId={race.id} car={subject.driver} rival={rival.driver} />}
-            {view === 'fingerprint' &&
+            {view === 'cockpit' && subject && rival &&
+              <Cockpit raceId={race.id} car={subject.driver} rival={rival.driver} />}
+            {view === 'strategy' && subject && rival &&
+              <Strategy raceId={race.id} car={subject.driver} rival={rival.driver} />}
+            {view === 'energy' &&
               <Fingerprint cars={[subject, rival]} upto={
                 subject ? (sampleCar(subject, raceTime,
                   race.circuit_geometry.length)?.lap ?? 9999) : 9999} />}
+            {view === 'context' && (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex',
+                            flexDirection: 'column' }}>
+                <div style={{ display: 'flex', gap: 6, padding: '10px 20px 0' }}>
+                  {(['observability', 'rdd'] as const).map((t) => (
+                    <button key={t} onClick={() => setContextTab(t)}
+                      style={{ padding: '5px 10px', fontSize: 11.5, borderRadius: 6,
+                               border: `1px solid ${contextTab === t ? C.amber : C.panelBorder}`,
+                               background: 'transparent',
+                               color: contextTab === t ? C.amber : C.gray }}>
+                      {t === 'observability' ? 'observability map' : 'RDD explorer'}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
+                  {contextTab === 'observability' && <Observability data={obs} />}
+                  {contextTab === 'rdd' && <RDD />}
+                </div>
+              </div>
+            )}
+            {view === 'replay' && <Theatre race={race} subject={subject} rival={rival} obs={obs} />}
+            {view === 'evidence' && <Evidence />}
             {view === 'method' && <Method races={races} current={current} />}
           </motion.div>
         </AnimatePresence>
