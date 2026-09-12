@@ -41,6 +41,49 @@ export type RaceDetail = RaceSummary & {
              median_gap: number; first_lap: number }[];
 };
 
+/** P2 strategic recommendation. Field names mirror
+ *  `decision_service._serialise_p2` EXACTLY -- if one is renamed there, this
+ *  breaks at the type level rather than rendering `undefined` in the UI.
+ *  Every member is display data: nothing here is recomputed in TypeScript. */
+export type P2CandidateAction = {
+  action: string; kind: 'HOLD' | 'ATTACK';
+  requested_budget_mj: number; actual_deployed_mj: number;
+  feasible: boolean; infeasible_reason: string; saturated: boolean;
+  own_speed_mps: number; rival_speed_mps: number; delta_v_mps: number;
+  pass_probability: number; value: number | null;
+};
+export type P2PosteriorRow = {
+  scenario_index: number; rival_usable_energy_mj: number; weight: number;
+  optimal_action: string; optimal_value: number; chosen_action_value: number;
+};
+export type P2Decision = {
+  decision: 'HOLD' | 'ATTACK';
+  zone: string | null;
+  opportunity_id: string; lap: number;
+  decision_point_s: number; decision_time_s: number | null;
+  deployment_budget_mj: number; actual_deployed_mj: number;
+  deployment_saturated: boolean; saturation_reason: string;
+  predicted_own_speed_mps: number; predicted_rival_speed_mps: number;
+  predicted_delta_v_mps: number;
+  pass_probability: number;
+  pass_model_calibration: 'synthetic' | 'empirical';
+  value_action: number; value_hold: number; decision_margin: number;
+  next_best_action: { kind: string; zone: string | null;
+                      deployment_budget_mj: number; value: number } | null;
+  action_consensus: number; expected_regret: number;
+  policy_posterior: P2PosteriorRow[];
+  robustness: Record<string, number | string | null>;
+  horizon: { opportunity_id: string; lap: number; zone: string;
+             decision_s: number; decision_time_s: number | null; gap_s: number;
+             own_usable_energy_mj: number; rival_usable_energy_mj: number;
+             own_wear_fraction: number | null;
+             rival_wear_fraction: number | null }[];
+  candidate_actions: P2CandidateAction[];
+  pit_reset_index: number | null;
+  input_confidence: Record<string, string | number | null>;
+  p2_version: string;
+};
+
 export const api = {
   races: () => j<RaceSummary[]>('/api/races'),
   race: (id: string) => j<RaceDetail>(`/api/race/${id}/summary`),
@@ -51,6 +94,8 @@ export const api = {
   observability: (id: string) => j<any>(`/api/race/${id}/observability`),
   decision: (id: string, car: string, rival: string) =>
     j<any>(`/api/race/${id}/decision?car=${car}&rival=${rival}`),
+  p2: (id: string, car: string, rival: string) =>
+    j<P2Decision>(`/api/race/${id}/p2?car=${car}&rival=${rival}`),
   rdd: (cutoff: number, bandwidth = 0.6) =>
     j<any>(`/api/rdd?cutoff=${cutoff}&bandwidth=${bandwidth}`),
 };

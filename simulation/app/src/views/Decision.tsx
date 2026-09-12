@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { api } from '../lib/api';
+import type { P2Decision } from '../lib/api';
+import { P2Panel } from '../components/P2Panel';
 import { C } from '../lib/theme';
 
 /** View 4 — click any moment, see why the engine says what it says. */
@@ -8,10 +10,14 @@ export function Decision({ raceId, car, rival }:
   { raceId: string; car: string; rival: string }) {
   const [d, setD] = useState<any>(null);
   const [sel, setSel] = useState<any>(null);
+  // P2 is fetched separately and is allowed to fail: a payload with no P2
+  // support, or an older API, must still render the P1 trace below.
+  const [p2, setP2] = useState<P2Decision | null>(null);
   const ref = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
     api.decision(raceId, car, rival).then(setD).catch(() => setD(null));
+    api.p2(raceId, car, rival).then(setP2).catch(() => setP2(null));
   }, [raceId, car, rival]);
 
   useEffect(() => {
@@ -75,8 +81,14 @@ export function Decision({ raceId, car, rival }:
       <p style={{ color: C.gray, maxWidth: 820, fontSize: 13.5, lineHeight: 1.65 }}>
         {car} attacking {rival}. Every number here decomposes — click a lap.
       </p>
+      {/* The P2 recommendation leads, because it is the answer: which
+          opportunity, which zone, how many joules. The P1 threshold trace below
+          remains as the per-lap detail it always was. */}
+      <div style={{ marginTop: 14 }}>
+        <P2Panel p2={p2} />
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 310px', gap: 20,
-                    marginTop: 14 }}>
+                    marginTop: 20 }}>
         <div className="panel" style={{ padding: 12 }}>
           <svg ref={ref} style={{ width: '100%', height: 'auto', display: 'block' }} />
         </div>

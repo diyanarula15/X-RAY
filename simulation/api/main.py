@@ -155,6 +155,28 @@ def decision(rid: str, car: str = Query(...), rival: str = Query(...)):
     return _decision_payload(d, car, rival)
 
 
+@app.get("/api/race/{rid}/p2")
+def p2_decision(rid: str, car: str = Query(...), rival: str = Query(...),
+                from_lap: int | None = Query(None)):
+    """The P2 recommendation: which opportunity, which zone, how many joules.
+
+    Serialisation only. Every number comes from
+    `decision_service.evaluate_opportunity_decision`, which is the canonical
+    orchestrator over the canonical solver -- this endpoint adds no arithmetic.
+    """
+    from xray.decision_service import evaluate_opportunity_decision
+
+    d = _race(rid)
+    if car not in d["cars"] or rival not in d["cars"]:
+        raise HTTPException(404, "car not analysed")
+    try:
+        return evaluate_opportunity_decision(d, car, rival, from_lap=from_lap)
+    except KeyError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
 @lru_cache(maxsize=32)
 def _decision_cached(rid: str, car: str, rival: str) -> str:
     return json.dumps(_decision_payload(_race(rid), car, rival))

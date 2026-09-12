@@ -333,3 +333,70 @@ Sample count and grouping would pass. Two qualitative blockers stand:
 
 `passmodel.fit` refuses while the audit blocks, and there is no force flag.
 `pass_model_calibration` remains `"synthetic"` everywhere.
+
+
+# P2 closure — frontend integration and closed-loop evaluation
+
+## Frontend (display only)
+
+- `simulation/api/main.py::p2_decision` — `GET /api/race/{rid}/p2`. Returns
+  `decision_service.evaluate_opportunity_decision` unmodified.
+- `simulation/app/src/lib/api.ts` — `P2Decision`/`P2CandidateAction`/
+  `P2PosteriorRow` mirror `_serialise_p2` key for key, so a backend rename
+  breaks the type rather than rendering `undefined`.
+- `simulation/app/src/components/P2Panel.tsx` — recommendation, predicted
+  state, strategic value, candidate-action table, rival-energy scenarios, input
+  provenance. The only arithmetic is `*3.6` (km/h) and `*100` (percent);
+  `tests/test_frontend_p2.py` enforces that, bans logistic/Bellman/threshold
+  patterns across the app, and asserts every `p2.*` the panel reads exists in
+  the real service response.
+- Pass-model calibration is rendered as an unconditional inline badge, never a
+  tooltip.
+- P1-only / absent P2 data renders a fallback; the P1 trace is untouched.
+- Validation: `tsc -b --force` exit 0 and `vite build` exit 0, run with the
+  repo's own tsconfig against `app/node_modules` symlinked into
+  `simulation/app/node_modules` (gitignored). oxlint clean.
+
+## Closed-loop evaluation
+
+`xray/closedloop.py` + `scripts/10.closedloop_eval.py`. The belief every policy
+acts on is `observe()` -> `estimate()`; the simulator's stores are never read by
+a policy. `oracle_p2` is the one labelled exception and is kept out of
+`POLICIES`.
+
+Adapter: `BudgetedAttack` extends the EXISTING `DeploymentPolicy.attack_lap` /
+`attack_zone` hook with `attack_budget_j`. The allocation is a FLOOR on
+deployment while it lasts, then reverts to the base policy. Two earlier
+semantics were wrong and are recorded in the tests: reverting immediately made
+the budget non-binding (0.4 MJ and 1.6 MJ both deployed 2.812 MJ), and cutting
+to zero made a small allocation an anti-attack (peak speed fell 365.3 -> 364.9
+km/h).
+
+Result over 12 paired worlds (varying start gap, start energy, rival policy and
+feed noise; same seed => same pass dice):
+
+| policy | attacks | successes | mean ahead | interior budgets |
+|---|---|---|---|---|
+| hold | 143 att | 6 | 0.1569 | 0 |
+| fixed_cost | 128 att, 12 plans | 7 | 0.1092 | 0 |
+| max_deploy | 143 att, 7 plans | 6 | 0.1568 | 0 |
+| p2 | 143 att, 7 plans | 6 | 0.1568 | 7 |
+| oracle_p2 | 143 att, 12 plans | 6 | 0.1569 | 0 |
+
+Paired: p2 vs hold 0/1/11 (delta -0.00006); p2 vs fixed_cost 1/3/8
+(delta +0.04766); **p2 vs max_deploy 0/0/12 (delta 0.00000)**; oracle vs p2
+1/0/11 (delta +0.00006). None of this is statistically significant and none is
+claimed to be.
+
+**The finding that matters: P2 and max-deployment are identical in every world.**
+Circuit Sigma's zone A absorbs only ~0.449 MJ from the store in race conditions
+-- the MGU-K taper and the zone length set that, not the optimiser -- so an
+interior budget above that threshold is the same physical action as the maximum.
+P2's budget axis is real in its own zone maps (`calibrate_zone` reports a
+1.6 MJ ceiling from a full run-up) but the in-race drawdown is ~3.5x smaller, so
+the deployment-magnitude feature has almost no room to express itself in Stage 1.
+
+Secondary: `fixed_cost` attacks nearly twice as often and wins one more pass,
+but is ahead **less** of the time (0.109 vs 0.157) -- spending everything costs
+track position. And `oracle_p2` is within 0.00006 of `p2`, so in this setup the
+rival-energy estimate is not the binding constraint on the decision.
