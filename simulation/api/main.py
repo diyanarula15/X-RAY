@@ -18,9 +18,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-ROOT = Path(__file__).resolve().parent.parent
-RACES = ROOT / "out" / "races"
-sys.path.insert(0, str(ROOT))
+ROOT = Path(__file__).resolve().parent.parent        # simulation/  -- for app/dist
+REPO_ROOT = ROOT.parent                               # repo root   -- for out/, xray/
+RACES = REPO_ROOT / "out" / "races"
+sys.path.insert(0, str(REPO_ROOT))
 
 app = FastAPI(title="X-RAY", version="2.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"],
