@@ -207,7 +207,14 @@ observe:
 estimator:
   n_particles: 400
   savgol_seconds: 0.8
-  cda_prior_wind_sigma: 3.0   # m/s, weak prior pulling the wind nuisance to zero
+  # m/s, weak prior pulling the wind nuisance to zero. Was 3.0 here while
+  # estimator.fit_nuisance defaulted to 1.0, and NOTHING reads this key -- so 1.0
+  # is what produced every Stage 1 number on record, and 3.0 was decoration.
+  # Corrected to the value that actually runs rather than the other way round:
+  # changing the code to 3.0 would move the estimator and invalidate the golden
+  # baseline to make a stale config file right. Same failure as dry_event_scale
+  # below, now pinned by test_config_wind_prior_sigma_matches_the_code.
+  cda_prior_wind_sigma: 1.0
   deploy_scale_sigma: 0.06    # per-particle systematic deployment-scale spread
   # J, synthetic likelihood scale for a "ran dry" observation. NOTHING READS
   # THIS KEY: estimate() takes the value from its own RESERVE_SIGMA default, so

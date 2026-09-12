@@ -36,6 +36,20 @@ from scipy.signal import savgol_filter
 
 from .constants import (E_HARVEST_LAP, E_STORE_MAX, G, P_ICE_MAX, P_MGUK_MAX,
                         TAPER_V_END, p_mguk_ceiling)
+from .regs import RegSet
+
+
+def _p_harv_max(regs: RegSet | None) -> float:
+    """The recovery cap in force, in watts.
+
+    `None` reproduces the historical unconditional 350 kW. It exists so library
+    callers that never knew about variants keep working; `analysis.analyse`
+    always resolves a real one from the session date, because on a pre-Miami
+    round the true cap is 250 kW and using 350 overstates recovery by 1.4x --
+    the same 0.71 ratio, from the same cause, as the simulator/fixture mismatch
+    that `regs.rules_for_simulator` exists to prevent.
+    """
+    return float(P_MGUK_MAX if regs is None else regs.p_harv_max)
 
 RESERVE_SIGMA_REAL = 5.0e5   # J; a cut-out locates the buffer to about this
 COAST_THROTTLE = 8.0       # % — below this the ICE is effectively off
@@ -111,6 +125,55 @@ class Kin:
     rho_source: str = "scalar"
 
 
+# kg. ASSUMED: a 2026 car's fuel load at the start of a race. No public channel
+# publishes it -- FastF1 has no fuel signal at all -- so it cannot be measured
+# from the feed and is named rather than hidden. Used only to shape the mass
+# taper across a race; `mass_series` states what it costs if wrong.
+ASSUMED_RACE_FUEL_START_KG = 100.0
+
+
+def mass_series(lap_frac, dry_mass_kg: float,
+                fuel_start_kg: float = ASSUMED_RACE_FUEL_START_KG,
+                fuel_end_kg: float = 0.0) -> np.ndarray:
+    """Mass over a race, falling linearly with fuel burn.
+
+    Measured on a simulator trace with CdA pinned to truth, so this isolates mass
+    from the identification problem. Per-lap deployed-energy error:
+
+        constant 790 kg (what the real path uses)   8.2% MAPE,  -8.2% bias
+        constant 768 kg (dry minimum)               8.1% MAPE,  -8.1% bias
+        constant 838 kg (dry + full fuel)          11.5% MAPE,  +8.7% bias
+        constant 821 kg (dry + end-of-race fuel)    5.4% MAPE,  -1.8% bias
+
+    So mass is worth roughly 3 points of MAPE and most of the bias, and 790 is
+    too LOW: it is under the 768 kg dry minimum plus any realistic fuel load,
+    which makes it an end-of-race number applied to a whole race. The bias sign
+    follows directly -- too little mass understates the work done, so deployment
+    comes out low.
+
+    NOT USED BY THE REAL PATH, on purpose. A linear burn is more physical than a
+    constant and it still loses:
+
+        constant 821 kg (best constant)             5.4% MAPE,  -1.8% bias
+        fuel model, simulator's TRUE 70 -> 53.2 kg  6.6% MAPE,  +3.6% bias
+        fuel model, ASSUMED 100 -> 0 kg             9.7% MAPE,  -2.5% bias
+
+    Even handed the simulator's own exact fuel numbers the taper is worse than a
+    fixed number, so "more physical" is not the same as "more accurate" here, and
+    there is no case for spending an ASSUMED start load to get it. The winning
+    constant is also worthless as a transplant: 821 kg is 768 plus the
+    simulator's end-of-race fuel, and its 70 kg start and 1.4 kg/lap burn are the
+    simulator's own figures, not real 2026 ones.
+
+    `analysis.py` therefore still passes a constant 790. What is now on record is
+    what that costs on synthetic -- about 3 points of MAPE and an 8% low bias --
+    and that the fix is not a fuel model. Settling it for real data needs a real
+    fuel load, and no public channel publishes one.
+    """
+    f = np.clip(np.asarray(lap_frac, dtype=float), 0.0, 1.0)
+    return dry_mass_kg + fuel_start_kg + (fuel_end_kg - fuel_start_kg) * f
+
+
 def build_kin(df, track, mass_kg, rho, smooth_m: float = 60.0,
               w_along_mps=None, wind_source: str = "unavailable",
               rho_series=None, rho_source: str = "scalar") -> Kin:
@@ -155,9 +218,30 @@ def build_kin(df, track, mass_kg, rho, smooth_m: float = 60.0,
     dt = np.where(np.isfinite(v) & (v > 1.0), ds / np.maximum(v, 1.0), np.nan)
 
     valid &= np.isfinite(v) & np.isfinite(a)
+
+    # The brake channel is passed through as published, NOT dilated to match the
+    # `win`-cell window `a` is smoothed over. That reconciliation was tried and
+    # reverted, and the reason is worth keeping: on a SIMULATOR trace it looked
+    # essential -- 153 grid samples came out not-braking with a < -10 m/s2, worst
+    # -44.3 against a true non-brake floor of -24.7, 100% of them within the
+    # half-window of a braking cell, driving a CdA lower bound of 13.2 m2 and
+    # emptying the interval intersection. On REAL telemetry the same pathology is
+    # 0.000-0.036% of samples with a non-braking floor of -9.9 to -13.5 m/s2,
+    # which is lift-off and downshift, not a contradiction. Dilating cost the
+    # real product 7 identifiable cars out of 21 down to 2, mean identifiability
+    # 0.153 -> 0.054, and took pooled CdA from available to refused.
+    # The artefact is the simulator's: `vehicle._regime` switches braking on as a
+    # step to brake_decel_max, and smoothing a derivative across a step
+    # manufactures the contradiction. Real braking ramps. Fix it on the synthetic
+    # side, where it comes from, and leave the shipping path alone.
     return Kin(s=s, v=np.nan_to_num(v, nan=1.0), a=np.nan_to_num(a, nan=0.0),
                dt=dt, t=t,
-               mass=np.full(len(s), mass_kg),
+               # Scalar or per-sample. A race burns tens of kg of fuel and both
+               # the rolling-resistance and inertial terms in `_terms` scale with
+               # mass, so a constant is an approximation with a measurable cost --
+               # see `mass_series`.
+               mass=np.broadcast_to(np.asarray(mass_kg, dtype=float),
+                                    (len(s),)).astype(float).copy(),
                cda_scale=np.asarray(track.cda_scale(s), dtype=float),
                sin_grade=np.sin(np.asarray(track.grade(s), dtype=float)),
                ceiling=p_mguk_ceiling(np.nan_to_num(v, nan=1.0)),
@@ -218,7 +302,8 @@ def _terms(kin: Kin, v_wind: float, crr: float, rho: float):
 
 
 def interval_bounds(kin: Kin, v_wind: float, crr: float, rho: float,
-                    eta: float = 0.95, use_throttle: bool = True):
+                    eta: float = 0.95, use_throttle: bool = True,
+                    regs: RegSet | None = None):
     """Per-sample interval on CdA, derived from the regulation alone.
 
     Total power at the wheels is bounded above by what the rules allow -- 400 kW
@@ -258,7 +343,7 @@ def interval_bounds(kin: Kin, v_wind: float, crr: float, rho: float,
     hi = np.full(len(A), np.inf)
     hi[ok] = ((p_ice_cap[ok] + kin.ceiling[ok]) * eta - A[ok]) / B[ok]
     free = ok & ~brakes_on
-    lo[free] = (-P_MGUK_MAX - A[free]) / B[free]
+    lo[free] = (-_p_harv_max(regs) - A[free]) / B[free]
     return lo, hi, ok
 
 
@@ -272,21 +357,23 @@ def coast_phases(kin: Kin) -> np.ndarray:
             & (kin.a < -COAST_MIN_DECEL) & (kin.a > -COAST_MAX_DECEL))
 
 
-def coast_bounds(kin: Kin, v_wind: float, crr: float, rho: float, eta: float = 0.95):
+def coast_bounds(kin: Kin, v_wind: float, crr: float, rho: float, eta: float = 0.95,
+                 regs: RegSet | None = None):
     """The second calibration channel, valid at every circuit."""
     coast = coast_phases(kin)
     A, B = _terms(kin, v_wind, crr, rho)
     good = coast & (B > 1e3)
     if good.sum() < 20:
         return None, coast
-    lo = (-P_MGUK_MAX - A[good]) / B[good]
+    lo = (-_p_harv_max(regs) - A[good]) / B[good]
     hi = (eta * kin.ceiling[good] - A[good]) / B[good]
     return (lo, hi), good
 
 
 def fit_nuisance_real(kin: Kin, rho: float, crr: float = 0.012, eta: float = 0.95,
                       wind_grid=np.arange(-4.0, 4.01, 0.5),
-                      robust_q: float = 0.02) -> RealNuisanceFit:
+                      robust_q: float = 0.02,
+                      regs: RegSet | None = None) -> RealNuisanceFit:
     """Intersect the per-sample intervals; report the identified set.
 
     `robust_q` discards the most extreme q of bounds on each side, because a
@@ -296,7 +383,7 @@ def fit_nuisance_real(kin: Kin, rho: float, crr: float = 0.012, eta: float = 0.9
     best = None
     notes = []
     for w in wind_grid:
-        lo, hi, ok = interval_bounds(kin, w, crr, rho, eta)
+        lo, hi, ok = interval_bounds(kin, w, crr, rho, eta, regs=regs)
         Lf = lo[np.isfinite(lo)]
         Hf = hi[np.isfinite(hi)]
         if len(Hf) < 50:
@@ -325,7 +412,7 @@ def fit_nuisance_real(kin: Kin, rho: float, crr: float = 0.012, eta: float = 0.9
     if cda_hi <= cda_lo:
         notes.append("interval empty at the robust quantile; widened to the "
                      "median of the bounds")
-        lo, hi, ok = interval_bounds(kin, w_hat, crr, rho, eta)
+        lo, hi, ok = interval_bounds(kin, w_hat, crr, rho, eta, regs=regs)
         cda_lo = float(np.nanmedian(lo[ok][np.isfinite(lo[ok])]))
         cda_hi = float(np.nanmedian(hi[ok][np.isfinite(hi[ok])]))
         if cda_hi <= cda_lo:
@@ -333,7 +420,7 @@ def fit_nuisance_real(kin: Kin, rho: float, crr: float = 0.012, eta: float = 0.9
     cda_mid = 0.5 * (cda_lo + cda_hi)
 
     # coast-down as a second, independent read
-    cb, coast_mask = coast_bounds(kin, w_hat, crr, rho, eta)
+    cb, coast_mask = coast_bounds(kin, w_hat, crr, rho, eta, regs=regs)
     coast_cda = None
     if cb is not None:
         cl, ch = cb
@@ -359,7 +446,7 @@ def fit_nuisance_real(kin: Kin, rho: float, crr: float = 0.012, eta: float = 0.9
     # that is, when the regulation leaves little room between what the car is
     # doing and the most it is allowed to do. High-speed and coasting samples
     # qualify; a car trundling out of a hairpin does not.
-    lo, hi, ok = interval_bounds(kin, w_hat, crr, rho, eta)
+    lo, hi, ok = interval_bounds(kin, w_hat, crr, rho, eta, regs=regs)
     hf = hi[np.isfinite(hi)]
     n_binding = int(np.sum(hf < 2.0 * max(cda_mid, 1e-3)))
     rel_width = (cda_hi - cda_lo) / max(cda_mid, 1e-6)
@@ -391,7 +478,8 @@ def fit_nuisance_real(kin: Kin, rho: float, crr: float = 0.012, eta: float = 0.9
 
 
 def deployment_trace(kin: Kin, fit: RealNuisanceFit, crr: float = 0.012,
-                     eta: float = 0.95, smooth_win: int = 5) -> dict:
+                     eta: float = 0.95, smooth_win: int = 5,
+                     regs: RegSet | None = None) -> dict:
     """Deployment and recovery per sample, as an identified BAND.
 
     A speed trace measures total power at the wheels. It cannot see which part
@@ -430,7 +518,7 @@ def deployment_trace(kin: Kin, fit: RealNuisanceFit, crr: float = 0.012,
     d_lo = np.where(braking, 0.0, d_lo)
     d_hi = np.where(braking, 0.0, d_hi)
 
-    H = np.where(braking, np.clip(-P_obs, 0.0, P_MGUK_MAX), 0.0)
+    H = np.where(braking, np.clip(-P_obs, 0.0, _p_harv_max(regs)), 0.0)
 
     mid = 0.5 * (d_lo + d_hi)
     if smooth_win > 2:

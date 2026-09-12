@@ -2,13 +2,24 @@
 
 `observe` is the only door between the simulator and the estimator, and
 `Observation` is the only thing that fits through it. There is no energy,
-throttle, brake, gear or deployment field here, and there never will be.
+throttle, brake, gear or deployment field on it, and there never will be.
+
+`public_channels` sits beside it and is deliberately NOT part of that struct.
+Stage 1 solves the speed-only problem and must keep solving it, so nothing
+reached through `Observation` ever gains a throttle or brake field. The real
+inference core is a different case: FastF1 publishes those channels, so feeding
+it a trace without them tests a code path no real race takes. The two callers
+are kept apart rather than the struct widened -- see `public_channels`.
+
+The energy state -- `E`, `P_mguk`, `harvest` -- is hidden from both, always.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
 
 import numpy as np
+
+from .constants import P_ICE_MAX
 
 KMH = 1 / 3.6
 
@@ -54,3 +65,35 @@ def observe(gt, car_id: str, rate_hz: float = 3.7, speed_noise_ms: float = 0.35,
     return Observation(
         t=t_out, s=trace.s[idx].copy(), v=v, lap=trace.lap[idx].astype(np.int64),
         gap_to_leader=gap, car_id=car_id, sample_rate_hz=float(rate_hz))
+
+
+def public_channels(gt, car_id: str, obs: Observation) -> dict:
+    """The published non-speed channels, at the observation's own sample times.
+
+    The counterpart of FastF1's `lap.get_car_data()`: source-specific extraction,
+    kept here because this module is already the one place that reads the
+    simulator. What it returns goes straight into `data.ingest.grid_lap`, the
+    same gridding real telemetry uses.
+
+    This is not a hole in the blindfold. The hidden state is the ELECTRICAL one
+    -- `E`, `P_mguk`, `harvest` -- and none of it is read here. Throttle and
+    brake are published FastF1 channels, so a synthetic feed without them is not
+    a harder honest problem, it is a feed the real inference core never sees:
+    measured, omitting them drives `fit_nuisance_real` to n_binding = 0 and
+    identifiability 0.000 at every rate from 3.7 to 100 Hz, because
+    `realfit.coast_phases` falls back to a bare deceleration test that cannot
+    tell coasting from braking. `Observation` omits them because Stage 1 chose
+    the harder speed-only problem, not because they are secret.
+
+    Throttle is derived as `P_ice / P_ICE_MAX`, which makes `realfit.ice_power`'s
+    pedal-to-power model exact by construction -- OPTIMISTIC, and stated rather
+    than hidden. The alternative of a binary on-power flag is worse rather than
+    more honest: it reports wide-open throttle through corners where the
+    simulator is actually at `resist * v / eta`, a few tens of kW.
+    """
+    idx = np.clip(np.searchsorted(gt.t, obs.t), 0, len(gt.t) - 1)
+    trace = gt.cars[car_id]
+    return {
+        "throttle": 100.0 * np.clip(trace.P_ice[idx] / P_ICE_MAX, 0.0, 1.0),
+        "brake": (trace.regime[idx] == "brake").astype(float),
+    }

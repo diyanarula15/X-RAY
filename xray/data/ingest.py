@@ -124,21 +124,34 @@ def air_density(temp_c: float, pressure_mbar: float, humidity_pct: float = 50.0)
     return float(p_d / (287.058 * t_k) + p_v / (461.495 * t_k))
 
 
-def _lap_frame(lap, grid: np.ndarray) -> tuple[pd.DataFrame | None, LapQuality]:
-    drv = str(lap["Driver"])
-    lap_no = int(lap["LapNumber"]) if not pd.isna(lap["LapNumber"]) else -1
-    try:
-        car = lap.get_car_data().add_distance()
-    except Exception as exc:  # noqa: BLE001
-        return None, LapQuality(drv, lap_no, 0, np.nan, np.nan, 0, 0.0, 0.0, False,
-                                f"telemetry unavailable: {exc}")
-    if len(car) < MIN_LAP_SAMPLES:
-        return None, LapQuality(drv, lap_no, len(car), np.nan, np.nan, 0, 0.0, 0.0,
-                                False, f"only {len(car)} samples")
+def grid_lap(distance, time, speed, grid: np.ndarray, channels: dict | None = None,
+             driver: str = "", lap_no: int = -1,
+             n_raw: int | None = None) -> tuple[pd.DataFrame | None, LapQuality]:
+    """One lap of any source onto the common distance grid.
 
-    t = car["SessionTime"].dt.total_seconds().to_numpy().astype(float)
-    d = car["Distance"].to_numpy().astype(float)
-    v = car["Speed"].to_numpy().astype(float) * KMH
+    THE single gridding step. Both data sources reach it -- FastF1 through
+    `frame_from_fastf1`, the simulator through `frame_from_observation` -- and
+    nothing in here knows or can know which one it is serving. That is the point:
+    the two paths previously had separate gridding, and the copy drifted. It
+    grew a brake channel that was interpolated while acceleration was smoothed
+    over 60 m, which put 153 samples at up to -44.3 m/s2 with the brake flag
+    reading 0, drove a CdA lower bound of 13.2 m2 and emptied the interval
+    intersection outright. One implementation cannot drift from itself.
+
+    `channels` is a dict of raw per-sample arrays keyed by the column name they
+    should take in the frame. They are reordered and deduplicated with the same
+    indices as speed and time, so a caller cannot accidentally align them
+    differently.
+    """
+    d = np.asarray(distance, dtype=float)
+    t = np.asarray(time, dtype=float)
+    v = np.asarray(speed, dtype=float)
+    channels = dict(channels or {})
+    n_raw = len(d) if n_raw is None else n_raw
+
+    if len(d) < MIN_LAP_SAMPLES:
+        return None, LapQuality(driver, lap_no, n_raw, np.nan, np.nan, 0, 0.0, 0.0,
+                                False, f"only {n_raw} samples")
 
     dt = np.diff(t)
     holes = dt > GAP_LIMIT_S
@@ -160,13 +173,11 @@ def _lap_frame(lap, grid: np.ndarray) -> tuple[pd.DataFrame | None, LapQuality]:
         col = np.full(len(grid), np.nan)
         col[inside] = np.interp(grid[inside], d, src)
         out[name] = col
-    for chan, name in (("Throttle", "throttle"), ("Brake", "brake"),
-                       ("nGear", "gear"), ("RPM", "rpm")):
-        if chan in car.columns:
-            src = car[chan].to_numpy().astype(float)[order][keep]
-            col = np.full(len(grid), np.nan)
-            col[inside] = np.interp(grid[inside], d, src)
-            out[name] = col
+    for name, raw in channels.items():
+        src = np.asarray(raw, dtype=float)[order][keep]
+        col = np.full(len(grid), np.nan)
+        col[inside] = np.interp(grid[inside], d, src)
+        out[name] = col
 
     # blank the grid points that fall inside a hole: interpolating across a
     # 1-second gap at 300 km/h invents 80 m of trajectory
@@ -185,13 +196,77 @@ def _lap_frame(lap, grid: np.ndarray) -> tuple[pd.DataFrame | None, LapQuality]:
     # starved the calibration and left the replay with ten-minute holes in it.
     frac = float(inside.mean())
     ok = frac > 0.60
-    q = LapQuality(drv, lap_no, len(car), float(np.median(dt)), float(dt.max()),
+    q = LapQuality(driver, lap_no, n_raw, float(np.median(dt)), float(dt.max()),
                    gap_count, gap_seconds, frac, usable=bool(ok),
                    reason="" if ok else f"only {frac * 100:.0f}% of the lap observed")
     out["lap"] = lap_no
-    out["driver"] = drv
+    out["driver"] = driver
+    # Per-LAP scalar, not per-cell. `analysis.py` filters rows with df[df["usable"]],
+    # so a per-cell boolean here would silently mean something else: drop these
+    # samples, rather than drop this lap. Cell-level gaps are already handled
+    # above by blanking; this flag is only about whether enough of the lap
+    # survived to be worth using at all.
     out["usable"] = q.usable
     return out, q
+
+
+def frame_from_fastf1(lap, grid: np.ndarray) -> tuple[pd.DataFrame | None, LapQuality]:
+    """FastF1 entry point: pull the raw arrays, hand them to `grid_lap`.
+
+    Everything source-specific about real telemetry lives here and nowhere else
+    -- the accessors, the column names, and the km/h to m/s conversion.
+    """
+    drv = str(lap["Driver"])
+    lap_no = int(lap["LapNumber"]) if not pd.isna(lap["LapNumber"]) else -1
+    try:
+        car = lap.get_car_data().add_distance()
+    except Exception as exc:  # noqa: BLE001
+        return None, LapQuality(drv, lap_no, 0, np.nan, np.nan, 0, 0.0, 0.0, False,
+                                f"telemetry unavailable: {exc}")
+
+    channels = {name: car[chan].to_numpy().astype(float)
+                for chan, name in (("Throttle", "throttle"), ("Brake", "brake"),
+                                   ("nGear", "gear"), ("RPM", "rpm"))
+                if chan in car.columns}
+    return grid_lap(distance=car["Distance"].to_numpy().astype(float),
+                    time=car["SessionTime"].dt.total_seconds().to_numpy().astype(float),
+                    speed=car["Speed"].to_numpy().astype(float) * KMH,
+                    grid=grid, channels=channels, driver=drv, lap_no=lap_no,
+                    n_raw=len(car))
+
+
+def frame_from_observation(obs, grid: np.ndarray, channels: dict | None = None,
+                           driver: str = "") -> tuple[pd.DataFrame, list]:
+    """Simulator entry point: the blinded trace through the same `grid_lap`.
+
+    Takes `observe()` output rather than `GroundTruth`. The simulator runs at
+    dt = 0.005 s, and handing the inference core a 200 Hz noiseless trace would
+    measure it on a signal 50x better than the ~4 Hz irregular feed a real race
+    delivers. The blindfold also stays where it already is: `observe.py` is the
+    only module that reads the simulator.
+
+    `obs` is duck-typed on `.s/.t/.v/.lap`, so this module never imports anything
+    from the simulator side and the layering in docs/pipeline_layers.md holds.
+    """
+    s = np.asarray(obs.s, dtype=float)
+    t = np.asarray(obs.t, dtype=float)
+    v = np.asarray(obs.v, dtype=float)
+    lap = np.asarray(obs.lap, dtype=int)
+    channels = dict(channels or {})
+
+    frames, quality = [], []
+    for L in np.unique(lap):
+        m = lap == L
+        f, q = grid_lap(distance=s[m], time=t[m], speed=v[m], grid=grid,
+                        channels={k: np.asarray(a)[m] for k, a in channels.items()},
+                        driver=driver, lap_no=int(L))
+        quality.append(q)
+        if f is not None:
+            frames.append(f)
+    if not frames:
+        return pd.DataFrame(columns=["distance", "speed", "time", "lap",
+                                     "driver", "usable"]), quality
+    return pd.concat(frames, ignore_index=True), quality
 
 
 def ingest_session(year: int, rnd: int, session_name: str = "R",
@@ -223,7 +298,7 @@ def ingest_session(year: int, rnd: int, session_name: str = "R",
         for i, (_, lap) in enumerate(dl.iterlaps()):
             if max_laps and i >= max_laps:
                 break
-            f, q = _lap_frame(lap, grid)
+            f, q = frame_from_fastf1(lap, grid)
             quality.append(q)
             if f is not None:
                 rows.append(f)

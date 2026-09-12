@@ -14,6 +14,7 @@ import numpy as np
 from .constants import E_STORE_MAX, MOM_GAP_S, P_MGUK_MAX
 from .data.circuits import RealTrack, geometry_from_session
 from .data.ingest import ingest_session
+from .regs import regs_for
 from .realfit import (belief_from_deployment, build_kin, common_mode,
                       coast_phases, deployment_trace, fit_nuisance_real,
                       observability, pool_field)
@@ -82,6 +83,12 @@ def analyse(year: int, rnd: int, session_name: str = "R",
     sd = ingest_session(year, rnd, session_name, drivers=drivers,
                         max_laps=max_laps, verbose=False)
     rho = sd.weather.get("rho", 1.20)
+    # Which rulebook was in force on the day. PRE_MIAMI caps recovery at
+    # 250 kW and POST_MIAMI at 350; analysing a pre-Miami round at 350
+    # overstates recovery by 1.4x. `regs_for` was previously reached only by
+    # `pipeline.py`, which nothing but tests runs, so every real race was
+    # analysed at 350 kW regardless of date.
+    regs = regs_for(sd.date)
 
     fits, kins, traces, beliefs, refusals = {}, {}, {}, {}, {}
     for drv, df in sd.frames.items():
@@ -93,7 +100,7 @@ def analyse(year: int, rnd: int, session_name: str = "R",
             continue
         kin = build_kin(d, track, mass_kg, rho)
         try:
-            fit = fit_nuisance_real(kin, rho)
+            fit = fit_nuisance_real(kin, rho, regs=regs)
         except ValueError as exc:
             refusals[drv] = {"kind": "calibration_failed", "message": str(exc)}
             continue
@@ -117,7 +124,7 @@ def analyse(year: int, rnd: int, session_name: str = "R",
             object.__setattr__(use, "cda_hat", pooled["cda_pooled"])
             object.__setattr__(use, "cda_lo", pooled["cda_lo"])
             object.__setattr__(use, "cda_hi", pooled["cda_hi"])
-        tr = deployment_trace(kins[drv], use)
+        tr = deployment_trace(kins[drv], use, regs=regs)
         traces[drv] = tr
         beliefs[drv] = belief_from_deployment(kins[drv], tr, use,
                                               n_particles=n_particles)
@@ -220,6 +227,13 @@ def analyse(year: int, rnd: int, session_name: str = "R",
         "year": year, "round": rnd, "session": session_name,
         "event": sd.event, "circuit": sd.circuit, "date": sd.date,
         "weather": sd.weather,
+        # Published, not inferred: a consumer must be able to see which
+        # variant produced these numbers rather than assume one.
+        "regulation": {"variant": regs.variant,
+                       "p_harv_max_kw": round(regs.p_harv_max / 1e3, 1),
+                       "p_dep_max_zone_kw": round(regs.p_dep_max_zone / 1e3, 1),
+                       "p_dep_max_elsewhere_kw": round(regs.p_dep_max_elsewhere / 1e3, 1),
+                       "source": "regs_for(session date)"},
         # The session MEAN stays exactly where it was for the UI header. The
         # time-resolved trace is added beside it, because a decision on lap 3
         # must not be made with lap 50's air. Causal selection happens in
