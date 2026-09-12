@@ -2,7 +2,7 @@
 """Stage 2, Phase A: the four reality checks, on one real session.
 
 Writes out/feasibility/r<round>.json. `scripts/feasibility_report.py` turns a
-set of those into docs/feasibility.md.
+set of those into out/feasibility.md.
 """
 from __future__ import annotations
 

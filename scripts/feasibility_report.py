@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Turn out/feasibility/*.json into docs/feasibility.md."""
+"""Turn out/feasibility/*.json into out/feasibility.md."""
 from __future__ import annotations
 
 import glob
@@ -164,9 +164,9 @@ def main() -> None:
     A("| 1.4 aero zones | Not machine-readable | Hand-built for 3 circuits, flagged as such. |")
     A("\nProceed to Phase B, with §2 promoted ahead of the UI as the spec requires.\n")
 
-    Path("docs").mkdir(exist_ok=True)
-    Path("docs/feasibility.md").write_text("\n".join(L))
-    print(f"wrote docs/feasibility.md ({len(L)} lines, {len(rows)} sessions)")
+    Path("out").mkdir(exist_ok=True)
+    Path("out/feasibility.md").write_text("\n".join(L))
+    print(f"wrote out/feasibility.md ({len(L)} lines, {len(rows)} sessions)")
 
 
 if __name__ == "__main__":
