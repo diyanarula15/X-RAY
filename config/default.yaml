@@ -12,13 +12,69 @@ vehicle:
   cda_corner: 1.42         # m^2, high-downforce aero mode
   crr: 0.012
   rho: 1.20                # kg/m^3
-  brake_decel_max: 45.0    # m/s^2 (~4.5g)
+  brake_decel_max: 45.0    # m/s^2 (~4.5g). Legacy constant-deceleration bound.
+                           # It is 4.59 g, which no tyre reaches on mechanical
+                           # grip alone, so it has always had downforce baked in
+                           # at an unstated speed. vehicle.brake_mu() inverts it
+                           # rather than adding a second aero term on top.
   drivetrain_eff: 0.95
+  # SYNTHETIC / ASSUMED -- NOT measured F1 values, NOT calibrated by anything in
+  # this repo. Lift-area in the same two aero modes as cda_straight/cda_corner,
+  # set at a lift-to-drag ratio of about 3 against the existing CdA. The one
+  # sanity check they pass: inverting brake_decel_max against cla_corner gives a
+  # friction coefficient of 1.48, which is inside the real slick range of about
+  # 1.4-1.8. That makes them plausible, not calibrated. See model_inventory.md.
+  # DEFAULT OFF (0.0), and that is a deliberate call, not an oversight.
+  # Switching them on changes who wins the race: the follower overtakes and the
+  # leader then spends 24.7% of the stint in a tow, which invalidates every
+  # fixture that assumes the leader ran in clear air (setmem containment,
+  # pipeline, rbpf, golden, live_readiness -- 18 tests). The physics is right;
+  # the problem is that the number deciding the race order is one of these two,
+  # and they are ASSUMED, not measured. An uncalibrated parameter does not get
+  # to pick the winner. Enabling them is a separate, reviewable step that needs
+  # calibration plus regeneration of every dependent fixture.
+  # Reference values, L/D ~ 3 against the existing CdA, which invert
+  # brake_decel_max to mu = 1.48 (inside the real slick range 1.4-1.8):
+  #     cla_straight: 2.00     cla_corner: 4.30
+  cla_straight: 0.0        # m^2, low-drag mode -- P1 aero disabled
+  cla_corner: 0.0          # m^2, high-downforce mode -- P1 aero disabled
+  brake_calibration_v_ms: 80.0   # ASSUMED: speed at which the load-dependent
+                                 # brake model reproduces brake_decel_max
 
 tow:
   cda_reduction: 0.25        # max fractional CdA reduction in tow
   tau_s: 0.80                # exponential decay constant vs gap in seconds
-  dirty_air_grip_loss: 0.06  # max fractional apex-speed loss when following
+  # Renamed from dirty_air_grip_loss. The old key multiplied apex speed
+  # directly, which put a wake effect in units of speed and made it impossible
+  # to say whether a following car lost grip or lost load. It loses LOAD: this
+  # is the fractional ClA retention loss, and the corner-speed consequence is
+  # derived from it in vehicle.cornering_grip_from_downforce(). The old key is
+  # still read as a fallback so existing configs do not silently lose the wake.
+  # SYNTHETIC / ASSUMED, 1-D in gap only -- there is no lateral offset in this
+  # model, so "alongside" and "directly behind" are the same place. Only in
+  # force while ClA is non-zero; with P1 aero off the legacy key below is what
+  # runs, which is why both are present and neither is dead.
+  dirty_air_downforce_loss: 0.20
+  dirty_air_grip_loss: 0.06  # legacy apex-speed multiplier, active while ClA = 0
+
+environment:
+  # True compass bearing (0 = north, 90 = east, clockwise) of the LOCAL +X axis
+  # of the track coordinate frame. FastF1 position data is track-local and F1
+  # publishes no rotation to true north, so this is null until somebody
+  # establishes it from a survey or a circuit map and records the source below.
+  #
+  # While it is null, directional wind is UNAVAILABLE: the projection returns
+  # available=False with a value of None, no headwind or tailwind is inferred,
+  # and the real-data fit keeps its fitted wind nuisance as the whole wind
+  # estimate. Setting this to 0.0 would not be a neutral default -- it would
+  # assert that the position feed happens to be north-aligned, and the failure
+  # mode is a sign flip that turns every headwind into a tailwind.
+  track_frame_heading_deg_true_north: null
+  track_frame_heading_source: unknown
+  wetness:
+    rain_gain_per_s: 0.008333     # ASSUMED: fully wet after ~2 min of rain
+    drying_rate_per_s: 0.001667   # ASSUMED: dry after ~10 min at ref temp
+    drying_ref_track_temp_c: 30.0 # ASSUMED
 
 sim:
   dt: 0.005                # s, fixed step, semi-implicit Euler

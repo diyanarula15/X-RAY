@@ -51,8 +51,62 @@ class SessionData:
     frames: dict                         # driver -> DataFrame on the grid
     quality: list                        # LapQuality
     weather: dict
+    # Time-resolved weather. `weather` above stays the session summary it always
+    # was -- a mean is fine for a UI header and wrong for a decision, and the
+    # two are kept side by side rather than one silently becoming the other.
+    weather_trace: list = field(default_factory=list)
     centreline: pd.DataFrame | None = None
     meta: dict = field(default_factory=dict)
+
+
+# Verified against the installed FastF1 (3.8.3) weather parser, not from memory:
+# the channels are Time, AirTemp, Humidity, Pressure, Rainfall, TrackTemp,
+# WindDirection, WindSpeed. Rainfall really is published, and really is only a
+# bool -- how wet the track IS is not a channel, which is why the wetness index
+# in xray.environment is labelled inferred.
+#
+# The feed updates once per minute. That is the resolution a "causal" weather
+# lookup actually has, and it is why the summary mean is kept separate rather
+# than replaced: a 90-sample race averaged to one number puts the last lap's air
+# in the first lap's drag.
+_WEATHER_COLS = ("AirTemp", "TrackTemp", "Pressure", "Humidity",
+                 "WindSpeed", "WindDirection", "Rainfall")
+
+
+def _weather_trace(w) -> list:
+    """Per-sample weather rows in this project's field names, seconds from t0."""
+    if w is None or not len(w):
+        return []
+    if "Time" not in w:
+        return []
+    t = pd.to_timedelta(w["Time"]).dt.total_seconds().to_numpy(dtype=float)
+
+    def col(name):
+        if name not in w:
+            return [None] * len(w)
+        return [None if pd.isna(v) else v for v in w[name].tolist()]
+
+    air, track, press = col("AirTemp"), col("TrackTemp"), col("Pressure")
+    hum, ws, wd, rain = (col("Humidity"), col("WindSpeed"),
+                         col("WindDirection"), col("Rainfall"))
+    rows = []
+    for i in range(len(w)):
+        a = None if air[i] is None else float(air[i])
+        pmb = 1013.0 if press[i] is None else float(press[i])
+        h = 50.0 if hum[i] is None else float(hum[i])
+        rows.append({
+            "t": float(t[i]),
+            "air_temp_c": a,
+            "track_temp_c": None if track[i] is None else float(track[i]),
+            "pressure_mbar": pmb,
+            "humidity_pct": h,
+            "wind_speed_ms": 0.0 if ws[i] is None else float(ws[i]),
+            "wind_dir_deg": 0.0 if wd[i] is None else float(wd[i]),
+            "rainfall": None if rain[i] is None else bool(rain[i]),
+            # Same single density implementation the summary uses.
+            "rho": air_density(a, pmb, h) if a is not None else None,
+        })
+    return rows
 
 
 def air_density(temp_c: float, pressure_mbar: float, humidity_pct: float = 50.0) -> float:
@@ -182,6 +236,7 @@ def ingest_session(year: int, rnd: int, session_name: str = "R",
 
     w = ses.weather_data
     weather = {}
+    weather_trace = _weather_trace(w)
     if w is not None and len(w):
         weather = {
             "air_temp_c": float(w["AirTemp"].mean()),
@@ -201,6 +256,7 @@ def ingest_session(year: int, rnd: int, session_name: str = "R",
         event=str(ses.event["EventName"]), circuit=str(ses.event["Location"]),
         date=str(ses.event["EventDate"].date()), track_length=track_length,
         grid=grid, frames=frames, quality=quality, weather=weather,
+        weather_trace=weather_trace,
         meta={"n_drivers": len(frames), "grid_ds": GRID_DS,
               "gap_limit_s": GAP_LIMIT_S})
 

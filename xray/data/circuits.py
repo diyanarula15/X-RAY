@@ -114,8 +114,10 @@ class RealTrack:
         self.zones = self._build_zones()
         self.detection_points = [z["detection_point"] for z in self.zones]
         self.corners = [(a, b, v) for a, b, v in self._corner_speeds]
+        self._tangent = None   # built lazily by tangent()
 
     # ------------------------------------------------------------- segments
+
     def _segment_corners(self):
         c = self.geo.is_corner.astype(np.int8)
         edges = np.diff(np.concatenate([[0], c, [0]]))
@@ -198,6 +200,30 @@ class RealTrack:
 
     def xy_at(self, s):
         return self.geo.xy[self._idx(s)]
+
+    def tangent(self, s):
+        """Unit direction of travel at `s`, from the real centreline.
+
+        Same `_idx` lookup as grade() and curvature(), so all three describe the
+        same point of the lap. Derived from `geo.xy`, which is real position
+        data in metres -- unlike Circuit Sigma's `xy()`, which is documented
+        cosmetic and therefore has no tangent at all.
+
+        The frame is whatever FastF1's position data uses. It is NOT oriented to
+        true north, and nothing here pretends otherwise: projecting a
+        meteorological wind bearing onto this needs an explicit
+        `north_offset_deg`, which `environment.wind_parallel` demands and
+        refuses to invent.
+        """
+        if self._tangent is None:
+            xy = np.asarray(self.geo.xy, dtype=float)
+            # Closed loop, so the seam is a wrap rather than an endpoint.
+            d = np.gradient(np.vstack([xy, xy[:1]]), axis=0)[:-1]
+            norm = np.linalg.norm(d, axis=1, keepdims=True)
+            self._tangent = np.divide(d, norm, out=np.zeros_like(d),
+                                      where=norm > 1e-12)
+        out = self._tangent[self._idx(s)]
+        return out
 
 
 class _Zone:

@@ -10,9 +10,12 @@ import numpy as np
 
 from .constants import E_STORE_MAX, MOM_DEPLOYMENT_ALLOWANCE_J, MOM_GAP_S
 from .overtake import p_pass
+from .environment import state_from_summary
+from .physics_context import PhysicsContext
 from .policy import DeploymentPolicy, get_policy
 from .track import Track, circuit_sigma
-from .vehicle import CarState, VehicleParams, set_car_mass, step
+from .vehicle import (CarState, VehicleParams, cornering_grip_from_downforce,
+                      set_car_mass, step)
 
 LEADER, FOLLOWER = "LEADER", "FOLLOWER"
 
@@ -73,6 +76,22 @@ class Simulator:
         self.seed = int(seed)
         self.rng = np.random.default_rng(seed)
         self.tow = cfg["tow"]
+        # Config migration, resolved once. `dirty_air_downforce_loss` is the P1
+        # key; `dirty_air_grip_loss` is the P0 one and is still honoured so an
+        # older config does not silently lose its wake entirely. Exactly one of
+        # them is in force and `_cla_active` says which physics is running.
+        self._legacy_grip_loss = float(self.tow.get("dirty_air_grip_loss", 0.0))
+        self._dirty_air_loss = float(self.tow.get("dirty_air_downforce_loss",
+                                                  self._legacy_grip_loss))
+        params0 = VehicleParams.from_config(cfg)
+        self._cla_active = params0.cla_corner > 0.0
+        self._rho = float(params0.rho)
+        # Circuit Sigma has no physical heading, so no wind can be projected on
+        # to it. Said once, here, rather than implied by a zero.
+        self._wind_source = "unavailable_synthetic_track_has_no_heading"
+        self._env = state_from_summary(
+            {"rho": self._rho, "wind_speed_ms": 0.0, "wind_dir_deg": 0.0},
+            source="config_synthetic_constant")
         if policies is None:
             policies = {LEADER: get_policy(cfg["sim"]["leader_policy"]),
                         FOLLOWER: get_policy(cfg["sim"]["follower_policy"])}
@@ -134,9 +153,22 @@ class Simulator:
             d_m = st[ahead].s_total - st[behind].s_total
             gap = d_m / max(st[behind].v, 1.0)
 
+            # One decay, two physically distinct consequences. The tow takes
+            # drag off the following car; the dirty air takes DOWNFORCE off it.
+            # Previously both came out as one number that multiplied apex speed,
+            # which made a wake effect measured in m/s and hid which of the two
+            # was doing the work.
             decay = np.exp(-max(gap, 0.0) / self.tow["tau_s"])
             tow_factor = 1.0 - self.tow["cda_reduction"] * decay
-            grip = 1.0 - self.tow["dirty_air_grip_loss"] * decay
+            downforce_factor = 1.0 - self._dirty_air_loss * decay
+            if self._cla_active:
+                # Corner speed follows from the lost load, not from a config
+                # number that happens to be in speed units.
+                grip = cornering_grip_from_downforce(
+                    st[behind].v, params.cla_corner, self._rho,
+                    st[behind].mass, downforce_factor)
+            else:
+                grip = 1.0 - self._legacy_grip_loss * decay
 
             s_prev_all = {}
             for c in ids:
@@ -150,9 +182,16 @@ class Simulator:
                 demand = self.policies[c].demand(
                     tr, st[c].s, st[c].v, st[c].E, gap_ahead, gap_behind,
                     laps_left, is_corner=pt[2], lap=st[c].lap)
+                ctx = None
+                if self._cla_active:
+                    ctx = PhysicsContext(
+                        environment=self._env, tyre=None, w_parallel_ms=0.0,
+                        wind_source=self._wind_source,
+                        downforce_factor=downforce_factor if is_behind else 1.0)
                 out = step(tr, st[c], params, demand, dt,
                            tow_factor=tow_factor if is_behind else 1.0,
-                           grip=grip if is_behind else 1.0)
+                           grip=grip if is_behind else 1.0,
+                           physics_context=ctx)
 
                 r = rec[c]
                 r["s"][n] = st[c].s

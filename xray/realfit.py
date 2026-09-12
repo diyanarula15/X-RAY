@@ -50,7 +50,7 @@ class RealNuisanceFit:
     cda_lo: float              # identified set, not a confidence interval
     cda_hi: float
     cda_sigma: float
-    v_wind_hat: float
+    v_wind_hat: float          # m/s, POSITIVE = HEADWIND (added to v in _terms)
     rho: float
     identifiability: float     # 0 (nothing) .. 1 (pinned)
     n_samples: int
@@ -61,6 +61,13 @@ class RealNuisanceFit:
     systematic_rms: float
     method: str = "interval-intersection"
     notes: list = field(default_factory=list)
+    # False: v_wind_hat is the ENTIRE wind estimate, because no track-frame
+    # orientation was available and nothing measured could be subtracted.
+    # True: measured along-track wind was used in _terms and v_wind_hat is a
+    # RESIDUAL correction on top of it. The field name is kept for
+    # compatibility; the meaning is published rather than changed silently.
+    v_wind_is_residual: bool = False
+    wind_source: str = "unavailable"
 
     @property
     def usable(self) -> bool:
@@ -92,9 +99,15 @@ class Kin:
     brake: np.ndarray | None
     valid: np.ndarray
     lap: np.ndarray
+    # Measured along-track wind, m/s, sign per environment.project_wind_along_
+    # track: POSITIVE IS A TAILWIND. None means no orientation was available and
+    # the fitted nuisance stays the full wind estimate -- see _terms.
+    w_along_mps: np.ndarray | None = None
+    wind_source: str = "unavailable"
 
 
-def build_kin(df, track, mass_kg, rho, smooth_m: float = 60.0) -> Kin:
+def build_kin(df, track, mass_kg, rho, smooth_m: float = 60.0,
+              w_along_mps=None, wind_source: str = "unavailable") -> Kin:
     """Kinematics from one car's distance-gridded telemetry.
 
     Differentiation happens **per lap**. The frame stacks every lap on the same
@@ -144,7 +157,11 @@ def build_kin(df, track, mass_kg, rho, smooth_m: float = 60.0) -> Kin:
                ceiling=p_mguk_ceiling(np.nan_to_num(v, nan=1.0)),
                throttle=df["throttle"].to_numpy(dtype=float) if "throttle" in df else None,
                brake=df["brake"].to_numpy(dtype=float) if "brake" in df else None,
-               valid=valid, lap=lap)
+               valid=valid, lap=lap,
+               w_along_mps=(None if w_along_mps is None
+                            else np.broadcast_to(np.asarray(w_along_mps, dtype=float),
+                                                 s.shape).copy()),
+               wind_source=wind_source)
 
 
 def ice_power(kin: Kin, eta: float = 0.95) -> np.ndarray:
@@ -160,10 +177,29 @@ def ice_power(kin: Kin, eta: float = 0.95) -> np.ndarray:
 
 
 def _terms(kin: Kin, v_wind: float, crr: float, rho: float):
-    """P_obs(k) = A(k) + CdA·B(k)."""
+    """P_obs(k) = A(k) + CdA·B(k).
+
+    Two wind terms, and exactly one of them is a full wind estimate:
+
+        v_air = v - w_along + v_wind
+
+    `w_along` is MEASURED and positive for a tailwind (the ENU convention in
+    xray.environment). `v_wind` is the FITTED nuisance and has the opposite
+    sign -- it has always been added to v here, so positive means headwind.
+    They are written out together precisely because the two conventions are
+    opposed, and a silent sign agreement between two modules is the kind of
+    error that shows up as a plausible number.
+
+    When no orientation was available `w_along` is None, the expression reduces
+    to the historical `(v + v_wind)`, and the fitted term keeps its original
+    meaning as the entire wind. When measured wind IS available the fitted term
+    becomes a residual correction on top of it -- never a second independent
+    full estimate stacked on the first.
+    """
     v, m = kin.v, kin.mass
+    w = 0.0 if kin.w_along_mps is None else kin.w_along_mps
     A = m * kin.a * v + crr * m * G * v + m * G * kin.sin_grade * v
-    B = 0.5 * rho * kin.cda_scale * (v + v_wind) ** 2 * v
+    B = 0.5 * rho * kin.cda_scale * (v - w + v_wind) ** 2 * v
     return A, B
 
 
@@ -332,7 +368,12 @@ def fit_nuisance_real(kin: Kin, rho: float, crr: float = 0.012, eta: float = 0.9
         v_wind_hat=float(w_hat), rho=float(rho),
         identifiability=identifiability, n_samples=int(ok.sum()),
         n_binding=n_binding, n_coast=int(coast_mask.sum()),
-        coast_cda=coast_cda, residual_rms=rr, systematic_rms=sysr, notes=notes)
+        coast_cda=coast_cda, residual_rms=rr, systematic_rms=sysr, notes=notes,
+        # The fitted term means different things depending on whether anything
+        # measured was subtracted from it. Read off the Kin rather than assumed,
+        # so the two can never disagree.
+        v_wind_is_residual=kin.w_along_mps is not None,
+        wind_source=kin.wind_source)
 
 
 def deployment_trace(kin: Kin, fit: RealNuisanceFit, crr: float = 0.012,
