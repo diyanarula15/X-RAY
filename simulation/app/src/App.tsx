@@ -87,7 +87,7 @@ export default function App() {
   const current = races.find((r) => r.id === race?.id) ?? null;
 
   if (err) return <Center>API unreachable — start it with
-    <code style={{ color: C.amber }}> uvicorn api.main:app --port 8011</code>. {err}</Center>;
+    <code style={{ color: C.amber }}> uvicorn simulation.api.main:app --port 8011</code>. {err}</Center>;
   if (!race) return <Center>loading X-RAY…</Center>;
 
   return (

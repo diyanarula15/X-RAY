@@ -136,9 +136,9 @@ export function Onboarding() {
     {
       t: 'Then it tells you when to attack',
       b: 'Knowing their energy and yours gives a probability of the pass on every lap. '
-        + 'Tested against a simulator where the true answer is known, it picks the right '
-        + 'lap within one, 97% of the time. Against attacking blind: 0.49 expected value '
-        + 'versus 0.02.',
+        + 'Tested against a simulator where the true answer is known (30 seeded races, '
+        + '3.7 Hz), it lands within one lap of the oracle’s call 87% of the time. Against '
+        + 'attacking blind at the first chance: 0.30 expected value versus 0.02.',
     },
   ];
   if (step === null) return null;
