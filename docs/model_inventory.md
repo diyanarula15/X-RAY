@@ -198,7 +198,14 @@ is a separate step: calibrate, then regenerate every dependent fixture.
   "directly behind" are the same place.
 - Directional wind is unavailable on real tracks until a track-frame north
   offset is configured, and unavailable on Circuit Sigma permanently.
-- **The decision service builds wear-INDEPENDENT zone maps.** `ZoneModel`
+- ~~The decision service builds wear-INDEPENDENT zone maps.~~ **CLOSED.**
+  `_cached_zone_models` now builds an energy-by-wear surface per physical
+  context via `calibrate_zone_with_wear`, for both cars' compounds. The tyre
+  reaches the map through the corner BEFORE the straight (`calibrate_zone`
+  scales the run-up entry speed by `sqrt(grip_scale)`, the same law
+  `vehicle._regime` uses), which is where a tyre actually changes a
+  braking-point speed on a short straight. Superseded text follows for history:
+- (historic) `ZoneModel`
   supports wear surfaces and `calibrate_zone_with_wear` builds them, but
   `decision_service._cached_zone_models` still calls `build_model`, so in the
   service path the energy->speed map does not vary with wear and
@@ -210,3 +217,119 @@ is a separate step: calibrate, then regenerate every dependent fixture.
   model exists, and the actual pit laps are oracle-only.
 - Tyre temperature has no public channel; the modelled value is unvalidated.
 - Pit-window probabilities are uniform, which is an assumption, not a model.
+
+
+## P1 closure (current tyre condition affects current physics)
+
+- `decision_service.ZoneSurfaceContext` describes the reusable physical context
+  of a speed surface: both compounds, the wear GRID, and quantised rho, track
+  temperature and wetness. The current `wear_fraction` is deliberately NOT in
+  it -- wear is the surface's axis, and keying on it would make 0.183742 and
+  0.183891 separate cache entries and force a recalibration per sample.
+- Quantisation steps (rho 0.005 kg/m^3, track temp 2 C, wetness 0.05) are
+  deliberate, documented approximations, each far finer than the map's physical
+  sensitivity.
+- `TyreDecisionContext.rival_wear` carries the rival's CURRENT wear as exogenous
+  state, the way their energy track already was. Our wear is the DP's state
+  because our choices move it; theirs is a number we read.
+- `tyre_state_at_opportunity` integrates wear over `max(laps seen, TyreLife)`
+  when the fitting was NOT observed, and over the observed laps when it was.
+  Age is an input to the integral, never its output.
+- DP wear axis is 11 levels (`DP_WEAR_LEVELS`) and the surface axis 5
+  (`SURFACE_WEAR_LEVELS`); both interpolate, so neither needs to be fine.
+
+
+# P2 — strategic opportunity / deployment optimiser
+
+## Modules
+
+- `xray.opportunity` — `DecisionOpportunity`, `DecisionAction`, `ActionOutcome`,
+  `TransitionModel`, `ScenarioSet`, `OpportunitySolution`, `solve_opportunities`.
+  OPTIMIZATION only: every speed comes from the P1 `ZoneModel` surfaces, every
+  wear increment from `xray.tyres`, every probability from `xray.overtake.p_pass`.
+- `xray.decision_service.build_opportunity_horizon` /
+  `evaluate_opportunity_decision` — ORCHESTRATION only. No Bellman recursion,
+  no pass formula, no speed equation.
+- `xray.passmodel` — dataset builder + audit for an empirical pass model.
+
+## Action space
+
+`HOLD`, plus one `ATTACK` per deployment level. Budgets are FRACTIONS of each
+zone's own physical ceiling (`ZoneModel.energy_grid.max()`, i.e. what the P1
+calibration actually deployed down that straight under the 2026 MGU-K curve),
+configured at `decision.deployment_fractions` = [0.25, 0.5, 0.75, 1.0].
+Fractions rather than joules so the set adapts per zone and survives a
+regulation change; 1.0 keeps the legacy fixed-cost ATTACK representable.
+
+Feasibility is reported in three separate causes: affordability
+(budget > usable energy), deployability (budget > zone ceiling -> `saturated`,
+with the undeployable remainder named), and store bounds (enforced upstream by
+the P1 integrator). Measured ceilings on the test circuit: zone A 1.417 MJ,
+B 1.178 MJ, C 1.306 MJ.
+
+## Causality boundary in the horizon
+
+Opportunity 0 is OBSERVED at its own decision point. Every later opportunity is
+a FORECAST made at that instant and carries `decision_time_s = None`,
+`source = "causal_forecast_..."`, and no posterior interval:
+
+| field | source for opportunities 1..N |
+|---|---|
+| zone | track geometry, known in advance |
+| gap | persistence of the current gap — HEURISTIC |
+| rival energy | `_rival_energy_forecast`, the P1 bounded causal forecast |
+| own energy / wear | not forecast; the DP carries them through its own transition |
+
+The first implementation built later opportunities from actual later telemetry.
+The causality test caught it: the action and every physical quantity matched,
+but `value_action` moved, because the value of waiting had been computed from
+data that had not happened yet.
+
+## Equations (P2-new marked; the rest are reused)
+
+- Bellman: `V_i(E,W) = max_a [ q(a)·R_i + (1-q(a))·(1-fail_cost)·V_{i+1} ]`
+  for ATTACK, `V_{i+1}` for HOLD. `R_i = R_PASS·(N-i)/N` — the P0/P1 reward
+  semantics, unchanged.
+- Belief expectation: `Q(a) = Σ_j w_j Q(a | E_riv,j)` — the same form
+  `xray.qmdp.decide` uses on the lap problem.
+- Energy: `E' = clip(E − attack_deployed − normal_spend + harvest, 0, E_max)` —
+  P0 semantics, three quantities kept separate.
+- Wear: `W' = clip(W + inc, 0, 1)`, `inc` from `tyres.wear_per_lap` at
+  `ASSUMED_UTIL_NORMAL` or `ASSUMED_UTIL_ATTACK`. A causal pit sets `W' = 0`.
+- `decision_margin = EV(best) − EV(second best)` (P2-new)
+- `action_consensus = Σ_j w_j · 1[argmax_a Q(a|j) = chosen]` (same definition as
+  `qmdp.decide`)
+- `expected_regret = Σ_j w_j [ max_a Q(a|j) − Q(chosen|j) ]` (P2-new)
+
+State discretisation for the backward induction: energy on the P0/P1 bin width
+(`E_STORE_MAX/19` ≈ 210 kJ), wear 0.02. Pinned against a 4× finer grid; it took
+the 12-opportunity horizon from 45.1 s to 0.20 s.
+
+## ASSUMED / SYNTHETIC parameters added by P2
+
+| parameter | value | status |
+|---|---|---|
+| `decision.deployment_fractions` | 0.25/0.5/0.75/1.0 | HEURISTIC search resolution |
+| `decision.scenario_weights` | 0.3/0.4/0.3 | ASSUMED quadrature over p10/mean/p90 |
+| `decision.max_opportunities` | 12 | HEURISTIC horizon cap |
+| `ENERGY_MEMO_QUANTUM_J` / `WEAR_MEMO_QUANTUM` | 210 kJ / 0.02 | numerical, pinned by test |
+| forecast gap | persistence | HEURISTIC |
+| `passmodel.CONFIRMATION_LAPS` | 2 | ASSUMED label window |
+
+## Pass model: still SYNTHETIC, and why
+
+`scripts/09.pass_dataset_audit.py` run against the 5 analysed races in
+`out/races`: 5182 raw candidate rows, 1019 excluded (828 of them pit cycles
+detected from compound changes and tyre-life resets — real published fields),
+4163 usable, 148 positives (3.6%), 5 race groups across 5 circuits.
+
+Sample count and grouping would pass. Two qualitative blockers stand:
+
+1. **No track-status channel** in the payload, so safety-car and VSC position
+   changes cannot be excluded. A probability fitted on that is not a probability
+   of overtaking.
+2. **No decision-time `delta_v` feature** reconstructible from these payloads —
+   the physics feature the model exists to condition on.
+
+`passmodel.fit` refuses while the audit blocks, and there is no force flag.
+`pass_model_calibration` remains `"synthetic"` everywhere.

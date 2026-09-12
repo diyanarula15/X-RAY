@@ -81,6 +81,16 @@ def calibrate_zone(track: Track, params: VehicleParams, zone: Zone,
     """
     set_car_mass(params.mass_car)
     s_from, entry_v = _run_up(track, zone)
+    # The tyre reaches the braking point mostly through the corner BEFORE the
+    # straight, not along it. A short straight is power-and-drag limited, so a
+    # worn tyre loses almost nothing on it -- but it exits the preceding corner
+    # slower, and arrives slower for the whole run. Same sqrt(grip) law that
+    # `vehicle._regime` applies to every other corner (m v^2 / r = mu N), read
+    # off the same TyreState, so this is the existing physics being applied at
+    # the one point the calibration starts from rather than a second model.
+    ctx_tyre = None if physics_context is None else getattr(physics_context, "tyre", None)
+    if ctx_tyre is not None:
+        entry_v *= float(np.sqrt(max(getattr(ctx_tyre, "grip_scale", 1.0), 0.0)))
     # wrap-safe: on Circuit Sigma the Zone A run-up crosses the start line
     run_m = (zone.s_straight_end - s_from) % track.length
     budgets = np.linspace(0.0, 2.6e6, n_points)
@@ -106,6 +116,34 @@ def calibrate_zone(track: Track, params: VehicleParams, zone: Zone,
     return ZoneModel(zone.name, zone.braking_severity, spent, speeds, slope)
 
 
+def _same_context(a, b, wear_grid) -> bool:
+    """Do two context factories produce physically identical tyre states?
+
+    Compared on the fields `vehicle.step` actually reads -- grip_scale, and the
+    environment object -- rather than on object identity, because the factories
+    are closures and are never the same object.
+    """
+    if a is b:
+        return True
+    try:
+        for w in wear_grid:
+            ca, cb = a(float(w)), b(float(w))
+            if ca.environment is not cb.environment:
+                return False
+            if ca.downforce_factor != cb.downforce_factor:
+                return False
+            ta, tb = ca.tyre, cb.tyre
+            if (ta is None) != (tb is None):
+                return False
+            if ta is not None and (
+                    ta.compound != tb.compound
+                    or abs(ta.grip_scale - tb.grip_scale) > 1e-12):
+                return False
+    except Exception:
+        return False
+    return True
+
+
 def calibrate_zone_with_wear(track: Track, params: VehicleParams, zone: Zone,
                              context_for_wear, wear_levels=(0.0, 0.5, 1.0),
                              rival_params: VehicleParams | None = None,
@@ -121,24 +159,41 @@ def calibrate_zone_with_wear(track: Track, params: VehicleParams, zone: Zone,
     The rival surface is built the same way from its own params and context, so
     two cars with different aero or different tyres get different maps.
     """
-    base = calibrate_zone(track, params, zone, n_points, dt,
-                          physics_context=context_for_wear(0.0))
     wear_grid = np.asarray(wear_levels, dtype=float)
-    own = np.vstack([calibrate_zone(track, params, zone, n_points, dt,
-                                    physics_context=context_for_wear(float(w))
-                                    ).speed_grid for w in wear_grid])
+    own_models = [calibrate_zone(track, params, zone, n_points, dt,
+                                 physics_context=context_for_wear(float(w)))
+                  for w in wear_grid]
+    # The base map is the surface's own first row, not a seventh calibration of
+    # the same state. Recomputing wear = 0 separately cost a full zone run per
+    # zone per context for nothing.
+    base = own_models[int(np.argmin(np.abs(wear_grid)))]
+    own = np.vstack([m.speed_grid for m in own_models])
+
     riv_surface = None
     riv_energy = riv_speed = None
     riv_slope = None
     if rival_params is not None:
         rctx = rival_context_for_wear or context_for_wear
-        rows, rz = [], None
-        for w in wear_grid:
-            rz = calibrate_zone(track, rival_params, zone, n_points, dt,
-                                physics_context=rctx(float(w)))
-            rows.append(rz.speed_grid)
-        riv_surface = np.vstack(rows)
-        riv_energy, riv_speed, riv_slope = rz.energy_grid, rz.speed_grid, rz.dv_per_mj
+        # Physically identical inputs give physically identical maps. When both
+        # cars share a chassis AND a tyre context -- the same-compound case,
+        # which is common -- the rival surface IS the own surface, and running
+        # it again is arithmetic we already have the answer to.
+        same = (rival_params is params
+                and _same_context(rctx, context_for_wear, wear_grid))
+        if same:
+            riv_surface = own
+            riv_energy = base.energy_grid
+            riv_speed = base.speed_grid
+            riv_slope = base.dv_per_mj
+        else:
+            rows, rz = [], None
+            for w in wear_grid:
+                rz = calibrate_zone(track, rival_params, zone, n_points, dt,
+                                    physics_context=rctx(float(w)))
+                rows.append(rz.speed_grid)
+            riv_surface = np.vstack(rows)
+            riv_energy, riv_speed, riv_slope = (rz.energy_grid, rz.speed_grid,
+                                                rz.dv_per_mj)
     return ZoneModel(
         base.name, base.braking_severity, base.energy_grid, base.speed_grid,
         base.dv_per_mj,
@@ -478,6 +533,11 @@ class TyreDecisionContext:
     wear_per_lap_hold: float
     wear_per_lap_attack: float
     pit_at_laps_left: int | None = None
+    # The rival's CURRENT wear. Exogenous, like their energy track: our wear is
+    # the DP's state because our choices move it, theirs is a fixed number we
+    # read off their tyre state at this opportunity. None => their map is read
+    # without a wear argument, which is the P0 behaviour.
+    rival_wear: float | None = None
     compound: str = "UNKNOWN"
     pit_source: str = "unknown"
     pit_confidence: float = 0.0
@@ -573,6 +633,7 @@ class ExogenousSolution:
 def explain_exogenous_action(sol: ExogenousSolution, laps_left: int,
                              own_usable_energy_j: float,
                              wear: float | None = None,
+                             rival_wear: float | None = None,
                              own_tyre=None, rival_tyre=None,
                              pit_context=None, environment=None) -> dict:
     """Expose the DP terms behind the exogenous-rival recommendation.
@@ -642,7 +703,12 @@ def explain_exogenous_action(sol: ExogenousSolution, laps_left: int,
     for zi, zm in enumerate(model.zones):
         own_deploy_j = min(own_grid_energy_j, model.attack_cost)
         rival_deploy_j = min(rival_usable_energy_j, model.attack_cost)
-        dv = delta_v(zm, own_deploy_j, rival_deploy_j, wear_own=wear_now)
+        # Two cars, two curves. `rival_wear` defaults to whatever the solver was
+        # given, so the explanation cannot read a different rival than the DP.
+        riv_w = sol.tyre.rival_wear if (rival_wear is None and sol.tyre is not None) \
+            else rival_wear
+        dv = delta_v(zm, own_deploy_j, rival_deploy_j,
+                     wear_own=wear_now, wear_riv=riv_w)
         q = p_pass(dv, model.gap_s, zm)
         value_hypothetical = float(q * reward + (1.0 - q) * value_fail)
         value_attack = value_hypothetical if affordable else -np.inf
@@ -652,7 +718,7 @@ def explain_exogenous_action(sol: ExogenousSolution, laps_left: int,
             "pass_probability": float(q),
             "predicted_delta_v_mps": float(dv),
             "predicted_own_speed_mps": float(zm.own_speed(own_deploy_j, wear_now)),
-            "predicted_rival_speed_mps": float(zm.rival_speed(rival_deploy_j)),
+            "predicted_rival_speed_mps": float(zm.rival_speed(rival_deploy_j, riv_w)),
             "value_attack": float(value_attack),
             # What the attack would be worth if it were affordable. Kept apart
             # from `value_attack` so a rejected attack cannot be displayed as a
@@ -684,6 +750,8 @@ def explain_exogenous_action(sol: ExogenousSolution, laps_left: int,
         # any of it. None throughout when no tyre/stint context was supplied,
         # which is the P0 shape.
         "wear_fraction": wear_now,
+        "rival_wear_fraction": (sol.tyre.rival_wear if sol.tyre is not None
+                                else None),
         "attack_wear_continuation_penalty": wear_penalty,
         "pit_resets_next_lap": pit_resets_next_lap,
         "tyre_model": None if t is None else {
@@ -832,7 +900,8 @@ def _solve_exogenous_tyre(model: DecisionModel, rival_track: np.ndarray,
             for j, w in enumerate(wear):
                 P[zi, :, j] = [p_pass(delta_v(zm, min(eo, model.attack_cost),
                                               min(e_riv, model.attack_cost),
-                                              wear_own=float(w)),
+                                              wear_own=float(w),
+                                              wear_riv=tyre.rival_wear),
                                       model.gap_s, zm) for eo in bins]
 
         v_wait = ((1.0 - f_h)[None, :] * v_next[wait_own[:, None], lo_h[None, :]]

@@ -162,26 +162,91 @@ def test_future_weather_tyre_and_pit_data_cannot_change_a_past_decision():
 
 
 # ------------------------------------------------------------------- cache
-def test_environment_and_tyre_invalidate_the_speed_map_cache():
+def test_the_cache_key_describes_the_surface_context_not_the_current_wear():
+    """A surface is reusable; a point on it is not a context.
+
+    The first version keyed on `wear_fraction`, which makes 0.183742 and
+    0.183891 two different cache entries and forces a full recalibration on
+    essentially every sample. Wear is the surface's AXIS. What belongs in the
+    key is the grid, the compounds, and the environment the surface was
+    integrated in.
+    """
+    import dataclasses
+
+    from xray.config import load_config
+    from xray.decision_service import SURFACE_WEAR_LEVELS, ZoneSurfaceContext
+
     p = _payload()
     params = params_from_payload(p)
-    from xray.config import load_config
     env = environment_at_opportunity(p, 100.0)
-    tyre = tyre_state_at_opportunity(p, "OWN", 2, env, load_config())
+    own = tyre_state_at_opportunity(p, "OWN", 2, env, load_config())
+    riv = tyre_state_at_opportunity(p, "RIV", 2, env, load_config())
+    base_ctx = ZoneSurfaceContext.build(own, riv, env, SURFACE_WEAR_LEVELS)
+    base = speed_map_cache_key(p, params, surface=base_ctx)
 
-    base = speed_map_cache_key(p, params)
-    with_env = speed_map_cache_key(p, params, environment=env)
-    with_both = speed_map_cache_key(p, params, environment=env, tyre=tyre)
-    assert base != with_env != with_both and base != with_both
+    # --- current wear must NOT invalidate: it selects within the surface
+    for w in (0.0, 0.37, 0.9):
+        moved = dataclasses.replace(own, wear_fraction=w)
+        k = speed_map_cache_key(
+            p, params,
+            surface=ZoneSurfaceContext.build(moved, riv, env, SURFACE_WEAR_LEVELS))
+        assert k == base, "instantaneous wear must not force a recalibration"
 
-    hotter = state_from_summary({"rho": env.rho, "track_temp_c": 55.0})
-    assert speed_map_cache_key(p, params, environment=hotter) != with_env
-    denser = state_from_summary({"rho": 1.30, "track_temp_c": env.track_temp_c})
-    assert speed_map_cache_key(p, params, environment=denser) != with_env
+    # --- everything that genuinely changes the surface MUST invalidate
+    def differs(**kw):
+        ctx = dataclasses.replace(base_ctx, **kw)
+        return speed_map_cache_key(p, params, surface=ctx) != base
 
-    import dataclasses
-    worn = dataclasses.replace(tyre, wear_fraction=0.9, grip_scale=0.8)
-    assert speed_map_cache_key(p, params, environment=env, tyre=worn) != with_both
+    assert differs(own_compound="HARD"), "own compound"
+    assert differs(rival_compound="HARD"), "rival compound"
+    assert differs(wear_grid=(0.0, 0.5, 1.0)), "wear grid"
+    assert differs(rho=base_ctx.rho + 0.05), "air density"
+    assert differs(track_temp_c=(base_ctx.track_temp_c or 30.0) + 12.0), "track temp"
+    assert differs(wetness=base_ctx.wetness + 0.4), "wetness"
+
+    # vehicle physics
+    for field in ("mass_car", "cda_straight", "cla_corner", "crr",
+                  "brake_decel_max", "drivetrain_eff"):
+        changed = params_from_payload(p)
+        object.__setattr__(changed, field, getattr(changed, field) * 1.01 + 0.01)
+        assert speed_map_cache_key(p, changed, surface=base_ctx) != base, field
+
+    # track and zone geometry
+    for mutate in (lambda q: q["circuit_geometry"].__setitem__("length", 1001.0),
+                   lambda q: q["circuit_geometry"]["grade"].__setitem__(1, 0.02),
+                   lambda q: q["circuit_geometry"]["zones"][0].__setitem__(
+                       "s_straight_end", 250.0)):
+        q = copy.deepcopy(p)
+        mutate(q)
+        assert speed_map_cache_key(q, params_from_payload(q),
+                                   surface=base_ctx) != base
+
+
+def test_a_tyre_coefficient_change_invalidates_the_surface():
+    """The compound NAME is not enough: the model behind it is physics too."""
+    import xray.decision_service as ds
+    from xray.config import load_config
+    from xray.decision_service import SURFACE_WEAR_LEVELS, ZoneSurfaceContext
+
+    p = _payload()
+    params = params_from_payload(p)
+    env = environment_at_opportunity(p, 100.0)
+    own = tyre_state_at_opportunity(p, "OWN", 2, env, load_config())
+    riv = tyre_state_at_opportunity(p, "RIV", 2, env, load_config())
+    ctx = ZoneSurfaceContext.build(own, riv, env, SURFACE_WEAR_LEVELS)
+    base = speed_map_cache_key(p, params, surface=ctx)
+
+    cfg = copy.deepcopy(load_config())
+    cfg["tyres"]["compounds"]["MEDIUM"]["mu_long_base"] *= 1.1
+    ds._config.cache_clear()
+    try:
+        ds._config.__wrapped__.__globals__  # noqa: B018  (documents the patch target)
+        import unittest.mock as mock
+        with mock.patch.object(ds, "_config", lambda: cfg):
+            changed = speed_map_cache_key(p, params, surface=ctx)
+        assert changed != base, "a changed tyre coefficient must rebuild the surface"
+    finally:
+        ds._config.cache_clear()
 
 
 def test_ui_metadata_still_does_not_invalidate_the_cache():

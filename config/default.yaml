@@ -173,6 +173,21 @@ tyres:
       dry_grip_loss: 0.0
       is_wet_compound: false
 
+# P2 strategic optimiser. HEURISTIC/CONFIG, not physics: these choose how finely
+# the optimiser searches, not what the car does.
+decision:
+  # Deployment budgets as FRACTIONS of each zone's own physical ceiling
+  # (ZoneModel.energy_grid.max(), i.e. what the P1 calibration actually managed
+  # to deploy down that straight under the 2026 MGU-K curve). Fractions rather
+  # than joules so the set adapts per zone and survives a regulation change.
+  # 1.0 is included so the legacy fixed-cost ATTACK stays exactly representable.
+  deployment_fractions: [0.25, 0.5, 0.75, 1.0]
+  # Rival usable-energy posterior -> 3 scenarios (p10, mean, p90). ASSUMED
+  # quadrature weights; a coarse stand-in for a unimodal posterior, not a claim
+  # about its shape. Must sum to 1.
+  scenario_weights: [0.3, 0.4, 0.3]
+  max_opportunities: 12          # horizon length cap, performance bound
+
 sim:
   dt: 0.005                # s, fixed step, semi-implicit Euler
   n_laps: 12
