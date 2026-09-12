@@ -104,10 +104,16 @@ class Kin:
     # the fitted nuisance stays the full wind estimate -- see _terms.
     w_along_mps: np.ndarray | None = None
     wind_source: str = "unavailable"
+    # Causal per-sample air density. None means "use the scalar rho the caller
+    # passes", which is the legacy path and still the only one available when a
+    # session has no weather trace.
+    rho_series: np.ndarray | None = None
+    rho_source: str = "scalar"
 
 
 def build_kin(df, track, mass_kg, rho, smooth_m: float = 60.0,
-              w_along_mps=None, wind_source: str = "unavailable") -> Kin:
+              w_along_mps=None, wind_source: str = "unavailable",
+              rho_series=None, rho_source: str = "scalar") -> Kin:
     """Kinematics from one car's distance-gridded telemetry.
 
     Differentiation happens **per lap**. The frame stacks every lap on the same
@@ -161,7 +167,11 @@ def build_kin(df, track, mass_kg, rho, smooth_m: float = 60.0,
                w_along_mps=(None if w_along_mps is None
                             else np.broadcast_to(np.asarray(w_along_mps, dtype=float),
                                                  s.shape).copy()),
-               wind_source=wind_source)
+               wind_source=wind_source,
+               rho_series=(None if rho_series is None
+                           else np.broadcast_to(np.asarray(rho_series, dtype=float),
+                                                s.shape).copy()),
+               rho_source=rho_source)
 
 
 def ice_power(kin: Kin, eta: float = 0.95) -> np.ndarray:
@@ -198,8 +208,12 @@ def _terms(kin: Kin, v_wind: float, crr: float, rho: float):
     """
     v, m = kin.v, kin.mass
     w = 0.0 if kin.w_along_mps is None else kin.w_along_mps
+    # Per-sample density when the session published a weather trace, the scalar
+    # otherwise. A race spans several percent of rho between a cold first lap
+    # and a hot last one, and the session mean puts the wrong air in both ends.
+    r = rho if kin.rho_series is None else kin.rho_series
     A = m * kin.a * v + crr * m * G * v + m * G * kin.sin_grade * v
-    B = 0.5 * rho * kin.cda_scale * (v - w + v_wind) ** 2 * v
+    B = 0.5 * r * kin.cda_scale * (v - w + v_wind) ** 2 * v
     return A, B
 
 

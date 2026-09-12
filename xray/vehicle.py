@@ -178,7 +178,14 @@ def _regime(track, st: CarState, params: VehicleParams, grip: float,
     if pt is None:
         pt = track.point(st.s)
     v_lim_raw, grade, is_corner, d1, v1, d2, v2 = pt
-    v_lim_here = v_lim_raw * grip if is_corner else v_lim_raw
+    # Lateral grip scales apex speed as sqrt(mu), because the corner balance is
+    # m v^2 / r = mu N. Braking uses the same tyre through the longitudinal
+    # limit; this is the other half of the friction ellipse, and without it a
+    # worn tyre would brake worse but corner exactly as well.
+    tyre_lat = 1.0
+    if ctx is not None and getattr(ctx, "tyre", None) is not None:
+        tyre_lat = float(np.sqrt(max(getattr(ctx.tyre, "grip_scale", 1.0), 0.0)))
+    v_lim_here = v_lim_raw * grip * tyre_lat if is_corner else v_lim_raw
     if st.v > v_lim_here:
         return BRAKE, v_lim_here
     cda = params.cda_corner if is_corner else params.cda_straight
@@ -191,7 +198,7 @@ def _regime(track, st: CarState, params: VehicleParams, grip: float,
     for d_ahead, v_target in ((d1, v1), (d2, v2)):
         if d_ahead > 400.0:
             break
-        v_target *= grip
+        v_target *= grip * tyre_lat
         if st.v > v_target and d_ahead <= margin * braking_distance(
                 st.v, v_target, m, cda, params, grade,
                 cla=cla, rho=rho, downforce_factor=dff):
@@ -246,6 +253,13 @@ def step(track, st: CarState, params: VehicleParams, mguk_demand: float,
             decel = brake_mu(params, cla, rho) * (m * G + f_down) / m
         else:
             decel = params.brake_decel_max
+        # The tyre scales whatever limit applies, so it works with or without
+        # ClA. grip_scale is already the product of the thermal, wear and
+        # wetness factors (xray.tyres.grip_scale) and is 1.0 for a fresh tyre in
+        # its window -- so a run with no tyre state is unchanged.
+        tyre = None if ctx is None else getattr(ctx, "tyre", None)
+        if tyre is not None:
+            decel *= float(getattr(tyre, "grip_scale", 1.0))
         a = -(decel + resist / m)
         # regenerative braking: store-side power, capped by the regulation
         harvest = P_MGUK_MAX if m * decel * v > P_MGUK_MAX \

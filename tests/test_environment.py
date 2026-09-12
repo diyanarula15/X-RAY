@@ -280,3 +280,18 @@ def test_the_fit_publishes_which_meaning_its_wind_term_carries():
     assert "v_wind_is_residual" in f and "wind_source" in f
     assert f["v_wind_is_residual"].default is False, (
         "the safe default is 'this is the whole wind', matching the legacy path")
+
+
+def test_causal_rho_series_is_used_when_present_and_scalar_otherwise():
+    """A session mean puts the first lap's air in the last lap's drag."""
+    from xray.realfit import _terms
+    kin = _kin(None)
+    _, b_scalar = _terms(kin, 0.0, 0.012, 1.20)
+    assert np.allclose(b_scalar, 0.5 * 1.20 * kin.v ** 3), "legacy scalar path moved"
+
+    import dataclasses
+    series = np.linspace(1.15, 1.25, len(kin.v))
+    kin2 = dataclasses.replace(kin, rho_series=series, rho_source="weather_trace")
+    _, b_series = _terms(kin2, 0.0, 0.012, 1.20)
+    assert np.allclose(b_series, 0.5 * series * kin2.v ** 3)
+    assert not np.allclose(b_series, b_scalar), "per-sample rho changed nothing"

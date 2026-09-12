@@ -100,6 +100,39 @@ currently changes anything.
 - `xray.physics_context.PhysicsContext` (environment + optional tyre). Pit
   strategy is deliberately not in it.
 
+## P1 tyres, stint and the tyre-aware DP (implemented)
+
+- `xray.tyres`: `TyreModelParams`, `TyreState`, bounded thermal/wear/grip model.
+  - `mu_eff = mu_base * f_temp(T) * f_wear(wear) * f_wet(wetness, compound)`
+  - `N = m g + F_down`; `F_long,max = mu_long N`; `F_lat,max = mu_lat N`
+  - `U = sqrt((F_long/F_long,max)^2 + (F_lat/F_lat,max)^2)`
+  - `target = track_temp + heating_gain*U`; `T' = T + (target-T)(1-exp(-dt/tau))`
+  - `dwear = base_wear_per_m * ds * thermal_mult(T) * (1 + gain*U^2)`
+  - `f_temp` and `thermal_mult` have an OPTIMUM and rise/fall on both sides;
+    neither is a single linear rule in temperature. Both are bounded.
+  - **`tyre_life` is OBSERVED AGE IN LAPS and is never wear.** `wear_fraction`
+    is modelled. `test_tyres` asserts the shortcut does not exist in the source.
+- `xray.stint`: `StintState`, `PitContext`, and the oracle boundary.
+  - causal sources: `team_plan`, `synthetic_plan`, `inferred`, `unknown`
+  - `oracle_eval` is NOT causal; `require_causal` raises, and the decision
+    service calls it before the solver sees anything.
+  - There is **no validated rival pit-inference model**, so a rival's context is
+    `unknown` with confidence 0 and the DP continues the worn state rather than
+    inventing a reset.
+- `xray.decision.TyreDecisionContext` + `_solve_exogenous_tyre`:
+  `V[k, energy, wear]`. HOLD advances normal wear, ATTACK advances normal plus
+  extra, a KNOWN stop resets wear to zero on the continuation.
+  - The wear rates are DERIVED by integrating `tyres.advance` over a lap at two
+    utilisations (`ASSUMED_UTIL_NORMAL` 0.60, `ASSUMED_UTIL_ATTACK` 0.95). They
+    are not penalty constants.
+  - **There is no near-pit reward multiplier.** `test_tyre_decision` scans
+    `decision.py` for one and asserts the reward line mentions neither wear nor
+    pits. "Close to pit is cheap" comes from the reset, and
+    `attack_wear_continuation_penalty` is published so the claim is readable.
+  - The wear axis is INTERPOLATED, not snapped. Nearest-bin quantisation made
+    hold and attack land in the same bin and priced the entire tyre cost at
+    exactly zero; a coarse grid is now exact.
+
 ## ASSUMED / SYNTHETIC parameters
 
 | parameter | value | status |
@@ -112,6 +145,10 @@ currently changes anything.
 | environment rain/drying rates | 1/120, 1/600 per s | ASSUMED; `Rainfall` is measured, wetness is not |
 | track-frame north offset | not supplied | wind projection REFUSES without it |
 | `estimator.RESERVE_SIGMA` | 1.0e5 | synthetic observation-noise scale |
+| `tyres.compounds.*` (all 11 coefficients x 6 compounds) | see config | SYNTHETIC, ordered plausibly, never calibrated |
+| `tyres.ASSUMED_UTIL_NORMAL` / `_ATTACK` | 0.60 / 0.95 | ASSUMED effective lap utilisations |
+| `MIN_THERMAL_GRIP` / `MAX_THERMAL_WEAR_MULTIPLIER` | 0.70 / 3.0 | ASSUMED bounds |
+| pit-window distribution | uniform | ASSUMED; teams commit to windows, uniform is a guess |
 
 Two things make the ClA pair plausible rather than calibrated: an L/D of about 3
 against the existing CdA, and the fact that inverting `brake_decel_max` against
@@ -161,4 +198,15 @@ is a separate step: calibrate, then regenerate every dependent fixture.
   "directly behind" are the same place.
 - Directional wind is unavailable on real tracks until a track-frame north
   offset is configured, and unavailable on Circuit Sigma permanently.
-- No tyre model, no stint/pit context, no tyre-aware DP (P1.4–P1.9 not started).
+- **The decision service builds wear-INDEPENDENT zone maps.** `ZoneModel`
+  supports wear surfaces and `calibrate_zone_with_wear` builds them, but
+  `decision_service._cached_zone_models` still calls `build_model`, so in the
+  service path the energy->speed map does not vary with wear and
+  `attack_wear_continuation_penalty` comes out at 0. The DP machinery, the tyre
+  model and the pit reset are all correct and tested in isolation
+  (`test_tyre_decision`); what is missing is building and caching one speed
+  surface per wear level, which is a per-wear-level `calibrate_zone` run.
+- Rival pit timing is always `unknown` on real data: no validated inference
+  model exists, and the actual pit laps are oracle-only.
+- Tyre temperature has no public channel; the modelled value is unvalidated.
+- Pit-window probabilities are uniform, which is an assumption, not a model.

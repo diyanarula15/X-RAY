@@ -91,7 +91,11 @@ export function Decision({ raceId, car, rival }:
               Decision model: {d.metadata?.decision_model ?? 'Core DP'}<br />
               Physics: {d.metadata?.physics ?? 'cached longitudinal simulation'}<br />
               Opponent state: {d.metadata?.opponent_state ?? 'inferred'}<br />
-              Pass model: {d.metadata?.pass_model ?? 'synthetic placeholder logistic'}
+              Pass model: {d.metadata?.pass_model ?? 'synthetic placeholder logistic'}<br />
+              Tyre model: {d.metadata?.tyre_calibration ?? 'synthetic'} (wear and
+              temperature are modelled; tyre life is observed age)<br />
+              Wetness: {d.metadata?.wetness ? 'inferred' : 'n/a'}<br />
+              Pit context: {d.call?.pit_source ?? d.laps?.[0]?.pit_source ?? 'unknown'}
             </div>
           </div>
           <div className="panel" style={{ padding: 15 }}>
@@ -129,6 +133,42 @@ export function Decision({ raceId, car, rival }:
                   <tr><td>rival deployable</td><td style={{ textAlign: 'right', color: C.red }}>{sel.rival_mj.toFixed(2)} MJ</td></tr>
                   <tr><td>best zone</td><td style={{ textAlign: 'right', color: C.white }}>{sel.zone}</td></tr>
                   <tr><td>gap source</td><td style={{ textAlign: 'right', color: C.gray }}>{sel.gap_source}</td></tr>
+                  {/* P1 state. Every value below is rendered exactly as the
+                      backend returned it -- no equation in this file. tyre life
+                      is AGE IN LAPS and wear is modelled separately, so they are
+                      shown as two rows and never combined into one. */}
+                  {sel.own_tyre && (
+                    <>
+                      <tr><td>tyre</td><td style={{ textAlign: 'right', color: C.white }}>
+                        {sel.own_tyre.compound} · {sel.own_tyre.tyre_life_laps} laps old</td></tr>
+                      <tr><td>modelled wear</td><td style={{ textAlign: 'right', color: C.amber }}>
+                        {(sel.own_tyre.wear_fraction * 100).toFixed(1)}%</td></tr>
+                      <tr><td>modelled tyre temp</td><td style={{ textAlign: 'right', color: C.gray }}>
+                        {sel.own_tyre.estimated_temp_c.toFixed(0)} °C</td></tr>
+                    </>
+                  )}
+                  {sel.attack_wear_continuation_penalty != null && (
+                    <tr><td>attack wear cost</td><td style={{ textAlign: 'right', color: C.white }}>
+                      {sel.attack_wear_continuation_penalty.toFixed(4)}
+                      {sel.pit_resets_next_lap ? ' (stop next lap)' : ''}</td></tr>
+                  )}
+                  {sel.pit_context && (
+                    <tr><td>laps to pit</td><td style={{ textAlign: 'right', color: C.white }}>
+                      {sel.pit_context.laps_to_pit_mean == null
+                        ? `unknown (${sel.pit_context.source})`
+                        : `${sel.pit_context.laps_to_pit_mean.toFixed(1)} (${sel.pit_context.source})`}</td></tr>
+                  )}
+                  {sel.environment && (
+                    <>
+                      <tr><td>air density ρ</td><td style={{ textAlign: 'right', color: C.gray }}>
+                        {sel.environment.rho.toFixed(3)} kg/m³</td></tr>
+                      <tr><td>track temp</td><td style={{ textAlign: 'right', color: C.gray }}>
+                        {sel.environment.track_temp_c == null ? '—'
+                          : `${sel.environment.track_temp_c.toFixed(0)} °C`}</td></tr>
+                      <tr><td>weather source</td><td style={{ textAlign: 'right', color: C.gray }}>
+                        {sel.weather_source}</td></tr>
+                    </>
+                  )}
                 </tbody>
               </table>
               <div style={{ marginTop: 10, fontSize: 12.5,

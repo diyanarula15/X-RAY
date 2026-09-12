@@ -33,6 +33,41 @@ def _downsample(a, step):
     return np.asarray(a)[::step]
 
 
+def _opt_int(lap, key):
+    if key not in lap:
+        return None
+    v = lap[key]
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    return int(f) if np.isfinite(f) else None
+
+
+def _opt_bool(lap, key):
+    if key not in lap:
+        return None
+    v = lap[key]
+    try:
+        if v is None or (isinstance(v, float) and not np.isfinite(v)):
+            return None
+    except (TypeError, ValueError):
+        return None
+    return bool(v)
+
+
+def _opt_seconds(lap, key):
+    """A pandas Timedelta column to seconds, or None. ORACLE fields only."""
+    if key not in lap:
+        return None
+    v = lap[key]
+    try:
+        sec = float(v.total_seconds())
+    except (AttributeError, TypeError, ValueError):
+        return None
+    return None if not np.isfinite(sec) else round(sec, 3)
+
+
 def analyse(year: int, rnd: int, session_name: str = "R",
             drivers: list[str] | None = None, max_laps: int | None = None,
             mass_kg: float = 790.0, n_particles: int = 400,
@@ -113,8 +148,21 @@ def analyse(year: int, rnd: int, session_name: str = "R",
             "lap_time": None if not np.isfinite(lt) else round(lt, 3),
             "t_end": None if not np.isfinite(tend) else round(tend, 3),
             "compound": str(lap["Compound"]) if "Compound" in lap else None,
+            # AGE IN LAPS. Not wear. xray.tyres models wear separately and
+            # test_tyres asserts the two can never be the same number.
             "tyre_life": None if not np.isfinite(lap.get("TyreLife", np.nan))
             else int(lap["TyreLife"]),
+            # Verified present in the installed FastF1 (3.8.3) Laps columns:
+            # Stint, FreshTyre, PitInTime, PitOutTime. Serialised as None when
+            # absent rather than defaulted, so a missing field stays missing.
+            "stint": _opt_int(lap, "Stint"),
+            "fresh_tyre": _opt_bool(lap, "FreshTyre"),
+            # ORACLE. These are in the future relative to any decision being
+            # replayed. xray.stint only reads them through oracle_pit_context,
+            # whose output decision_service refuses. They are here to SCORE a
+            # pit inference after the fact, never to make one.
+            "pit_in_time_s": _opt_seconds(lap, "PitInTime"),
+            "pit_out_time_s": _opt_seconds(lap, "PitOutTime"),
         })
 
     # gap to the car ahead at each lap, from race position and lap time
@@ -172,6 +220,11 @@ def analyse(year: int, rnd: int, session_name: str = "R",
         "year": year, "round": rnd, "session": session_name,
         "event": sd.event, "circuit": sd.circuit, "date": sd.date,
         "weather": sd.weather,
+        # The session MEAN stays exactly where it was for the UI header. The
+        # time-resolved trace is added beside it, because a decision on lap 3
+        # must not be made with lap 50's air. Causal selection happens in
+        # decision_service.environment_at_opportunity.
+        "weather_trace": getattr(sd, "weather_trace", []) or [],
         "telemetry": {
             "median_hz": round(float(1.0 / np.nanmedian(
                 [q.median_dt for q in sd.quality if np.isfinite(q.median_dt)])), 2),

@@ -15,13 +15,18 @@ from typing import Any
 import numpy as np
 
 from .constants import E_HARVEST_LAP, E_STORE_MAX, POWER_UNIT_2026
-from .decision import (DecisionModel, ZoneModel, build_model,
-                       explain_exogenous_action, fail_cost_from_geometry,
-                       make_bins, solve_exogenous)
+from .environment import (EnvironmentalState, environment_at_time,
+                          state_from_summary, timeline_from_samples, with_wetness)
+from .stint import (PitContext, UNKNOWN_PIT, infer_pit_context,
+                    pit_context_from_plan, require_causal, stint_from_lap_row)
+from . import tyres as tyremod
+from .decision import (DecisionModel, TyreDecisionContext, ZoneModel,
+                       build_model, explain_exogenous_action,
+                       fail_cost_from_geometry, make_bins, solve_exogenous)
 from .overtake import COEFFS
 from .vehicle import VehicleParams
 
-PHYSICS_CONFIG_VERSION = "decision-speed-map-v2"
+PHYSICS_CONFIG_VERSION = "decision-speed-map-v3-tyre-environment"
 ZONE_CALIBRATION_DT = 0.005
 
 
@@ -71,12 +76,28 @@ class OvertakeDecisionInput:
     gap_method: str
     model: DecisionModel
     rival_track_j: np.ndarray
+    # ---- P1, all optional so a P0 caller is unchanged.
+    environment: EnvironmentalState | None = None
+    own_tyre: Any = None
+    rival_tyre: Any = None
+    own_pit_context: PitContext | None = None
+    rival_pit_context: PitContext | None = None
+    tyre_decision: Any = None       # decision.TyreDecisionContext
 
 
 def evaluate_overtake_decision(inp: OvertakeDecisionInput) -> dict[str, Any]:
     """Return one structured ATTACK/HOLD decision from the core DP."""
-    sol = solve_exogenous(inp.model, inp.rival_track_j)
-    detail = explain_exogenous_action(sol, inp.laps_left, inp.own_usable_energy_j)
+    # Oracle pit data cannot reach the solver: require_causal raises long before
+    # this point, and this is the last gate before the DP sees anything.
+    for ctx in (inp.own_pit_context, inp.rival_pit_context):
+        if ctx is not None:
+            require_causal(ctx)
+    sol = solve_exogenous(inp.model, inp.rival_track_j, tyre=inp.tyre_decision)
+    wear = None if inp.own_tyre is None else float(inp.own_tyre.wear_fraction)
+    detail = explain_exogenous_action(
+        sol, inp.laps_left, inp.own_usable_energy_j, wear=wear,
+        own_tyre=inp.own_tyre, rival_tyre=inp.rival_tyre,
+        pit_context=inp.own_pit_context, environment=inp.environment)
     zone_rows = detail["zones"]
     selected_zone = detail["best_zone"]
     if selected_zone is None:
@@ -134,11 +155,32 @@ def evaluate_overtake_decision(inp: OvertakeDecisionInput) -> dict[str, Any]:
         "future_energy_forecast_confidence": 0.55,
         "future_energy_forecast_mj": [float(x) / 1e6 for x in inp.rival_track_j],
         "all_zones": zone_rows,
+        # ---- P1 state and provenance, so the web explains without recomputing
+        "environment": detail.get("environment"),
+        "weather_source": (None if inp.environment is None else inp.environment.source),
+        "weather_age_s": (None if inp.environment is None else inp.environment.age_s),
+        "track_wetness_index": (None if inp.environment is None
+                                else inp.environment.track_wetness_index),
+        "wetness_source": "inferred_rain_memory_assumed_coefficients",
+        "own_tyre": detail.get("own_tyre"),
+        "rival_tyre": detail.get("rival_tyre"),
+        "tyre_model": detail.get("tyre_model"),
+        "tyre_calibration": "synthetic",
+        "wear_fraction": detail.get("wear_fraction"),
+        "attack_wear_continuation_penalty": detail.get("attack_wear_continuation_penalty"),
+        "pit_resets_next_lap": detail.get("pit_resets_next_lap"),
+        "pit_context": detail.get("pit_context"),
+        "pit_source": (None if inp.own_pit_context is None
+                       else inp.own_pit_context.source),
+        "pit_confidence": (None if inp.own_pit_context is None
+                           else inp.own_pit_context.confidence),
     }
 
 
 def evaluate_decision_trace_from_payload(payload: dict[str, Any], car: str,
-                                         rival: str) -> dict[str, Any]:
+                                         rival: str,
+                                         explicit_pit_plan: dict | None = None
+                                         ) -> dict[str, Any]:
     """Evaluate every causal lap/zone opportunity in an analysed race payload."""
     if car not in payload["cars"] or rival not in payload["cars"]:
         raise KeyError("car not analysed")
@@ -150,7 +192,8 @@ def evaluate_decision_trace_from_payload(payload: dict[str, Any], car: str,
 
     rows = []
     for i, lap in enumerate(laps):
-        row = _evaluate_lap(payload, track, params, car, rival, laps, i, lap)
+        row = _evaluate_lap(payload, track, params, car, rival, laps, i, lap,
+                            plan=explicit_pit_plan)
         rows.append(row)
     call = next((r for r in rows if r["attack"]), None)
     return {
@@ -169,6 +212,16 @@ def evaluate_decision_trace_from_payload(payload: dict[str, Any], car: str,
             "opponent_state": "inferred usable energy at current zone",
             "pass_model": "synthetic placeholder logistic",
             "forecast": "heuristic current belief plus historical causal rates",
+            "weather": "causal sample at or before the decision time; session "
+                       "mean only when no trace exists",
+            "wetness": "INFERRED from the Rainfall bool with assumed rain/drying "
+                       "coefficients; not a FastF1 measurement",
+            "tyre_state": "modelled wear and temperature; tyre_life is OBSERVED "
+                          "AGE IN LAPS and is never wear",
+            "tyre_calibration": "synthetic",
+            "pit_context": "team/synthetic plan when supplied, otherwise unknown "
+                           "-- no validated rival pit inference exists, and "
+                           "actual pit times are oracle-only",
             "deployed_lap": "point-estimate deployed store energy over the lap, MJ",
             "deployed_lap_posterior_mean": "posterior mean deployed store energy over the lap, MJ",
             "usable_mean": "current deployable store energy belief at sample time, MJ",
@@ -178,7 +231,8 @@ def evaluate_decision_trace_from_payload(payload: dict[str, Any], car: str,
 
 
 def _evaluate_lap(payload: dict[str, Any], track, params: VehicleParams,
-                  car: str, rival: str, laps: list[int], i: int, lap: int) -> dict[str, Any]:
+                  car: str, rival: str, laps: list[int], i: int, lap: int,
+                  plan: dict | None = None) -> dict[str, Any]:
     zones = _cached_zone_models(speed_map_cache_key(payload, params))
     own_trace = payload["cars"][car]["trace"]
     rival_trace = payload["cars"][rival]["trace"]
@@ -199,6 +253,15 @@ def _evaluate_lap(payload: dict[str, Any], track, params: VehicleParams,
         gap = gap_at_position(payload, car, rival, lap, decision_s)
         dyn = _historical_dynamics(payload, car, rival, lap)
         laps_left = n_laps - i
+        # Everything below is read AT the decision time, never after it.
+        env = environment_at_opportunity(payload, own_e.sample_time_s)
+        cfg = _config()
+        own_tyre = tyre_state_at_opportunity(payload, car, lap, env, cfg)
+        rival_tyre = tyre_state_at_opportunity(payload, rival, lap, env, cfg)
+        own_pit = pit_context_at_opportunity(payload, car, lap, plan)
+        rival_pit = pit_context_at_opportunity(payload, rival, lap, plan)
+        tyre_dec = tyre_decision_context(payload, own_tyre, own_pit, laps,
+                                         lap, laps_left)
         # The DP is given THIS zone only. Handing it every zone made it run its
         # own argmax over zones while the loop below ran a second one, so the
         # reported zone could be a zone whose gap and energy were never the ones
@@ -220,7 +283,10 @@ def _evaluate_lap(payload: dict[str, Any], track, params: VehicleParams,
             rival_usable_p90_j=rival_e.usable_p90_j,
             actual_gap_s=gap.gap_s, gap_source=gap.source,
             gap_confidence=gap.confidence, gap_age_s=gap.age_s,
-            gap_method=gap.method, model=model, rival_track_j=rival_track)
+            gap_method=gap.method, model=model, rival_track_j=rival_track,
+            environment=env, own_tyre=own_tyre, rival_tyre=rival_tyre,
+            own_pit_context=own_pit, rival_pit_context=rival_pit,
+            tyre_decision=tyre_dec)
         res = evaluate_overtake_decision(inp)
         candidate = {**res, "lap": lap, "requested_zone": zone.name,
                      "gap_reference_s": float(decision_s),
@@ -243,6 +309,151 @@ def _evaluate_lap(payload: dict[str, Any], track, params: VehicleParams,
         "rival_mj": round(float(chosen["rival_usable_energy_mj"]), 4),
         "zone_candidates": candidates,
     }
+
+
+@lru_cache(maxsize=1)
+def _config() -> dict:
+    from .config import load_config
+    return load_config()
+
+
+def _wear_grid_for(extra_wear: float, cap: int = 201) -> np.ndarray:
+    """Fine enough that one attacking lap moves the wear index.
+
+    The DP is a discrete state and can only price a difference it can resolve;
+    `TyreDecisionContext` refuses a grid that cannot, so this sizes it from the
+    wear rate rather than picking a round number.
+    """
+    n = int(min(cap, max(11, round(2.0 / max(float(extra_wear), 1e-4)) + 1)))
+    return np.round(np.linspace(0.0, 1.0, n), 6)
+
+
+def tyre_decision_context(payload, own_tyre, own_pit: PitContext,
+                          laps: list[int], lap: int, n_laps: int):
+    """Build the DP's tyre axis from the tyre model and a CAUSAL pit context.
+
+    Returns None when there is no tyre state to reason about, which keeps the
+    solver on its P0 path. The wear rates are integrated from xray.tyres, never
+    chosen here.
+    """
+    if own_tyre is None or own_tyre.source == "unknown":
+        return None
+    cfg = _config()
+    params = tyremod.params_from_config(cfg, own_tyre.compound)
+    lap_m = float(payload["circuit_geometry"]["length"])
+    temp = own_tyre.estimated_temp_c
+    hold = tyremod.wear_per_lap(params, lap_m, temp, tyremod.ASSUMED_UTIL_NORMAL,
+                                start_wear=own_tyre.wear_fraction)
+    extra = tyremod.attack_extra_wear(params, lap_m, temp,
+                                      start_wear=own_tyre.wear_fraction)
+    if hold <= 0.0 and extra <= 0.0:
+        return None
+    pit_k = None
+    if own_pit is not None and own_pit.planned_pit_lap is not None:
+        if own_pit.planned_pit_lap in laps:
+            pit_k = int(n_laps - laps.index(int(own_pit.planned_pit_lap)))
+    return TyreDecisionContext(
+        wear_grid=_wear_grid_for(extra if extra > 0 else hold),
+        wear_per_lap_hold=hold, wear_per_lap_attack=hold + extra,
+        pit_at_laps_left=pit_k, compound=own_tyre.compound,
+        pit_source=(own_pit.source if own_pit else "unknown"),
+        pit_confidence=(own_pit.confidence if own_pit else 0.0))
+
+
+def environment_at_opportunity(payload: dict[str, Any],
+                               decision_time_s: float) -> EnvironmentalState:
+    """Weather at the decision instant, causally.
+
+    Falls back to the session summary only when there is no trace at all, and
+    the returned `source` says which happened -- a mean is the right answer for
+    a header and the wrong one for a decision, so the caller can tell.
+    """
+    rows = payload.get("weather_trace") or []
+    if not rows:
+        return state_from_summary(payload.get("weather") or {},
+                                  t=float(decision_time_s))
+    tl = with_wetness(timeline_from_samples(rows))
+    return environment_at_time(tl, float(decision_time_s))
+
+
+def _lap_rows_for(payload: dict[str, Any], driver: str) -> list[dict]:
+    return [r for r in (payload.get("laps") or []) if r.get("driver") == driver]
+
+
+def tyre_state_at_opportunity(payload: dict[str, Any], driver: str, lap: int,
+                              env: EnvironmentalState, cfg: dict | None = None):
+    """Tyre state at a decision, from causal lap metadata plus the wear model.
+
+    Only laps STRICTLY BEFORE this one, plus this lap's own compound/age, are
+    read. The wear integral runs forward from the last fresh set; `tyre_life`
+    stays the observed age throughout and is never used as wear.
+    """
+    rows = sorted(_lap_rows_for(payload, driver), key=lambda r: int(r.get("lap", 0)))
+    current = next((r for r in rows if int(r.get("lap", 0)) == int(lap)), None)
+    if current is None:
+        return tyremod.unknown(None, None, track_temp_c=env.track_temp_c or 30.0)
+    st_meta = stint_from_lap_row(driver, current)
+    params = tyremod.params_from_config(cfg or {}, st_meta.compound)
+    track_temp = env.track_temp_c if env.track_temp_c is not None else 30.0
+
+    # Where this stint began: the most recent fresh set at or before this lap.
+    past = [r for r in rows if int(r.get("lap", 0)) <= int(lap)]
+    start = 0
+    for idx, r in enumerate(past):
+        if r.get("fresh_tyre") is True or (
+                r.get("stint") is not None and r.get("stint") != current.get("stint")):
+            start = idx if r.get("fresh_tyre") is True else idx + 1
+    stint_laps = max(len(past) - start, 0)
+    if stint_laps == 0:
+        return tyremod.fresh(st_meta.compound or "UNKNOWN", params, track_temp,
+                             wetness=env.track_wetness_index,
+                             tyre_life=st_meta.tyre_life or 0.0)
+
+    state = tyremod.fresh(st_meta.compound or "UNKNOWN", params, track_temp,
+                          wetness=env.track_wetness_index, tyre_life=0.0)
+    lap_m = float(payload["circuit_geometry"]["length"])
+    for _ in range(stint_laps):
+        inc = tyremod.wear_per_lap(params, lap_m, track_temp,
+                                   tyremod.ASSUMED_UTIL_NORMAL,
+                                   env.track_wetness_index,
+                                   start_wear=state.wear_fraction)
+        state = tyremod.TyreState(
+            compound=state.compound,
+            tyre_life=st_meta.tyre_life if st_meta.tyre_life is not None else 0.0,
+            fresh_tyre=st_meta.fresh_tyre,
+            estimated_temp_c=track_temp + params.heating_gain * tyremod.ASSUMED_UTIL_NORMAL,
+            wear_fraction=min(state.wear_fraction + inc, 1.0),
+            grip_scale=tyremod.grip_scale(
+                track_temp + params.heating_gain * tyremod.ASSUMED_UTIL_NORMAL,
+                min(state.wear_fraction + inc, 1.0), env.track_wetness_index, params),
+            source="modelled_thermal_wear")
+    return state
+
+
+def pit_context_at_opportunity(payload: dict[str, Any], driver: str, lap: int,
+                               explicit_plan: dict | None = None) -> PitContext:
+    """Pit horizon at a decision. Plans are allowed; the oracle is not.
+
+    An explicit plan is our own team's, which we genuinely know at decision
+    time. For anyone else there is no validated inference model in this
+    checkout, so the answer is `unknown` -- and `require_causal` guarantees the
+    actual pit laps sitting in `payload["laps"]` can never leak in here.
+    """
+    plan = (explicit_plan or {}).get(driver) if explicit_plan else None
+    if plan is not None:
+        if isinstance(plan, dict):
+            return require_causal(pit_context_from_plan(
+                lap, plan.get("planned_pit_lap"),
+                source=plan.get("source", "team_plan"),
+                confidence=float(plan.get("confidence", 0.9))))
+        return require_causal(pit_context_from_plan(lap, int(plan)))
+    rows = [r for r in _lap_rows_for(payload, driver)
+            if int(r.get("lap", 0)) <= int(lap)]
+    current = next((r for r in rows if int(r.get("lap", 0)) == int(lap)), None)
+    if current is None:
+        return UNKNOWN_PIT
+    return require_causal(infer_pit_context(stint_from_lap_row(driver, current),
+                                            laps_seen=len(rows)))
 
 
 def belief_at_position(trace: dict[str, list], lap: int, s_m: float) -> UsableEnergyAtOpportunity:
@@ -319,10 +530,31 @@ def track_from_payload(payload: dict[str, Any]):
     return _PayloadTrack(payload)
 
 
-def speed_map_cache_key(payload: dict[str, Any], params: VehicleParams) -> str:
-    """Canonical cache key for E -> braking-point speed maps."""
-    return json.dumps(_speed_map_cache_payload(payload, params), sort_keys=True,
-                      separators=(",", ":"))
+def speed_map_cache_key(payload: dict[str, Any], params: VehicleParams,
+                        environment: EnvironmentalState | None = None,
+                        tyre: Any = None) -> str:
+    """Canonical cache key for E -> braking-point speed maps.
+
+    Hashes the whole physics configuration rather than accumulating one field
+    per bug. P1 adds the two inputs that now change the map: the air the car is
+    driving through and the tyre it is driving on. UI metadata is still absent
+    by construction -- the key is built from a whitelist, not by excluding
+    things.
+    """
+    data = _speed_map_cache_payload(payload, params)
+    if environment is not None:
+        data["environment"] = {
+            "rho": round(float(environment.rho), 6),
+            "track_temp_c": (None if environment.track_temp_c is None
+                             else round(float(environment.track_temp_c), 3)),
+            "wetness": round(float(environment.track_wetness_index), 6),
+        }
+    if tyre is not None:
+        data["tyre"] = {"compound": tyre.compound,
+                        "wear": round(float(tyre.wear_fraction), 6),
+                        "temp_c": round(float(tyre.estimated_temp_c), 3),
+                        "grip_scale": round(float(tyre.grip_scale), 6)}
+    return json.dumps(data, sort_keys=True, separators=(",", ":"))
 
 
 def _speed_map_cache_payload(payload: dict[str, Any], params: VehicleParams) -> dict:
