@@ -449,7 +449,8 @@ def estimate(obs: Observation, track, priors: PublicPriors = PublicPriors(),
              n_particles: int = 400, seed: int = 0,
              deploy_scale_sigma: float | None = None, dry_event_e_scale: float = RESERVE_SIGMA,
              floor_violation_penalty: float = 6.0,
-             nuisance: NuisanceFit | None = None) -> BeliefTrace:
+             nuisance: NuisanceFit | None = None,
+             n_laps: int | None = None) -> BeliefTrace:
     """Observation -> BeliefTrace. The whole pipeline, Stages A through C."""
     rng = np.random.default_rng(seed)
     if nuisance is None:
@@ -529,7 +530,15 @@ def estimate(obs: Observation, track, priors: PublicPriors = PublicPriors(),
     harv_mean = np.empty(n)
 
     laps = np.unique(obs.lap)
-    n_laps_total = int(laps.max()) + 1
+    # Stint length, which sets how much of the driver's buffer has been released
+    # (reserve_eff below). Read off the trace by default. It is passed in only so
+    # a truncated trace can be scored against the full one: a live estimator
+    # knows the race distance up front, whereas `laps.max()` shrinks with the
+    # window and silently moves the buffer-release ramp. Measured on seed 42 at
+    # 3.7 Hz: truncating one lap early shifts usable_mean by up to 0.19 MJ over
+    # the last RESERVE_RELEASE_LAPS laps and by exactly zero before them --
+    # which is what `test_stage_bc_is_causal_given_its_batch_inputs` asserts.
+    n_laps_total = int(laps.max()) + 1 if n_laps is None else int(n_laps)
     dep_lap = np.zeros(len(laps))
     har_lap = np.zeros(len(laps))
     dep_lap_post = np.zeros(len(laps))

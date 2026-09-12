@@ -12,3 +12,4 @@ node_modules/
 out/shots/
 out/sessions/
 out/races/*.json
+dev_readme.md
