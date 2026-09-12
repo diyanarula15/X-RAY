@@ -1,0 +1,200 @@
+# X-RAY — startup guide
+
+Copy-pasteable commands, grouped by setup. Jump to the section matching what
+you need; each one lists exactly which prerequisites it needs, so you don't
+have to read the ones before it. For *why* each stage exists, what its
+inputs/outputs are, and the pipeline order between scripts, see
+[`dev_readme.md`](dev_readme.md) §2, §2a, and §3 — this file only sequences
+commands.
+
+All commands below are PowerShell-flavored (`.\.venv\Scripts\python`); swap
+in `./.venv/bin/python` on macOS/Linux.
+
+---
+
+## 0. Prerequisites (shared)
+
+- **Python 3.11+** is a hard floor (`numpy`/`pandas` publish no wheels for
+  3.10 or earlier). Confirm with `python --version` — on Windows, `python` on
+  bare PATH may be an older interpreter; always go through the venv below.
+- **Node 20+ and npm** — only needed for Setup E (the frontend).
+- **`ffmpeg` on PATH** — only needed for `06.b_make_video.py` (Setup B).
+
+```powershell
+py -3.14 -m venv .venv                 # or any 3.11+
+```
+
+Every setup below installs into this same `.venv`. Two dependency tiers:
+
+- **Light** (Stage 1 only): `numpy scipy matplotlib PyYAML pytest`
+- **Full** (adds Stage 2 real-data + API): light tier +
+  `fastf1 pandas==2.3.3 fastapi uvicorn pyarrow`
+
+`pandas==2.3.3`, not a newer 3.x, is required — fastf1 pins `pandas<3.0.0`.
+There is no committed `requirements.txt`/`package.json` to install from (see
+`dev_readme.md` §7 item 1); the install lines below are the full manifest.
+
+---
+
+## Setup A — Stage 1 core only (no network, no Node)
+
+The minimal "does it work" path: simulate a race, then reconstruct the
+hidden energy state from public telemetry alone.
+
+```powershell
+.\.venv\Scripts\python -m pip install numpy scipy matplotlib PyYAML pytest
+
+.\.venv\Scripts\python scripts\01.run_sim.py --seed 42
+.\.venv\Scripts\python scripts\02.run_estimator.py --seed 42 --car LEADER
+```
+
+`--car LEADER` is required — `FOLLOWER` is tow-bound and raises by design
+(`dev_readme.md` §7 item 7).
+
+---
+
+## Setup B — Stage 1 full artifact pipeline
+
+Everything in Setup A, plus ablation, decision evaluation, attack
+simulation, and the summary figure / demo video.
+
+```powershell
+.\.venv\Scripts\python -m pip install numpy scipy matplotlib PyYAML pytest
+
+.\.venv\Scripts\python scripts\01.run_sim.py --seed 42
+.\.venv\Scripts\python scripts\02.run_estimator.py --seed 42 --car LEADER
+.\.venv\Scripts\python scripts\05.run_ablation.py                  # -> out/ablation.json
+.\.venv\Scripts\python scripts\03.a_validate_decision.py           # oracle vs X-RAY vs blind
+.\.venv\Scripts\python scripts\03.b_run_decision_eval.py --mode fast
+.\.venv\Scripts\python scripts\04.simulate_attack.py
+.\.venv\Scripts\python scripts\06.a_make_summary.py --seed 42      # needs out/ablation.json
+.\.venv\Scripts\python scripts\06.b_make_video.py --seed 42        # needs ffmpeg on PATH
+```
+
+`06.a_make_summary.py` exits with `SystemExit` if `out/ablation.json` is
+missing — run `05.run_ablation.py` first. `--mode full` on
+`03.b_run_decision_eval.py` reruns a full 200 Hz sim per race (minutes, not
+seconds); `--mode fast` is the default shown here.
+
+---
+
+## Setup C — Stage 2 real-data only, no server
+
+Fits and feasibility checks against real FastF1 telemetry, no API or
+frontend involved. Needs network on first run per round (FastF1 caches to
+`xray/data/cache/` after that).
+
+```powershell
+.\.venv\Scripts\python -m pip install numpy scipy matplotlib PyYAML pytest `
+    fastf1 pandas==2.3.3 fastapi uvicorn pyarrow
+
+.\.venv\Scripts\python scripts\07.a_feasibility.py --round 10     # -> out/feasibility/r10.json
+.\.venv\Scripts\python scripts\08.a_feasibility_report.py         # -> out/feasibility.md
+.\.venv\Scripts\python scripts\07.b_run_real.py --round 10        # stdout: CdA fit, identified set
+```
+
+`08.a_feasibility_report.py` reads every `out/feasibility/r*.json` and exits
+with `SystemExit` if none exist — run `07.a_feasibility.py` at least once
+first. Pick rounds 1–3 (Melbourne/Shanghai/Suzuka) for a pre-Miami check —
+see `dev_readme.md` §7 item 11 for why later "pre-Miami" round numbers are
+wrong in the 2026 schedule.
+
+---
+
+## Setup D — Stage 2 + API, no frontend build
+
+Adds the precomputed race JSON and a running API, without building the
+React app — useful for hitting `GET /api/*` directly (curl, browser,
+Postman) while iterating on the backend.
+
+```powershell
+.\.venv\Scripts\python -m pip install numpy scipy matplotlib PyYAML pytest `
+    fastf1 pandas==2.3.3 fastapi uvicorn pyarrow
+
+.\.venv\Scripts\python scripts\08.b_analyse_race.py --round 10    # -> out/races/<id>.json
+.\.venv\Scripts\python -m uvicorn simulation.api.main:app --port 8011
+```
+
+Every route 404s until `08.b_analyse_race.py` has written a race JSON.
+Routes:
+
+```
+GET /api/races                         GET /api/race/{rid}/observability
+GET /api/race/{rid}/summary            GET /api/race/{rid}/decision
+GET /api/race/{rid}/car/{drv}          GET /api/race/{rid}/counterfactual
+GET /api/race/{rid}/battle/{a}/{b}     GET /api/rdd
+```
+
+---
+
+## Setup E — Full stack (Stage 2 + API + frontend)
+
+Everything in Setup D, plus the built React/three.js viewer served at `/`.
+
+```powershell
+.\.venv\Scripts\python -m pip install numpy scipy matplotlib PyYAML pytest `
+    fastf1 pandas==2.3.3 fastapi uvicorn pyarrow
+
+.\.venv\Scripts\python scripts\08.b_analyse_race.py --round 10
+
+cd simulation/app
+npm install
+npm run build
+cd ../..
+
+.\.venv\Scripts\python -m uvicorn simulation.api.main:app --port 8011
+```
+
+Open <http://127.0.0.1:8011/> (append `?lite=1` on a weak GPU).
+`simulation/api/main.py`'s `ROOT` resolves to `simulation/`, so it serves
+`simulation/app/dist/` once built.
+
+**Frontend-dev variant** — iterating on `simulation/app/` itself without
+rebuilding through the API on every change:
+
+```powershell
+# API still needs to be running (Setup D) for data requests
+cd simulation/app
+npm install
+npm run dev              # Vite dev server with hot reload
+```
+
+---
+
+## Setup F — Tests only
+
+```powershell
+.\.venv\Scripts\python -m pip install numpy scipy matplotlib PyYAML pytest `
+    fastf1 pandas==2.3.3 fastapi uvicorn pyarrow    # full tier: some tests exercise Stage 2 modules
+
+.\.venv\Scripts\python -m pytest -q
+```
+
+The light tier (no `fastf1`/`pandas`/`fastapi`/`pyarrow`) is enough for the
+Stage 1 suite (`test_estimator.py`, `test_golden.py`, `test_physics.py`,
+`test_balance.py`, `test_setmem.py`, `test_modes.py`, `test_pipeline.py`,
+`test_rbpf.py`, `test_strategy.py`, `test_pooling.py`, `test_qmdp.py`,
+`test_deadband.py`, `test_decision.py`, `test_live_readiness.py`); the full
+tier is needed for `test_decision_service.py` (imports
+`simulation/api/main.py`).
+
+**Do not** run `scripts\99.make_golden.py` to silence a golden-baseline
+failure — see `dev_readme.md` §7 item 3 for the known cross-platform
+tolerance issue and why regenerating the baseline defeats the point of the
+test.
+
+---
+
+## Setup G — Maintenance / audit scripts
+
+Not part of the normal pipeline; run these deliberately, not as a fix for a
+failing test.
+
+```powershell
+.\.venv\Scripts\python scripts\99.make_golden.py --seed 42   # only when a numerics change is intended
+.\.venv\Scripts\python scripts\99.worked_trace.py            # prints one worked decision trace + causality proof
+```
+
+`99.make_golden.py` regenerates `tests/golden/belief_seed<seed>_3.7hz.npz`,
+pinned to `tests/conftest.py`'s exact configuration. If you run it, say in
+the commit message which headline metric moved and why (`dev_readme.md` §5).
