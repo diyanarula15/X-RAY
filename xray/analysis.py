@@ -98,7 +98,7 @@ def analyse(year: int, rnd: int, session_name: str = "R",
                              "message": f"only {len(d)} usable samples after the "
                                         f"gap filter — not enough clean running to estimate"}
             continue
-        kin = build_kin(d, track, mass_kg, rho)
+        kin = build_kin(d, track, mass_kg, rho, regs=regs)
         try:
             fit = fit_nuisance_real(kin, rho, regs=regs)
         except ValueError as exc:
@@ -233,7 +233,13 @@ def analyse(year: int, rnd: int, session_name: str = "R",
                        "p_harv_max_kw": round(regs.p_harv_max / 1e3, 1),
                        "p_dep_max_zone_kw": round(regs.p_dep_max_zone / 1e3, 1),
                        "p_dep_max_elsewhere_kw": round(regs.p_dep_max_elsewhere / 1e3, 1),
-                       "source": "regs_for(session date)"},
+                       "source": "regs_for(session date)",
+                       "zone_eligibility": {
+                           "available": bool(track.zones),
+                           "source": "circuit zone geometry at current distance",
+                           "semantics": "inside deployment-zone straight only",
+                           "separate_from_variant": True,
+                       }},
         # The session MEAN stays exactly where it was for the UI header. The
         # time-resolved trace is added beside it, because a decision on lap 3
         # must not be made with lap 50's air. Causal selection happens in
@@ -304,6 +310,7 @@ def analyse(year: int, rnd: int, session_name: str = "R",
                 "deploy_lo_kw": _f(tr["deploy_lo"][sel] / 1e3, 1),
                 "deploy_hi_kw": _f(tr["deploy_hi"][sel] / 1e3, 1),
                 "harvest_kw": _f(tr["harvest"][sel] / 1e3, 1),
+                "deployment_zone_eligible": [bool(b) for b in kin.in_deployment_zone[sel]],
                 "usable_mean": _f(bel["usable_mean"][sel] / 1e6, 4),
                 "usable_p10": _f(bel["usable_p10"][sel] / 1e6, 4),
                 "usable_p90": _f(bel["usable_p90"][sel] / 1e6, 4),

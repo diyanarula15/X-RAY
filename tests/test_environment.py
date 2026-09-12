@@ -232,7 +232,13 @@ def _kin(w_along=None, source="unavailable"):
     return Kin(s=np.linspace(0, 1000, n), v=v, a=np.zeros(n),
                dt=np.full(n, 0.1), t=np.linspace(0, 6.3, n),
                mass=np.full(n, 800.0), cda_scale=np.ones(n),
-               sin_grade=np.zeros(n), ceiling=np.zeros(n),
+               sin_grade=np.zeros(n),
+               # P3 Part 1 added the deployment-zone eligibility mask to `Kin`.
+               # `_terms` does not read it, so it cannot affect the wind algebra
+               # these tests assert; all-True is the value that matches the
+               # unrestricted behaviour from before the mask existed.
+               in_deployment_zone=np.ones(n, bool),
+               ceiling=np.zeros(n),
                throttle=None, brake=None, valid=np.ones(n, bool),
                lap=np.zeros(n, int),
                w_along_mps=(None if w_along is None else np.full(n, float(w_along))),

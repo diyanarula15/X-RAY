@@ -425,3 +425,140 @@ produces a byte-identical artefact before and after the unification —
    changes nothing real.
 7. Any source-file-scanning test passes `encoding="utf-8"` — that omission has bitten three
    times (`docs/dev_readme.md` §7 item 1).
+
+---
+
+## 14. P3 final state: one canonical path, and an honest verdict on it
+
+§4 opened with the finding that there were **three inference implementations, only one of
+which reached a real race, and it was the one never scored against ground truth.** P3
+closed the first half of that and measured the second. Both results are recorded here
+because the second one is negative.
+
+### The canonical path, after P3
+
+```
+SIM  ──► observe()  (blinded public feed) ─┐
+                                           ├──►  ingest.grid_lap  ──►  build_kin
+FASTF1 ──► data/ingest.frame_from_fastf1 ──┘                              │
+                                                                         ▼
+                                                                      realfit
+                                                                         │
+                                                              canonical inference
+                                                                         │
+                                                                         ▼
+                                                                 decision_service
+                                                                         │
+                                                                    P1  /  P2
+
+SIM hidden truth ───────────────────────────────────────────────► SCORING only
+```
+
+The simulator's hidden energy reaches the scoring layer and nothing else. That is what
+makes the synthetic result in §14.2 a *direct* validation rather than a circular one.
+
+### 14.1 What is still RESEARCH_ONLY
+
+| Component | Status | Why it is not production |
+|---|---|---|
+| `estimator.py` | `RESEARCH_ONLY` | locked to the synthetic `Observation` type by its import; never executes on a real race |
+| `balance.py` `setmem.py` `modes.py` `pipeline.py` `rbpf.py` `deadband.py` `strategy.py` `pooling.py` | `RESEARCH_ONLY` | reached by tests only; not on the shipping post-ingestion path |
+
+Their metrics are **not evidence about real-race inference**, and §13 rule 5 applies: quote
+a metric with the stack that produced it. `xray/registry.py` carries these statuses so the
+API and UI cannot quietly promote them.
+
+### 14.2 Direct synthetic validation — mixed
+
+Canonical shipping inference, scored against hidden simulator truth (mean over three
+seeds, `out/p3/part1/*/summary.json`):
+
+| Quantity | Result | Reading |
+|---|---|---|
+| deployment lap MAPE | 5.71% | flows are measured well |
+| deployment bias | −5.32% | small, consistent under-read |
+| deployment band containment | 93.4% | the band does its job |
+| SOC mean MAE | 0.180 MJ | level is useful |
+| SOC band containment | 43.8% (35.7–55.0% across seeds) | **uncertainty is not calibrated** |
+| CdA truth containment | 3/3 | the interval contains the truth |
+| CdA interval width | 658.6% of truth | **CdA is not identified on this path** |
+| CdA identifiability | 0.0 | — |
+
+The CdA rows are a containment result, not an accuracy one — and barely even that: the
+interval spans **negative drag area** ([−2.19, +2.16], centre −0.018 on the first seed),
+which is physically impossible, so an interval that wide would contain almost any truth. The cause is in the coverage
+map: **the simulator has no genuine lift-and-coast regime**, so the dead-band drag channel
+that identifies CdA on real data is never exercised. That is a synthetic-coverage gap, not
+an estimator bug, and it is why a better synthetic CdA number would not have meant much.
+
+### 14.3 Indirect real validation — no robust improvement
+
+48,920 strict-future held-out examples across Australian, Monaco, British, Belgian and
+Dutch GPs, leave-one-race-out (`out/p3/part2/*/summary.json`). Held-out MAE, lower better:
+
+| Target | X-RAY | fixed-E | neutral-E | X-RAY − fixed |
+|---|---|---|---|---|
+| future speed 5 s | 22.39 | 21.95 | 21.05 | **+0.437** |
+| straight speed 3 s | 5.90 | 5.62 | 5.68 | **+0.279** |
+| braking-point speed | 15.78 | 16.11 | 15.12 | −0.325 |
+
+**A positive difference is X-RAY losing.** It loses on two of three targets and wins on
+one, and the energy-neutral baseline is the best of the three on two targets. The
+authoritative conclusion:
+
+> The current canonical inferred-energy state does **not** add robust predictive value over
+> the tested baselines on held-out real F1 data.
+
+Reporting only braking-point speed would be cherry-picking, and tuning until the sign
+flips would be fitting the held-out set. Neither is allowed.
+
+### 14.4 Why this is a P3 *success*
+
+P3's deliverable was never "make the estimator work". It was to build a path on which that
+question can be asked and answered. Before P3 the question was unanswerable: the code that
+ran on real races had never been scored, and the code that had been scored never ran on a
+real race. The negative result is the first real measurement the project has of its central
+claim, and it is preserved rather than papered over — in the registry, the API, the UI and
+this document.
+
+### 14.5 What this does not license
+
+Latent energy is **not** uniquely identified. Exact re-inference sensitivity could not be
+measured, because the persisted race payloads do not keep the raw canonical throttle/brake
+inputs `realfit` needs to rerun. Downstream prediction at *fixed* inferred energy moves
+0.15–0.81 m/s under small nuisance perturbations, 1.38–2.95 m/s under moderate ones, and
+6.96–11.85 m/s in the fragile cases. Predictions can therefore be materially sensitive to
+physical assumptions that are not themselves calibrated.
+
+### 14.6 The deployment-zone ceiling (P3 Step 1)
+
+P2 sized its deployment budget from `max(ZoneModel.energy_grid)`. That axis is swept by
+`calibrate_zone` over **run-up plus straight** — 1700 m from the previous corner exit at
+200 km/h on Circuit Sigma zone A — so it offered budgets up to 1.602 MJ for a zone that can
+execute about 0.45 in race conditions. Three distinct causes, all now documented in
+`tests/test_deployment_budget.py`:
+
+1. **Window.** The attack spans the 1100 m straight, not the 1700 m calibration run.
+2. **Entry speed.** The car arrives at 314 km/h and crosses 345 km/h after 387 m, beyond
+   which the normal MGU-K curve is exactly 0 kW. Zone A absorbs 1.603 MJ entered at
+   200 km/h and 0.448 MJ entered at 314 km/h — a per-zone constant cannot say both.
+3. **Accounting (a bug).** `closedloop.BudgetedAttack` charged the budget against store
+   *drawdown*. A deployment straight ends in a braking zone, so the store refills while the
+   attack is still running: drawdown runs 0 → 0.4281 → 0.4492 → 0.4492 → **−0.1353** MJ,
+   peaking mid-straight and ending negative, while delivered energy rises monotonically to
+   0.4564 MJ. A budget compared against a non-monotone, eventually-negative quantity never
+   binds, and the "0.449 MJ executable" figure in the P2 audit was the peak of that curve
+   rather than a deployment measurement.
+
+The ceiling is now **measured through the shared integrator** per zone per entry speed
+(`decision.executable_attack_ceiling`), not integrated in closed form — integrating the
+taper over the window gives 0.981 MJ against 0.448 delivered, because it counts the braking
+stretch and ignores that deploying harder raises `v` and lowers the next step's ceiling.
+Budget accounting now uses delivered MGU-K energy, fed back from the integrator via
+`DeploymentPolicy.note_deployed`.
+
+Fixing the ceiling also exposed a coupling bug: `evaluate_action` clipped the *rival's*
+energy with *our* deployment ceiling, so our arrival speed moved the rival's predicted
+speed. Tightening zone A from 1.422 to 0.354 MJ moved HOLD's `delta_v` from −10.55 to
+−2.31 m/s — on an action that deploys nothing. Each car now carries its own measured
+ceiling from its own observed entry speed.

@@ -709,6 +709,45 @@ def _tyre_context_factory(compound: str, env: EnvironmentalState | None,
     return make
 
 
+# Entry speed is quantised to 2 m/s before the ceiling is measured. The ceiling
+# moves smoothly with entry speed (zone A: 1.603 MJ at 200 km/h, 1.200 at 250,
+# 0.448 at 314) and each measurement is a full integrator run down the straight,
+# so an unquantised key would miss the cache on every opportunity while adding
+# nothing a 2 m/s bin does not already capture.
+CEILING_ENTRY_V_QUANTUM_MS = 2.0
+
+
+@lru_cache(maxsize=256)
+def _cached_executable_ceiling(cache_key: str, zone_name: str,
+                               entry_v_mps: float) -> float:
+    """Measured executable deployment ceiling for one zone at one entry speed.
+
+    Cached on the same context key as the zone maps, so a changed tyre or sky
+    re-measures rather than reusing a ceiling from different physics.
+    """
+    from .decision import executable_attack_ceiling
+    data = json.loads(cache_key)
+    track = _PayloadTrack.from_cache_payload(data["track"])
+    params = VehicleParams(**data["vehicle_params"])
+    zone = next(z for z in track.zones if z.name == zone_name)
+    return float(executable_attack_ceiling(
+        track, params, zone, float(entry_v_mps))["executable_ceiling_j"])
+
+
+def executable_ceiling_at_opportunity(cache_key: str, zone_name: str,
+                                      entry_v_mps: float | None) -> float | None:
+    """None when no entry speed was observed -- never a guessed speed.
+
+    Guessing an entry speed here would be worse than declining: the ceiling is
+    almost entirely determined by it, so a wrong guess hands P2 a budget axis
+    that looks measured and is not.
+    """
+    if entry_v_mps is None or not np.isfinite(entry_v_mps) or entry_v_mps <= 1.0:
+        return None
+    q = round(float(entry_v_mps) / CEILING_ENTRY_V_QUANTUM_MS) * CEILING_ENTRY_V_QUANTUM_MS
+    return _cached_executable_ceiling(cache_key, zone_name, float(q))
+
+
 @lru_cache(maxsize=32)
 def _cached_zone_models(cache_key: str) -> tuple[ZoneModel, ...]:
     """Zone speed maps for one physical context.
@@ -990,9 +1029,20 @@ def build_opportunity_horizon(payload: dict[str, Any], car: str, rival: str,
             if own_tyre is not None and own_tyre.source != "unknown":
                 surface = ZoneSurfaceContext.build(own_tyre, rival_tyre, env,
                                                    SURFACE_WEAR_LEVELS)
-            zones = _cached_zone_models(
-                speed_map_cache_key(payload, params, surface=surface))
+            key = speed_map_cache_key(payload, params, surface=surface)
+            zones = _cached_zone_models(key)
             first_zones = zones
+            # The entry speed comes from the SAME causal sample the energy belief
+            # came from -- index `own_e.sample_index`, at or before the decision
+            # point -- so reading it adds no look-ahead.
+            entry_v = None
+            if "v" in own_trace and own_e.sample_index < len(own_trace["v"]):
+                entry_v = float(own_trace["v"][own_e.sample_index])
+            # Same read on the rival's own trace, at or before the same point on
+            # the same lap -- its arrival speed, not ours.
+            rival_entry_v = None
+            if "v" in rival_trace and rival_e.sample_index < len(rival_trace["v"]):
+                rival_entry_v = float(rival_trace["v"][rival_e.sample_index])
             first = DecisionOpportunity(
                 opportunity_id=f"L{int(lap)}-{zone.name}",
                 lap=int(lap), zone_name=zone.name, decision_s=float(decision_s),
@@ -1006,7 +1056,11 @@ def build_opportunity_horizon(payload: dict[str, Any], car: str, rival: str,
                 own_tyre=own_tyre, rival_tyre=rival_tyre,
                 own_pit_context=pit_context_at_opportunity(payload, car, lap, plan),
                 rival_pit_context=pit_context_at_opportunity(payload, rival, lap, plan),
-                environment=env, source=gap.source, confidence=gap.confidence)
+                environment=env, source=gap.source, confidence=gap.confidence,
+                executable_ceiling_j=executable_ceiling_at_opportunity(
+                    key, zone.name, entry_v),
+                rival_executable_ceiling_j=executable_ceiling_at_opportunity(
+                    key, zone.name, rival_entry_v))
             break
         if first is not None:
             break
@@ -1021,6 +1075,13 @@ def build_opportunity_horizon(payload: dict[str, Any], car: str, rival: str,
     # forecast sky would be forecasting physics on top of forecast state, and
     # the extra precision would be invented rather than known.
     zone_by_name = {z.name: z for z in first_zones}
+    # Forecast opportunities reuse the OBSERVED entry speed, for the same reason
+    # they reuse the observed zone maps: a forecast entry speed would be physics
+    # built on forecast state. Each zone is still measured separately, because the
+    # ceiling differs by zone length as well as by entry speed.
+    fc_key = key
+    fc_entry_v = entry_v
+    fc_rival_entry_v = rival_entry_v
 
     # ---- the rest: forecast, never observed ---------------------------------
     dyn = _historical_dynamics(payload, car, rival, first.lap)
@@ -1056,7 +1117,11 @@ def build_opportunity_horizon(payload: dict[str, Any], car: str, rival: str,
             rival_pit_context=first.rival_pit_context,
             environment=first.environment,
             source="causal_forecast_persistence_gap_bounded_rival_energy",
-            confidence=0.4))
+            confidence=0.4,
+            executable_ceiling_j=executable_ceiling_at_opportunity(
+                fc_key, zone.name, fc_entry_v),
+            rival_executable_ceiling_j=executable_ceiling_at_opportunity(
+                fc_key, zone.name, fc_rival_entry_v)))
     return order_opportunities(out)[:max_opportunities]
 
 
@@ -1177,4 +1242,145 @@ def _serialise_p2(sol, first, pit_at) -> dict[str, Any]:
             "rival_pit_source": getattr(first.rival_pit_context, "source", None),
         },
         "p2_version": P2_CONFIG_VERSION,
+    }
+
+
+# ============================================================ P3: status & evidence
+# Additive. Nothing below changes a decision; it reports what the decision rests
+# on. The registry is the single source for every status word, so a panel cannot
+# invent a cheerier one, and the full validation datasets stay on disk -- a live
+# response carries fingerprints and summaries, never 48,920 scored examples.
+
+P3_VERSION = "p3-evidence-v1"
+
+
+def p3_status() -> dict[str, Any]:
+    """Model statuses, validation verdicts (including negative ones), provenance."""
+    from .registry import registry_payload
+
+    payload = registry_payload()
+    return {
+        "p3_version": P3_VERSION,
+        "registry": payload,
+        "energy_inference": payload["energy_inference"],
+        "data_quality_limitations": payload["data_quality_limitations"],
+        "pass_model": next(e for e in payload["entries"]
+                           if e["component"] == "pass_model"),
+        "regulation_variant": next(e for e in payload["entries"]
+                                   if e["component"] == "regulation_variant"),
+        "mass_model": next(e for e in payload["entries"]
+                           if e["component"] == "mass_model"),
+        "deployment_ceiling": next(e for e in payload["entries"]
+                                   if e["component"] == "deployment_ceiling"),
+    }
+
+
+def p3_race_evidence(payload: dict[str, Any]) -> dict[str, Any]:
+    """Per-race provenance: what this race's numbers can and cannot support.
+
+    `real_ground_truth_available` is always False and is stated rather than
+    omitted. A missing field reads as "not looked up yet"; an explicit False with
+    a reason reads as what it is.
+    """
+    st = p3_status()
+    geom = payload.get("circuit_geometry") or {}
+    tel = payload.get("telemetry") or {}
+    return {
+        "p3_version": P3_VERSION,
+        "race_id": payload.get("id"),
+        "event": payload.get("event"),
+        "regulation": payload.get("regulation", {}),
+        "energy_inference": st["energy_inference"],
+        "data_quality_limitations": st["data_quality_limitations"],
+        "corpus": {
+            "has_weather_trace": bool(payload.get("weather_trace")),
+            "has_track_status": bool(payload.get("track_status")),
+            "has_pit_data": bool(payload.get("pit_events")),
+            "has_elevation": bool(geom.get("has_elevation")),
+            "median_hz": tel.get("median_hz"),
+            "laps_usable": tel.get("laps_usable"),
+            "laps_total": tel.get("laps_total"),
+        },
+        "real_ground_truth_available": False,
+        "real_ground_truth_reason": "no public channel carries stored battery energy",
+    }
+
+
+def historical_replay(payload: dict[str, Any], car: str, rival: str,
+                      cutoff_time_s: float, horizon_s: float = 30.0,
+                      max_opportunities: int = 12) -> dict[str, Any]:
+    """Replay one decision point off-policy: what was knowable, what P2 would say.
+
+    OFF-POLICY. The recommendation is computed from `input_fields` only, and the
+    later telemetry is returned beside it for the reader to compare against --
+    never fed back in. It cannot be counterfactual proof, because the car did not
+    execute the recommendation: the observed outcome is the outcome of what the
+    driver actually did, under a race that never branched.
+
+    The causal wall is `snapshots.make_snapshot`, which is the same builder Part 1
+    fingerprinted, rather than a second filtering rule written here.
+    """
+    from .snapshots import make_snapshot
+
+    cutoff = float(cutoff_time_s)
+    snap = make_snapshot(payload, cutoff, cutoff, cutoff + float(horizon_s),
+                         drivers=[car, rival])
+
+    # The decision is built from the snapshot's inputs, so a sample after the
+    # cutoff cannot reach it even by accident.
+    # `make_snapshot` returns each car's trace FLAT -- the selected channels plus
+    # n_samples/last_time/source_samples -- not nested under a "trace" key. The
+    # first version of this read `[d]["trace"]`, found nothing, and reported "both
+    # cars must have samples at or before the cutoff" for a snapshot that held
+    # 1252 and 1227 samples. A missing-key guard that swallows a shape mismatch
+    # looks exactly like a genuine data refusal.
+    snap_cars = snap["input_fields"]["cars"]
+    replay_payload = dict(payload)
+    replay_payload["cars"] = {
+        d: {**payload["cars"][d], "trace": snap_cars[d]}
+        for d in (car, rival)
+        if d in snap_cars and snap_cars[d].get("n_samples", 0) > 0}
+
+    decision, error = None, None
+    if len(replay_payload["cars"]) == 2:
+        try:
+            decision = evaluate_opportunity_decision(
+                replay_payload, car, rival, max_opportunities=max_opportunities)
+        except (ValueError, KeyError) as exc:
+            error = f"{type(exc).__name__}: {exc}"
+    else:
+        error = "both cars must have samples at or before the cutoff"
+
+    observed = {}
+    for d in (car, rival):
+        fut = (snap["evaluation_fields"]["cars"].get(d) or {})
+        v = [float(x) for x in (fut.get("v") or []) if x is not None]
+        observed[d] = {"n_samples": fut.get("n_samples", len(v)),
+                       "v_max_mps": max(v) if v else None,
+                       "v_mean_mps": (sum(v) / len(v)) if v else None}
+
+    return {
+        "p3_version": P3_VERSION,
+        "label": "OFF-POLICY HISTORICAL REPLAY — NOT COUNTERFACTUAL PROOF",
+        "later_telemetry_use": "evaluation only; never an input to the decision",
+        "cutoff_time_s": cutoff,
+        "target_window_s": [cutoff, cutoff + float(horizon_s)],
+        "information_at_cutoff": {
+            "n_samples": {d: (snap_cars.get(d) or {}).get("n_samples")
+                          for d in (car, rival)},
+            "laps_completed": snap["input_fields"]["laps_completed"],
+            "pit_events_seen": snap["input_fields"]["pit_events_seen"],
+            "weather": snap["input_fields"]["weather"],
+            "input_fingerprint": snap["provenance"]["input_fingerprint"],
+        },
+        "inferred_energy_mj": None if decision is None else {
+            car: decision["horizon"][0]["own_usable_energy_mj"],
+            rival: decision["horizon"][0]["rival_usable_energy_mj"],
+        },
+        "p2_recommendation": decision,
+        "p2_error": error,
+        "later_observable_outcome": observed,
+        "evaluation_fingerprint": snap["provenance"]["evaluation_fingerprint"],
+        "quality_flags": snap["quality_flags"],
+        "energy_inference_status": p3_status()["energy_inference"]["headline"],
     }

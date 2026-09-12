@@ -179,6 +179,7 @@ class Simulator:
                 gap_ahead = gap if is_behind else None
                 gap_behind = gap if not is_behind else None
                 pt = tr.point(st[c].s)
+                lap_before = st[c].lap
                 demand = self.policies[c].demand(
                     tr, st[c].s, st[c].v, st[c].E, gap_ahead, gap_behind,
                     laps_left, is_corner=pt[2], lap=st[c].lap)
@@ -192,6 +193,15 @@ class Simulator:
                            tow_factor=tow_factor if is_behind else 1.0,
                            grip=grip if is_behind else 1.0,
                            physics_context=ctx)
+                # Feed the DELIVERED power back, not the requested power: a
+                # budgeted policy must account against what the integrator
+                # actually put through the MGU-K after the taper and the store
+                # limit clipped the request.
+                # `st[c].lap` is POST-step here -- step() mutates then records
+                # -- and `p_mguk` is the power applied DURING the step, so the
+                # lap read before the call is the one that spent the energy.
+                self.policies[c].note_deployed(
+                    lap_before, float(out["p_mguk"]) * dt)
 
                 r = rec[c]
                 r["s"][n] = st[c].s

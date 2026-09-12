@@ -51,6 +51,21 @@ class DeploymentPolicy:
         """The buffer is released over the last three laps of the stint."""
         return self.reserve * min(1.0, max(laps_left, 0) / 3.0)
 
+    # --------------------------------------------------------------- feedback
+    def note_deployed(self, lap: int, energy_j: float) -> None:
+        """Told how much MGU-K energy the integrator ACTUALLY delivered.
+
+        A no-op here. It exists because a budgeted policy cannot measure its own
+        spend from the store level: a deployment straight ends in a braking zone,
+        so the store is refilling while the attack is still running. Measured on
+        Circuit Sigma zone A, drawdown across the straight runs
+        0 -> 0.4281 -> 0.4492 -> 0.4492 -> -0.1353 MJ -- non-monotone, and
+        negative by the end -- while deployed energy rises monotonically to
+        0.4564 MJ. A budget compared against drawdown therefore never trips, and
+        the 0.449 MJ once reported as zone A's "executable" energy was the peak
+        of that curve, not a deployment measurement.
+        """
+
     # ----------------------------------------------------------------- demand
     def demand(self, track, s: float, v: float, E: float, gap_ahead: float,
                gap_behind: float, laps_left: int, is_corner: bool = False,

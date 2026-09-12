@@ -41,6 +41,12 @@ class ZoneModel:
     wear_grid: np.ndarray | None = None
     speed_grid_by_wear: np.ndarray | None = None
     rival_speed_grid_by_wear: np.ndarray | None = None
+    # Energy an attack can physically deploy over the ATTACK window (the zone
+    # straight), at the entry speed it was measured for. Distinct from
+    # `energy_grid.max()`, which covers run-up + straight. None when nobody has
+    # measured it, in which case consumers fall back to the energy axis.
+    executable_ceiling_j: float | None = None
+    executable_ceiling_entry_v_mps: float | None = None
 
     def own_speed(self, e: float, wear: float | None = None) -> float:
         return _interp_surface(e, wear, self.energy_grid, self.speed_grid,
@@ -72,15 +78,32 @@ def _interp_surface(e, wear, energy_grid, speed_grid, wear_grid, surface):
 
 def calibrate_zone(track: Track, params: VehicleParams, zone: Zone,
                    n_points: int = 7, dt: float = 0.005,
-                   physics_context=None) -> ZoneModel:
+                   physics_context=None, from_s: float | None = None,
+                   entry_v_mps: float | None = None) -> ZoneModel:
     """Run the real longitudinal model down the zone straight at a range of
     deployment budgets and record where it ends up.
 
     Nothing here is a fitted constant: the map from energy to end-of-straight
     speed is whatever the physics says it is.
+
+    WHICH WINDOW this covers matters, and conflating it with the attack window
+    is what made P2's budget axis meaningless. By default the run starts at the
+    last corner BEFORE the zone (`_run_up`), so `energy_grid` is energy over
+    run-up + straight -- on Circuit Sigma zone A that is 1700 m entered at
+    200 km/h, and it reaches 1.602 MJ because the low-speed part of the run-up
+    sits under the full 350 kW ceiling. An attack in-race only spans the 1100 m
+    straight, entered at 314 km/h where the taper allows about 89 kW, so at most
+    1.109 MJ is deployable there. The two numbers describe different runs.
+
+    `from_s` / `entry_v_mps` override the start so the same function can measure
+    the attack window itself. See `executable_attack_ceiling`.
     """
     set_car_mass(params.mass_car)
     s_from, entry_v = _run_up(track, zone)
+    if from_s is not None:
+        s_from = float(from_s)
+    if entry_v_mps is not None:
+        entry_v = float(entry_v_mps)
     # The tyre reaches the braking point mostly through the corner BEFORE the
     # straight, not along it. A short straight is power-and-drag limited, so a
     # worn tyre loses almost nothing on it -- but it exits the preceding corner
@@ -142,6 +165,54 @@ def _same_context(a, b, wear_grid) -> bool:
     except Exception:
         return False
     return True
+
+
+def executable_attack_ceiling(track: Track, params: VehicleParams, zone: Zone,
+                              entry_v_mps: float, dt: float = 0.005,
+                              physics_context=None,
+                              store_j: float = E_STORE_MAX) -> dict:
+    """Most electrical energy an attack can actually put down in THIS zone.
+
+    Measured by commanding `P_MGUK_MAX` every step through the shared integrator
+    and summing the `p_mguk` it returns. Nothing is integrated in closed form,
+    because two closed forms are both wrong here:
+
+    * Integrating the taper over the window overstates it. On Circuit Sigma zone
+      A from a 314 km/h entry that gives 0.981 MJ against 0.448 MJ delivered --
+      it counts the ceiling through the braking and off-throttle stretch, where
+      the car draws nothing whatever the rules permit.
+    * The taper is not exogenous. Deploying harder raises v, which LOWERS the
+      ceiling at the next step, so the bound depends on the trajectory it is
+      meant to bound. The car crosses 345 km/h after 378 m of zone A's 1100 m
+      straight, and the normal curve is exactly 0 kW beyond that: no budget of
+      any size buys a single joule over the remaining 660 m.
+
+    Context-dependent by construction. Zone A absorbs 1.603 MJ entered at
+    200 km/h and 0.448 MJ entered at 314 km/h; a per-zone constant cannot say
+    both, which is why P2's budget axis -- built from `ZoneModel.energy_grid`,
+    measured over run-up + straight from a slow corner exit -- offered budgets up
+    to 1.602 MJ for a zone that could execute 0.45.
+    """
+    set_car_mass(params.mass_car)
+    run_m = (zone.s_straight_end - zone.s_straight_start) % track.length
+    st = CarState(s=float(zone.s_straight_start), s_total=0.0,
+                  v=float(entry_v_mps), E=float(store_j),
+                  fuel=params.fuel_start * 0.5)
+    deployed_j = 0.0
+    taper_zero_at_m = None
+    guard = 0
+    while st.s_total < run_m and guard < 400_000:
+        if taper_zero_at_m is None and p_mguk_ceiling(st.v) <= 0.0:
+            taper_zero_at_m = float(st.s_total)
+        out = step(track, st, params, P_MGUK_MAX, dt,
+                   physics_context=physics_context)
+        deployed_j += out["p_mguk"] * dt
+        guard += 1
+    return {"zone": zone.name, "entry_v_mps": float(entry_v_mps),
+            "window_m": float(run_m),
+            "executable_ceiling_j": float(deployed_j),
+            "taper_zero_after_m": taper_zero_at_m,
+            "exit_v_mps": float(st.v)}
 
 
 def calibrate_zone_with_wear(track: Track, params: VehicleParams, zone: Zone,

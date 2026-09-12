@@ -70,12 +70,52 @@ class BudgetedAttack(DeploymentPolicy):
     several, so this subclass stops the attack once `attack_budget_j` has left
     the store and falls back to the parent's normal behaviour.
 
-    Spend is measured as store drawdown from the level at the first attack
-    sample, which is exact on a deployment straight: the accel regime harvests
-    nothing, so every joule that leaves the store left through the MGU-K.
+    Spend is measured as MGU-K energy DELIVERED by the integrator, reported back
+    through `DeploymentPolicy.note_deployed`. It used to be measured as store
+    drawdown from the level at the first attack sample, justified by "the accel
+    regime harvests nothing". That is false, and it is why P2's audit reported
+    zone A as absorbing only 0.449 MJ against a 1.602 MJ calibrated budget: the
+    zone straight ends in a braking zone, so the store is already refilling while
+    the attack runs. Across zone A drawdown goes
+    0 -> 0.4281 -> 0.4492 -> 0.4492 -> -0.1353 MJ, peaking mid-straight and
+    ending NEGATIVE, while delivered energy rises monotonically
+    0.0002 -> 0.4283 -> 0.4494 -> 0.4494 -> 0.4564 MJ. Against a non-monotone,
+    eventually-negative quantity a budget of any size stops binding, so the
+    "executable" figure was the peak of the drawdown curve rather than a
+    measurement of deployment.
     """
     attack_budget_j: float | None = None
     _spend: dict = field(default_factory=dict, compare=False, repr=False)
+    # Deployed joules per lap, filled in by the simulator after each step.
+    _delivered: dict = field(default_factory=dict, compare=False, repr=False)
+
+    def note_deployed(self, lap: int, energy_j: float) -> None:
+        if energy_j > 0.0:
+            self._delivered[lap] = self._delivered.get(lap, 0.0) + float(energy_j)
+
+    def budget_exhausted(self, lap: int) -> bool:
+        """Has this lap's allocation been spent? The production rule, readable.
+
+        Exists so a test can OBSERVE the rule instead of restating it. The old
+        test restated it -- recomputing `start - E >= budget` in its own spy -- and
+        when the accounting moved from store drawdown to delivered energy the spy
+        silently compared a ~0 J baseline against a ~2.4 MJ store level, so every
+        sample classified as "still on the floor" and the budget looked inert. A
+        test that reimplements the rule it checks cannot detect the rule changing,
+        and would have passed the broken version too.
+        """
+        if self.attack_budget_j is None:
+            return False
+        start = self._spend.get((lap, self.attack_zone))
+        if start is None:
+            return False
+        return (float(self._delivered.get(lap, 0.0)) - start) >= self.attack_budget_j
+
+    def deployed_during_attack(self) -> float:
+        """Energy put down on the attack lap, for tests and diagnostics."""
+        if self.attack_lap is None:
+            return 0.0
+        return float(self._delivered.get(self.attack_lap, 0.0))
 
     def demand(self, track, s, v, E, gap_ahead, gap_behind, laps_left,
                is_corner=False, lap=-1):
@@ -86,7 +126,10 @@ class BudgetedAttack(DeploymentPolicy):
                 self.attack_zone is None or zone.name == self.attack_zone)
             if in_zone:
                 key = (lap, self.attack_zone)
-                start = self._spend.setdefault(key, float(E))
+                # Baseline the count at the first attack sample so earlier zones
+                # on the same lap do not consume this zone's allocation.
+                start = self._spend.setdefault(
+                    key, float(self._delivered.get(lap, 0.0)))
                 # The tactical allocation is a FLOOR on deployment while it
                 # lasts, not a ceiling on it. Two wrong versions came first:
                 # handing straight back to the base policy made the budget
@@ -99,7 +142,8 @@ class BudgetedAttack(DeploymentPolicy):
                 base = DeploymentPolicy.demand(
                     self, track, s, v, E, gap_ahead, gap_behind, laps_left,
                     is_corner=is_corner, lap=-1)
-                if start - float(E) >= self.attack_budget_j:
+                spent = float(self._delivered.get(lap, 0.0)) - start
+                if spent >= self.attack_budget_j:
                     return base
                 return max(base, min(P_MGUK_MAX, p_mguk_ceiling(v)))
         return DeploymentPolicy.demand(self, track, s, v, E, gap_ahead,

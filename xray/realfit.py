@@ -36,7 +36,7 @@ from scipy.signal import savgol_filter
 
 from .constants import (E_HARVEST_LAP, E_STORE_MAX, G, P_ICE_MAX, P_MGUK_MAX,
                         TAPER_V_END, p_mguk_ceiling)
-from .regs import RegSet
+from .regs import RegSet, p_dep_max
 
 
 def _p_harv_max(regs: RegSet | None) -> float:
@@ -50,6 +50,21 @@ def _p_harv_max(regs: RegSet | None) -> float:
     that `regs.rules_for_simulator` exists to prevent.
     """
     return float(P_MGUK_MAX if regs is None else regs.p_harv_max)
+
+
+def _conditional_deployment_step(E: np.ndarray, h: np.ndarray, e_lo: np.ndarray,
+                                 e_hi: np.ndarray, split: np.ndarray
+                                 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Deployment inside observational/regulatory/physical support intersection."""
+    avail = np.maximum(E + h, 0.0)
+    lo = np.minimum(e_lo, e_hi)
+    hi = np.maximum(e_lo, e_hi)
+    feas_hi = np.minimum(hi, avail)
+    empty = lo > feas_hi + 1e-9
+    d_eff = np.where(empty, avail,
+                     lo + split * np.maximum(feas_hi - lo, 0.0))
+    infeasible = np.where(empty, lo - avail, 0.0)
+    return avail, d_eff, infeasible, empty
 
 RESERVE_SIGMA_REAL = 5.0e5   # J; a cut-out locates the buffer to about this
 COAST_THROTTLE = 8.0       # % — below this the ICE is effectively off
@@ -108,6 +123,7 @@ class Kin:
     mass: np.ndarray
     cda_scale: np.ndarray
     sin_grade: np.ndarray
+    in_deployment_zone: np.ndarray
     ceiling: np.ndarray
     throttle: np.ndarray | None
     brake: np.ndarray | None
@@ -123,6 +139,7 @@ class Kin:
     # session has no weather trace.
     rho_series: np.ndarray | None = None
     rho_source: str = "scalar"
+    zone_source: str = "unavailable"
 
 
 # kg. ASSUMED: a 2026 car's fuel load at the start of a race. No public channel
@@ -174,9 +191,41 @@ def mass_series(lap_frac, dry_mass_kg: float,
     return dry_mass_kg + fuel_start_kg + (fuel_end_kg - fuel_start_kg) * f
 
 
+def deployment_zone_mask(track, s) -> tuple[np.ndarray, str]:
+    """Public deployment-zone eligibility at the current sample.
+
+    This is a geometry lookup, not an inferred state. It uses only the current
+    distance sample and the circuit's published/declared zone metadata, so it is
+    causal for both FastF1 and synthetic observations once they have passed
+    through the common distance grid. The regulation variant still lives in
+    ``RegSet``; this mask says only whether the sample is inside an eligible
+    deployment-zone straight.
+    """
+    ss = np.asarray(s, dtype=float)
+    out = np.zeros(ss.shape, dtype=bool)
+    zones = getattr(track, "zones", None)
+    length = float(getattr(track, "length", np.nan))
+    if not zones or not np.isfinite(length) or length <= 0.0:
+        return out, "unavailable_no_circuit_zone_metadata"
+    x = ss % length
+    for z in zones:
+        if isinstance(z, dict):
+            start = float(z["s_straight_start"])
+            end = float(z["s_straight_end"])
+        else:
+            start = float(z.s_straight_start)
+            end = float(z.s_straight_end)
+        if end >= start:
+            out |= (x >= start) & (x < end)
+        else:
+            out |= (x >= start) | (x < end)
+    return out, "circuit_zone_geometry_current_distance"
+
+
 def build_kin(df, track, mass_kg, rho, smooth_m: float = 60.0,
               w_along_mps=None, wind_source: str = "unavailable",
-              rho_series=None, rho_source: str = "scalar") -> Kin:
+              rho_series=None, rho_source: str = "scalar",
+              regs: RegSet | None = None) -> Kin:
     """Kinematics from one car's distance-gridded telemetry.
 
     Differentiation happens **per lap**. The frame stacks every lap on the same
@@ -234,7 +283,11 @@ def build_kin(df, track, mass_kg, rho, smooth_m: float = 60.0,
     # step to brake_decel_max, and smoothing a derivative across a step
     # manufactures the contradiction. Real braking ramps. Fix it on the synthetic
     # side, where it comes from, and leave the shipping path alone.
-    return Kin(s=s, v=np.nan_to_num(v, nan=1.0), a=np.nan_to_num(a, nan=0.0),
+    v_clean = np.nan_to_num(v, nan=1.0)
+    in_zone, zone_source = deployment_zone_mask(track, s)
+    ceiling = (p_mguk_ceiling(v_clean) if regs is None
+               else p_dep_max(v_clean, in_zone, regs))
+    return Kin(s=s, v=v_clean, a=np.nan_to_num(a, nan=0.0),
                dt=dt, t=t,
                # Scalar or per-sample. A race burns tens of kg of fuel and both
                # the rolling-resistance and inertial terms in `_terms` scale with
@@ -244,7 +297,8 @@ def build_kin(df, track, mass_kg, rho, smooth_m: float = 60.0,
                                     (len(s),)).astype(float).copy(),
                cda_scale=np.asarray(track.cda_scale(s), dtype=float),
                sin_grade=np.sin(np.asarray(track.grade(s), dtype=float)),
-               ceiling=p_mguk_ceiling(np.nan_to_num(v, nan=1.0)),
+               in_deployment_zone=in_zone,
+               ceiling=ceiling,
                throttle=df["throttle"].to_numpy(dtype=float) if "throttle" in df else None,
                brake=df["brake"].to_numpy(dtype=float) if "brake" in df else None,
                valid=valid, lap=lap,
@@ -255,7 +309,8 @@ def build_kin(df, track, mass_kg, rho, smooth_m: float = 60.0,
                rho_series=(None if rho_series is None
                            else np.broadcast_to(np.asarray(rho_series, dtype=float),
                                                 s.shape).copy()),
-               rho_source=rho_source)
+               rho_source=rho_source,
+               zone_source=zone_source)
 
 
 def ice_power(kin: Kin, eta: float = 0.95) -> np.ndarray:
@@ -479,7 +534,8 @@ def fit_nuisance_real(kin: Kin, rho: float, crr: float = 0.012, eta: float = 0.9
 
 def deployment_trace(kin: Kin, fit: RealNuisanceFit, crr: float = 0.012,
                      eta: float = 0.95, smooth_win: int = 5,
-                     regs: RegSet | None = None) -> dict:
+                     regs: RegSet | None = None,
+                     centre: str = "midpoint") -> dict:
     """Deployment and recovery per sample, as an identified BAND.
 
     A speed trace measures total power at the wheels. It cannot see which part
@@ -520,13 +576,47 @@ def deployment_trace(kin: Kin, fit: RealNuisanceFit, crr: float = 0.012,
 
     H = np.where(braking, np.clip(-P_obs, 0.0, _p_harv_max(regs)), 0.0)
 
-    mid = 0.5 * (d_lo + d_hi)
+    # Where does the UPPER edge of the band come from? Two different things, and
+    # conflating them is P3.5's Problem 2. `p_wheel` is observational: the car
+    # demonstrably put that much through the axle. The ceiling is regulatory: it
+    # says `deployment <= ceiling` and NOTHING about where inside that the latent
+    # value sits. Measured on a real window, the upper edge is regulation-only on
+    # 52.9% of live samples, and there the midpoint sits 127.0 kW ABOVE the only
+    # observational content (a 65.5 kW lower bound) because it is being averaged
+    # against a 320.3 kW bound.
+    upper_is_regulation = on_power & (p_wheel >= kin.ceiling - 1e-6) & ~braking
+
+    # The cut-out detector's arm/fire thresholds (150 kW / 25 kW) were chosen
+    # against the MIDPOINT signal. Correcting which quantity is allowed to locate
+    # the latent deployment must not silently recalibrate a separate observation
+    # model: on the evidence centre the mean drops 127.9 -> 68.7 kW, the fixed
+    # thresholds fire far more often, and degeneracy rose from 22.6% to 43.8%.
+    # So the detector keeps its own signal and the report gets the corrected one.
+    detect_signal = 0.5 * (d_lo + d_hi)
+    if smooth_win > 2:
+        detect_signal = np.clip(_sg(np.nan_to_num(detect_signal), smooth_win),
+                                0.0, None)
+
+    if centre == "midpoint":
+        mid = 0.5 * (d_lo + d_hi)
+    elif centre == "evidence":
+        # A bound contributes support, not location. Where the upper edge is
+        # regulatory the centre falls back to the observational lower bound; the
+        # ceiling still caps the band, so uncertainty is preserved upward rather
+        # than converted into a midpoint. No empirical correction and no tuned
+        # constant: the change is which quantity is allowed to locate the latent.
+        mid = np.where(upper_is_regulation, d_lo, 0.5 * (d_lo + d_hi))
+    else:
+        raise ValueError(f"unknown centre {centre!r}; use 'midpoint' or 'evidence'")
     if smooth_win > 2:
         mid = np.clip(_sg(np.nan_to_num(mid), smooth_win), 0.0, None)
     keep = kin.valid
     return {"P_obs": P_obs, "deploy": np.where(keep, mid, np.nan),
             "deploy_lo": np.where(keep, d_lo, np.nan),
             "deploy_hi": np.where(keep, d_hi, np.nan),
+            "upper_is_regulation": upper_is_regulation,
+            "centre_semantics": centre,
+            "detect_signal": np.where(keep, detect_signal, np.nan),
             "harvest": np.where(keep, H, np.nan), "braking": braking,
             "P_ice": np.clip(p_wheel - mid, 0.0, P_ICE_MAX)}
 
@@ -601,7 +691,10 @@ def pool_field(fits: dict, min_ident: float = 0.15) -> dict:
 # ---------------------------------------------------------------- belief
 def belief_from_deployment(kin: Kin, tr: dict, fit: RealNuisanceFit,
                            n_particles: int = 400, seed: int = 0,
-                           reserve_max_frac: float = 0.35) -> dict:
+                           reserve_max_frac: float = 0.35,
+                           boundary: str = "clip",
+                           reserve_obs: str = "point",
+                           reserve_sigma_j: float | None = None) -> dict:
     """Stage 1's Stage C, run on a real deployment trace.
 
     The calibration front-end had to be replaced for real data (§2), but the
@@ -612,6 +705,13 @@ def belief_from_deployment(kin: Kin, tr: dict, fit: RealNuisanceFit,
     unspent buffer, so deployable energy is what gets reported.
     """
     rng = np.random.default_rng(seed)
+    # Was a module constant read directly inside the loop, so a caller could not
+    # vary it. P3.5 Part 1 reported "RESERVE_SIGMA_REAL sensitivity = 0.000 MJ"
+    # and read that as the observation being inert; in fact the override had
+    # nowhere to land -- a dead path in the harness, not a property of the
+    # estimator. Exposing it is what makes that sensitivity measurable at all.
+    sigma_res = float(RESERVE_SIGMA_REAL if reserve_sigma_j is None
+                      else reserve_sigma_j)
     D, H, dt = tr["deploy"], tr["harvest"], kin.dt
     Dlo = np.nan_to_num(tr.get("deploy_lo", D))
     Dhi = np.nan_to_num(tr.get("deploy_hi", D))
@@ -669,6 +769,10 @@ def belief_from_deployment(kin: Kin, tr: dict, fit: RealNuisanceFit,
 
     # a cut-out: deployment stops while the car is still on the throttle below
     # the taper, which says the store has reached this driver's floor
+    # Detector signal: its own channel when the trace supplies one, so the
+    # detector is not re-calibrated by a change to the reported centre.
+    Dd = np.nan_to_num(np.asarray(tr.get("detect_signal", tr["deploy"]),
+                                  dtype=float))
     below_taper = kin.v < 80.6
     on_power = (np.nan_to_num(kin.throttle) > 70.0) if kin.throttle is not None else (kin.a > 0.5)
     dry = np.zeros(n, dtype=bool)
@@ -676,15 +780,23 @@ def belief_from_deployment(kin: Kin, tr: dict, fit: RealNuisanceFit,
     for k in range(n):
         if not (ok[k] and below_taper[k] and on_power[k]):
             continue
-        if D[k] > 1.5e5:
+        if Dd[k] > 1.5e5:
             armed = True
-        elif armed and D[k] < 2.5e4:
+        elif armed and Dd[k] < 2.5e4:
             dry[k] = True
             armed = False
 
     soc_mean = np.empty(n); soc_lo = np.empty(n); soc_hi = np.empty(n)
     use_mean = np.empty(n); use_lo = np.empty(n); use_hi = np.empty(n)
+    # Weighted probability mass sitting exactly AT the deployable floor.
+    # `usable = max(E - reserve, 0)` rectifies, so a window where most particles
+    # have E <= reserve reports a zero-width band -- which reads as "empty, known
+    # precisely" when the truth is "empty is likely, and the reserve is not
+    # identified". E and reserve are only identified as a SUM, so this mass is the
+    # honest way to carry that: the band stays the band, and the atom is named.
+    use_p_floor = np.empty(n)
     cloud = np.empty((n, min(Np, 400)), dtype=np.float32)   # for the 3D view
+    use_p_floor[:] = np.nan
     logw = np.zeros(Np)
     floor_j = fit.residual_rms * float(np.nanmedian(dtv[dtv > 0]) or 0.05)
 
@@ -696,6 +808,13 @@ def belief_from_deployment(kin: Kin, tr: dict, fit: RealNuisanceFit,
         if len(idx) == 0:
             continue
         floor_hits = np.zeros(Np)
+        # Energy a particle demanded but could not supply, accumulated over the
+        # lap and charged once, on the same schedule as floor_hits.
+        deficit = np.zeros(Np)
+        # Energy by which the observational MINIMUM exceeded what a particle had,
+        # i.e. a genuine observation/particle contradiction. Distinct from
+        # `deficit`, which Part 2 charged for merely not affording a fixed centre.
+        infeasible = np.zeros(Np)
         # A cut-out is one observation. On real, noisy data the detector can
         # re-arm and fire many times in a lap, and a sharp quadratic penalty each
         # time collapses the cloud to one particle and reports a 0.1 MJ band with
@@ -706,6 +825,10 @@ def belief_from_deployment(kin: Kin, tr: dict, fit: RealNuisanceFit,
         # being silently resolved
         d_band = Dlo[idx][None, :] + split[:, None] * (Dhi[idx] - Dlo[idx])[None, :]
         d_l = d_band * dtv[idx][None, :] * scale[:, None]
+        # Band EDGES in joules per step, per particle. The conditional branch
+        # needs the edges themselves, not the pre-collapsed split position.
+        d_lo_l = np.nan_to_num(Dlo[idx])[None, :] * dtv[idx][None, :] * scale[:, None]
+        d_hi_l = np.nan_to_num(Dhi[idx])[None, :] * dtv[idx][None, :] * scale[:, None]
         h_l = H[idx] * dtv[idx] * hscale[:, None]
         for j, k in enumerate(idx):
             d = d_l[:, j]; h = h_l[:, j]
@@ -714,10 +837,81 @@ def belief_from_deployment(kin: Kin, tr: dict, fit: RealNuisanceFit,
             # over and annihilates every particle but one, which is how a belief
             # band collapses to +/-0.00 MJ and starts lying with total confidence.
             floor_hits += (E <= 1.0) & (d > floor_j)
-            E = np.clip(E + h - d, 0.0, E_STORE_MAX)
+            if boundary == "clip":
+                E = np.clip(E + h - d, 0.0, E_STORE_MAX)
+            elif boundary == "conditional":
+                # CONDITIONAL DEPLOYMENT. The band `[d_lo, d_hi]` says what the
+                # telemetry and the rulebook together permit; it does not say the
+                # car drew a particular value. So deployment is chosen INSIDE the
+                # intersection of three supports, per particle, per step:
+                #
+                #   observational  [e_lo, e_hi]   (band x dt x the particle's CdA)
+                #   regulatory     [0, ceiling]   (already folded into d_hi)
+                #   physical       [0, avail]     (avail = E_i + h_i)
+                #
+                # The particle's own `split` is its position inside that FEASIBLE
+                # interval rather than inside the unconstrained band. This is the
+                # whole fix: a low-energy particle is no longer killed for failing
+                # to afford a deployment it was never obliged to make -- it simply
+                # deploys less, which is what the observation actually allows.
+                #
+                # Part 2 charged such particles a deficit penalty, which selected
+                # the population that could afford the fixed centre and biased
+                # synthetic energy by +0.653 MJ. Here a penalty is charged only
+                # when the intersection is EMPTY, i.e. when even the observational
+                # MINIMUM exceeds what the particle has -- a genuine contradiction
+                # rather than a bookkeeping mismatch.
+                e_lo = np.minimum(d_lo_l[:, j], d_hi_l[:, j])
+                e_hi = np.maximum(d_lo_l[:, j], d_hi_l[:, j])
+                avail, d_eff, deficit_now, empty = _conditional_deployment_step(
+                    E, h, e_lo, e_hi, split)
+                # Non-empty: position inside the feasible interval. Empty: take
+                # everything available and record the contradiction.
+                infeasible += deficit_now
+                E = np.clip(avail - d_eff, 0.0, E_STORE_MAX)
+            else:
+                # TRUNCATED TRANSITION. `np.clip` is a projection: it maps every
+                # particle that would go below zero onto the SAME point, piling
+                # probability onto a boundary atom. Measured on a real window,
+                # 71.5% of particles sat at exactly 0 J at the samples whose
+                # reported band width was under 0.01 MJ -- while the cloud still
+                # held 1.63 MJ of genuine spread in E. The certainty was
+                # manufactured by the projection, not earned.
+                #
+                # The physics says something narrower than "clip the state": a
+                # car cannot draw energy it does not have, so the DEPLOYMENT is
+                # what gets truncated, not the store. A particle forced to
+                # truncate is one whose assumed (scale, split) demands more than
+                # its own store can supply -- that is evidence against the
+                # particle, so the shortfall enters the weight instead of being
+                # silently discarded. No epsilon noise, no floor constant.
+                avail = E + h
+                d_eff = np.minimum(d, np.maximum(avail, 0.0))
+                deficit += d - d_eff
+                E = np.clip(avail - d_eff, 0.0, E_STORE_MAX)
             if dry[k] and dry_budget > 0:
                 dry_budget -= 1
-                logw -= 0.5 * ((E - reserve) / RESERVE_SIGMA_REAL) ** 2
+                if reserve_obs == "point":
+                    logw -= 0.5 * ((E - reserve) / sigma_res) ** 2
+                else:
+                    # ONE-SIDED. A deployment cut-out says the store has REACHED
+                    # the driver's floor: `E <= reserve`. It does not say E is
+                    # located AT the reserve, which is what a two-sided Gaussian
+                    # asserts -- the same bound-as-location error as the
+                    # regulatory ceiling, in the energy likelihood instead of the
+                    # power band.
+                    #
+                    # The two-sided form is why Part 1 found this observation
+                    # apparently inert and why fixing the ceiling alone made
+                    # things worse: on the inflated midpoint the detector fired
+                    # rarely enough to be invisible, and once it fired properly
+                    # each firing pinned E to within 0.5 MJ of the reserve and
+                    # collapsed the band (NOR degeneracy 14.6% -> 34.6%).
+                    # One-sided, particles already at or below the floor are all
+                    # equally consistent and keep their spread; only particles
+                    # too HIGH to have cut out are penalised.
+                    logw -= 0.5 * (np.maximum(E - reserve, 0.0)
+                                   / sigma_res) ** 2
             W = np.exp((logw - 6.0 * floor_hits / max(len(idx), 1) * 10.0))
             W = W / W.sum() if W.sum() > 0 else np.full(Np, 1.0 / Np)
             soc_mean[k] = float(np.sum(E * W))
@@ -725,12 +919,31 @@ def belief_from_deployment(kin: Kin, tr: dict, fit: RealNuisanceFit,
             soc_lo[k] = float(E[order][np.searchsorted(c, 0.10)])
             soc_hi[k] = float(E[order][np.searchsorted(c, 0.90)])
             U = np.maximum(E - reserve, 0.0)
+            use_p_floor[k] = float(np.sum(W * (E <= reserve)))
             use_mean[k] = float(np.sum(U * W))
             uo = np.argsort(U); cu = np.cumsum(W[uo])
             use_lo[k] = float(U[uo][np.searchsorted(cu, 0.10)])
             use_hi[k] = float(U[uo][np.searchsorted(cu, 0.90)])
             cloud[k] = U[:cloud.shape[1]].astype(np.float32)
         logw = logw - 6.0 * floor_hits / max(len(idx), 1) * 10.0
+        if boundary == "conditional":
+            lap_e = float(np.nansum((np.nan_to_num(Dlo[idx])
+                                     + split_star * (np.nan_to_num(Dhi[idx])
+                                                     - np.nan_to_num(Dlo[idx])))
+                                    * dtv[idx])) if len(idx) else 0.0
+            sigma_inf = max(0.12 * lap_e, 5.0e4)
+            logw = logw - 0.5 * (infeasible / sigma_inf) ** 2
+        elif boundary != "clip":
+            # Scale: a lap's reconstructed deployment is good to a few per cent,
+            # so a shortfall of that size is noise and a larger one is evidence.
+            # Sized from the lap's own energy like the existing process noise, not
+            # chosen to produce an outcome.
+            lap_e = float(np.nansum((np.nan_to_num(Dlo[idx])
+                                     + split_star * (np.nan_to_num(Dhi[idx])
+                                                     - np.nan_to_num(Dlo[idx])))
+                                    * dtv[idx])) if len(idx) else 0.0
+            sigma_def = max(0.12 * lap_e, 5.0e4)
+            logw = logw - 0.5 * (deficit / sigma_def) ** 2
         # report the split-corrected deployment, which is what the particles
         # actually used -- not the raw band midpoint
         d_star = (np.nan_to_num(Dlo[idx])
@@ -760,6 +973,13 @@ def belief_from_deployment(kin: Kin, tr: dict, fit: RealNuisanceFit,
     return {"deploy_star": np.where(np.isfinite(tr["deploy"]), deploy_star, np.nan),
             "soc_mean": soc_mean, "soc_p10": soc_lo, "soc_p90": soc_hi,
             "usable_mean": use_mean, "usable_p10": use_lo, "usable_p90": use_hi,
+            "usable_p_at_floor": use_p_floor,
+            "reserve_identified": False,
+            "reserve_note": ("E and reserve are identified only as a sum; "
+                             "`usable_p_at_floor` carries the probability the "
+                             "store is below this driver's buffer, so a "
+                             "zero-width usable band can be distinguished from "
+                             "a confident zero"),
             "cloud": cloud, "dry": dry, "deployed_lap": dep_lap,
             "harvested_lap": har_lap, "reserve_mean": float(np.mean(reserve)),
             "balance": balance}

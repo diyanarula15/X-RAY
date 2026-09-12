@@ -101,6 +101,17 @@ class DecisionOpportunity:
     source: str = "decision_service"
     confidence: float = 0.0
 
+    # Energy an attack can actually deploy over THIS zone from THIS entry speed,
+    # measured by `decision.executable_attack_ceiling`. None when nobody measured
+    # it, in which case the energy axis is used and the budget axis may offer
+    # budgets the car cannot execute -- see `deploy_ceiling_j`.
+    executable_ceiling_j: float | None = None
+    # The same quantity measured at the RIVAL's observed entry speed. Separate
+    # because the ceiling is set almost entirely by entry speed, so sharing one
+    # number between two cars makes our own arrival speed move the rival's
+    # predicted speed -- which it cannot.
+    rival_executable_ceiling_j: float | None = None
+
     @property
     def own_wear(self) -> float | None:
         return None if self.own_tyre is None else float(self.own_tyre.wear_fraction)
@@ -111,8 +122,42 @@ class DecisionOpportunity:
 
     @property
     def deploy_ceiling_j(self) -> float:
-        """Most energy this zone can physically absorb, from the P1 calibration."""
+        """Most energy an attack here can actually deploy.
+
+        Prefers the measured executable ceiling. The fallback,
+        `max(zone.energy_grid)`, is the axis `calibrate_zone` swept, and that
+        covers RUN-UP PLUS STRAIGHT from the previous corner exit -- 1700 m
+        entered at 200 km/h for Circuit Sigma zone A, where the low-speed part
+        sits under the full 350 kW. An attack in-race spans the 1100 m straight
+        entered at 314 km/h, and the taper is 0 kW after 387 m of it: 0.448 MJ,
+        not 1.602 MJ. Using the calibration axis as the budget ceiling is what
+        made P2 offer budgets up to 1.602 MJ in a zone that could execute 0.45,
+        so every budget above roughly a quarter of the axis was the same action
+        wearing different labels.
+        """
+        if self.executable_ceiling_j is not None:
+            return float(self.executable_ceiling_j)
         return float(np.max(self.zone.energy_grid))
+
+    @property
+    def rival_deploy_ceiling_j(self) -> float | None:
+        """None means "do not clip" -- the speed surface clamps on its own axis.
+
+        Deliberately NOT defaulted to our own ceiling. It was, implicitly, and it
+        made HOLD's predicted delta_v move with our deployment ceiling: on the
+        P1 service fixture, tightening our zone-A ceiling from the calibration
+        axis (1.422 MJ) to the measured executable value (0.354 MJ) moved HOLD's
+        delta_v from -10.55 to -2.31 m/s, because `min(rival_energy, ceiling)`
+        was quietly throttling the rival with our number. HOLD deploys nothing,
+        so nothing about our ceiling may touch it.
+        """
+        return (None if self.rival_executable_ceiling_j is None
+                else float(self.rival_executable_ceiling_j))
+
+    @property
+    def deploy_ceiling_is_measured(self) -> bool:
+        """False means the ceiling is the calibration axis, not this context."""
+        return self.executable_ceiling_j is not None
 
 
 def order_opportunities(opps: Sequence[DecisionOpportunity]) -> list[DecisionOpportunity]:
@@ -245,7 +290,9 @@ def evaluate_action(opp: DecisionOpportunity, action: DecisionAction,
 
     # Both speeds off the P1 surfaces, each car on its own curve and its own wear.
     own_v = float(opp.zone.own_speed(actual, w_own))
-    riv_v = float(opp.zone.rival_speed(min(riv_e, ceiling), w_riv))
+    riv_cap = opp.rival_deploy_ceiling_j
+    riv_deployed = riv_e if riv_cap is None else min(riv_e, riv_cap)
+    riv_v = float(opp.zone.rival_speed(riv_deployed, w_riv))
     dv = own_v - riv_v
     q = float(p_pass(dv, opp.gap_s, opp.zone)) if action.kind == ATTACK else 0.0
     return ActionOutcome(

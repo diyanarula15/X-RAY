@@ -350,6 +350,31 @@ def counterfactual(rid: str, car: str, rival: str, lap: int):
             "engine_call": dec["call"]}
 
 
+# ------------------------------------------------------------------ P3 evidence
+# Every one of these returns the canonical service result unmodified. No
+# thresholds, no rounding, no reshaping: a status word that differs between the
+# API and the registry is a second opinion about what the model is.
+
+
+@app.get("/api/p3/status")
+def p3_status_endpoint():
+    from xray.decision_service import p3_status
+    return p3_status()
+
+
+@app.get("/api/race/{rid}/p3")
+def p3_race_endpoint(rid: str):
+    from xray.decision_service import p3_race_evidence
+    return p3_race_evidence(_race(rid))
+
+
+@app.get("/api/race/{rid}/replay")
+def p3_replay_endpoint(rid: str, car: str, rival: str, cutoff: float,
+                       horizon: float = 30.0):
+    from xray.decision_service import historical_replay
+    return historical_replay(_race(rid), car, rival, cutoff, horizon_s=horizon)
+
+
 dist = ROOT / "app" / "dist"
 if dist.exists():
     app.mount("/", StaticFiles(directory=str(dist), html=True), name="app")

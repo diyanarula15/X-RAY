@@ -84,6 +84,55 @@ export type P2Decision = {
   p2_version: string;
 };
 
+/** P3 evidence and model status. Mirrors `decision_service.p3_status` and
+ *  `xray.registry`. Every status word here is a backend string -- the UI renders
+ *  it and never derives one, because a status the frontend computed would be a
+ *  second opinion about what a model is. */
+export type P3Validation = {
+  available: boolean; kind?: string; type?: string; result: string;
+  metrics: Record<string, any>; artifact?: string | null;
+  fingerprint?: string | null; provenance?: string | null; notes: string[];
+};
+export type P3Entry = {
+  name: string; component: string; status: string; production: boolean;
+  version: string | null; identifiability: string | null; reason: string | null;
+  notes: string[]; validation: P3Validation | null;
+};
+export type P3EnergyStatus = {
+  component: string; status: string; headline: string;
+  synthetic_validation: P3Validation & { direct_truth: boolean };
+  real_validation: P3Validation;
+  identifiability: { status: string; reason: string };
+  real_ground_truth: { available: boolean; reason: string };
+  registry_version: string;
+};
+export type P3Status = {
+  p3_version: string;
+  registry: { registry_version: string; entries: P3Entry[];
+              production_components: string[]; research_only_components: string[];
+              data_quality_limitations: string[];
+              energy_inference: P3EnergyStatus };
+  energy_inference: P3EnergyStatus;
+  data_quality_limitations: string[];
+  pass_model: P3Entry; regulation_variant: P3Entry;
+  mass_model: P3Entry; deployment_ceiling: P3Entry;
+};
+export type P3Replay = {
+  p3_version: string; label: string; later_telemetry_use: string;
+  cutoff_time_s: number; target_window_s: number[];
+  information_at_cutoff: { n_samples: Record<string, number | null>;
+                           laps_completed: any[]; pit_events_seen: any[];
+                           weather: Record<string, any>;
+                           input_fingerprint: string };
+  inferred_energy_mj: Record<string, number> | null;
+  p2_recommendation: P2Decision | null; p2_error: string | null;
+  later_observable_outcome: Record<string, { n_samples: number;
+    v_max_mps: number | null; v_mean_mps: number | null }>;
+  evaluation_fingerprint: string;
+  quality_flags: Record<string, boolean>;
+  energy_inference_status: string;
+};
+
 export const api = {
   races: () => j<RaceSummary[]>('/api/races'),
   race: (id: string) => j<RaceDetail>(`/api/race/${id}/summary`),
@@ -96,6 +145,11 @@ export const api = {
     j<any>(`/api/race/${id}/decision?car=${car}&rival=${rival}`),
   p2: (id: string, car: string, rival: string) =>
     j<P2Decision>(`/api/race/${id}/p2?car=${car}&rival=${rival}`),
+  p3Status: () => j<P3Status>('/api/p3/status'),
+  p3Race: (id: string) => j<any>(`/api/race/${id}/p3`),
+  replay: (id: string, car: string, rival: string, cutoff: number, horizon = 30) =>
+    j<P3Replay>(`/api/race/${id}/replay?car=${car}&rival=${rival}` +
+                `&cutoff=${cutoff}&horizon=${horizon}`),
   rdd: (cutoff: number, bandwidth = 0.6) =>
     j<any>(`/api/rdd?cutoff=${cutoff}&bandwidth=${bandwidth}`),
 };

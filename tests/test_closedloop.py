@@ -77,11 +77,14 @@ def test_the_deployment_budget_binds(cfg):
             if lap == self.attack_lap and not is_corner:
                 z = track.zone_at(s)
                 if z is not None and s < z.s_straight_end and z.name == self.attack_zone:
-                    start = self._spend.get((lap, self.attack_zone))
-                    if start is not None:
-                        key = ("reverted" if start - float(E) >= self.attack_budget_j
-                               else "floor")
-                        _s[key] += 1
+                    # Ask the policy, do not re-derive the rule. Restating it
+                    # here is what let this test keep passing a budget that had
+                    # stopped binding: the spy compared a delivered-energy
+                    # baseline against a store level, so all 2448 samples
+                    # classified as "still on the floor".
+                    if self._spend.get((lap, self.attack_zone)) is not None:
+                        _s["reverted" if self.budget_exhausted(lap)
+                           else "floor"] += 1
             return r
 
         BudgetedAttack.demand = spy

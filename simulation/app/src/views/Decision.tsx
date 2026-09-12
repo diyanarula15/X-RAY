@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { api } from '../lib/api';
-import type { P2Decision } from '../lib/api';
+import type { P2Decision, P3Status, P3Replay } from '../lib/api';
 import { P2Panel } from '../components/P2Panel';
+import { EnergyStatusPanel, ReplayPanel } from '../components/P3Panel';
 import { C } from '../lib/theme';
 
 /** View 4 — click any moment, see why the engine says what it says. */
@@ -13,11 +14,20 @@ export function Decision({ raceId, car, rival }:
   // P2 is fetched separately and is allowed to fail: a payload with no P2
   // support, or an older API, must still render the P1 trace below.
   const [p2, setP2] = useState<P2Decision | null>(null);
+  // P3 status sits beside the P2 answer deliberately. A reader who sees an
+  // energy-derived recommendation must see, without navigating anywhere, that
+  // the energy behind it has no real held-out validation.
+  const [p3, setP3] = useState<P3Status | null>(null);
+  // Replayed at the P2 decision time, because that is the moment whose
+  // information set the recommendation was actually built from. Any other cutoff
+  // would show a decision beside an information set that did not produce it.
+  const [replay, setReplay] = useState<P3Replay | null>(null);
   const ref = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
     api.decision(raceId, car, rival).then(setD).catch(() => setD(null));
     api.p2(raceId, car, rival).then(setP2).catch(() => setP2(null));
+    api.p3Status().then(setP3).catch(() => setP3(null));
   }, [raceId, car, rival]);
 
   useEffect(() => {
@@ -74,6 +84,12 @@ export function Decision({ raceId, car, rival }:
     }
   }, [d]);
 
+  useEffect(() => {
+    const t = p2?.decision_time_s;
+    if (t == null) { setReplay(null); return; }
+    api.replay(raceId, car, rival, t).then(setReplay).catch(() => setReplay(null));
+  }, [p2, raceId, car, rival]);
+
   if (!d) return <div style={{ padding: 34, color: C.dim }}>No decision trace for this pair.</div>;
   return (
     <div style={{ padding: '26px 34px', height: '100%', overflow: 'auto' }}>
@@ -85,8 +101,16 @@ export function Decision({ raceId, car, rival }:
           opportunity, which zone, how many joules. The P1 threshold trace below
           remains as the per-lap detail it always was. */}
       <div style={{ marginTop: 14 }}>
+        <EnergyStatusPanel p3={p3} />
+      </div>
+      <div style={{ marginTop: 12 }}>
         <P2Panel p2={p2} />
       </div>
+      {replay && (
+        <div style={{ marginTop: 12 }}>
+          <ReplayPanel replay={replay} />
+        </div>
+      )}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 310px', gap: 20,
                     marginTop: 20 }}>
         <div className="panel" style={{ padding: 12 }}>

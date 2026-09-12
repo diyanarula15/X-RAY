@@ -400,3 +400,107 @@ Secondary: `fixed_cost` attacks nearly twice as often and wins one more pass,
 but is ahead **less** of the time (0.109 vs 0.157) -- spending everything costs
 track position. And `oracle_p2` is within 0.00006 of `p2`, so in this setup the
 rival-energy estimate is not the binding constraint on the decision.
+
+---
+
+# P3 — evidence, provenance and status
+
+`xray/registry.py` is now the single source for every status word. This section is the prose
+copy; the registry is the machine copy, and the API and UI read the registry, never this
+file. Where they disagree, the registry is right and this file is stale.
+
+## Statuses, and what they do NOT mean
+
+| Status | Means | Does not mean |
+|---|---|---|
+| `REGULATION` | in the rulebook | measured |
+| `PHYSICS` | derived from force/energy balance | validated end-to-end |
+| `SYNTHETIC` | designed coefficients | fitted to anything |
+| `HEURISTIC` | a rule of thumb | physical |
+| `INFERRED` | produced by inference from observed data | **accurate** |
+| `CALIBRATED` | fitted to data | validated out of sample |
+| `EMPIRICAL` | fitted **and** validated out of sample | — |
+| `DISABLED` | implemented, deliberately out of the path | broken |
+| `UNAVAILABLE` | cannot be produced from the data we have | unimplemented |
+| `RESEARCH_ONLY` | real code, real tests, never reaches a real race | wrong |
+
+There is deliberately **no `VALIDATED` status.** No single word is both honest and short for
+the energy estimator's situation — it is inferred, it has a mixed direct synthetic result,
+and it has a negative real held-out result — so the status says what kind of number it is
+and a separate validation record says what is known about it. A validation record is
+allowed to say NO, and `available=False, result=NOT_ATTEMPTED` ("we never looked") is kept
+distinct from `available=True, result=NO_ROBUST_IMPROVEMENT` ("we looked and it lost").
+
+## Current statuses
+
+| Component | Status | In a real race | Validation |
+|---|---|---|---|
+| Canonical energy inference | `INFERRED` | yes | real held-out: **NO ROBUST IMPROVEMENT** |
+| Stage-1 estimator | `RESEARCH_ONLY` | no | not attempted |
+| Set-membership / RBPF stack | `RESEARCH_ONLY` | no | not attempted |
+| Pass probability `p_pass` | `SYNTHETIC` | yes | empirical fit **REFUSED** |
+| Tyres | `SYNTHETIC` | yes | not attempted |
+| Drag area CdA | `INFERRED` | yes | identified set; identifiability `LIMITED` |
+| Downforce ClA | `DISABLED` | no | not demonstrated |
+| Wake / dirty air | `SYNTHETIC` | yes | not attempted |
+| Wetness | `HEURISTIC` | yes | not calibrated |
+| Wind projection | `UNAVAILABLE` | no | declines rather than assuming 0° |
+| Rival pit context | `UNAVAILABLE` | no | returns UNKNOWN |
+| Future rival-energy forecast | `HEURISTIC` | yes | not attempted |
+| Regulation variant | `REGULATION` | yes | correctness-driven |
+| Vehicle mass model | `PHYSICS` (790 kg) | yes | **MEASURED — NOT ADOPTED** |
+| Deployment-zone executable ceiling | `PHYSICS` | yes | measured through the shared integrator |
+
+## The mass investigation: MEASURED — NOT ADOPTED
+
+**790 kg remains active.** The alternative mass was measured and rejected.
+
+A different mass won on the synthetic metric. It was not adopted, because the win depended
+on simulator-specific fuel assumptions and did not transfer defensibly to the real path:
+the synthetic fuel schedule is a config choice, so a mass tuned against it is partly tuned
+against that choice. This is the cleanest example in the project of the P3 scientific rule:
+
+> a synthetic metric improvement is **not** a real-path justification.
+
+Recording the investigation as `MEASURED — NOT ADOPTED` rather than deleting it matters,
+because the next person to see the synthetic number will otherwise re-derive it and adopt
+it. The measurement stands; the decision not to act on it is the finding.
+
+## The regulation-variant fix: correctness, not metrics
+
+The regulation-variant fix is **correctness-driven and is not judged by whether identified
+intervals narrowed.** Some did not. That is the expected consequence of applying the rule
+actually in force instead of a more convenient one:
+
+> the correct rule in force beats a prettier metric under the wrong rule.
+
+A variant mismatch between simulator and fixtures once scaled every harvest measurement by
+0.71× silently, which is why the artifact provenance for the regulation variant is
+preserved rather than assumed.
+
+## Pass model: still SYNTHETIC, empirical fit REFUSED
+
+Dataset audit: 5,182 raw → 1,019 excluded → **4,163 usable, 148 positives (3.56%)** across
+5 race groups. Blockers, all about the corpus rather than the fit:
+
+- no track-status channel, so SC/VSC/yellow laps cannot be removed;
+- no reliable pit timing;
+- no decision-time physics `delta_v` in the persisted payload.
+
+`fit()` refuses and has **no force flag**. The coefficients remain the only invented
+constants in the codebase, and they propagate into every decision claim.
+
+## What P3 measured about the energy estimator
+
+Direct synthetic (mean of three seeds): deployment lap MAPE 5.71%, bias −5.32%, band
+containment 93.4%; SOC MAE 0.180 MJ, SOC band containment 43.8% (35.7–55.0% across seeds);
+CdA contained 3/3 but 658.6% of truth wide at identifiability 0.0.
+
+Indirect real (48,920 held-out strict-future examples, 5 races, leave-one-race-out): X-RAY
+minus fixed-energy MAE is **+0.437** m/s on future speed 5 s, **+0.279** on straight speed
+3 s, and −0.325 on braking-point speed. Lower MAE is better, so X-RAY loses on two of three
+targets.
+
+**Claim that may not be made:** that the energy estimator is real-data validated, or that
+real rival-energy accuracy is known. There is no public battery channel, so there is no
+real ground truth to measure against at all.
