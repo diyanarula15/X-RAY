@@ -41,7 +41,7 @@ type State = {
 };
 
 export const usePlayback = create<State>((set) => ({
-  raceId: null, view: 'cockpit', raceTime: 0, tRange: [0, 1],
+  raceId: null, view: 'replay', raceTime: 0, tRange: [0, 1],
   playing: false, speed: 2,
   lite: new URLSearchParams(location.search).get('lite') === '1',
   paintMode: 'neutral', camera: 'chase', subject: null, rival: null,
