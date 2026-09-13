@@ -33,16 +33,38 @@ def _setup(cfg, races, seed=42):
 
 
 def test_pass_model_shape():
-    """The two anchors the brief specifies, and the ordering between zones."""
+    """The two anchors the brief specifies, and the ordering between zones.
+
+    Both coefficient sets are checked at their OWN closing-speed anchor. The
+    brief set is anchored at 8 m/s and is what `sim.py` and every golden trace
+    use; the default set is the same two anchors re-solved at 1.3 m/s, the range
+    the energy-implied `decision.delta_v` actually reaches (measured max 1.357
+    m/s over 515 candidate actions). Asserting each at the other's anchor would
+    be asserting the extrapolation that made p_pass return ~0 on every real row.
+    """
+    from xray.overtake import ASSUMED_BRIEF_COEFFS, ASSUMED_ENERGY_DV_COEFFS
+
     class Z:
         def __init__(self, s):
             self.braking_severity = s
-    assert p_pass(8.0, 0.3, Z(1.0)) == pytest.approx(0.70, abs=0.01)
-    assert p_pass(8.0, 0.3, Z(0.2)) == pytest.approx(0.25, abs=0.01)
-    assert p_pass(8.0, 0.3, Z(1.0)) > p_pass(8.0, 0.3, Z(0.55)) > p_pass(8.0, 0.3, Z(0.2))
-    # monotone in closing speed and in proximity
-    assert p_pass(2.0, 0.3, Z(1.0)) < p_pass(9.0, 0.3, Z(1.0))
-    assert p_pass(6.0, 1.4, Z(1.0)) < p_pass(6.0, 0.1, Z(1.0))
+
+    for coeffs, dv in ((ASSUMED_BRIEF_COEFFS, 8.0),
+                       (ASSUMED_ENERGY_DV_COEFFS, 1.3)):
+        assert p_pass(dv, 0.3, Z(1.0), coeffs) == pytest.approx(0.70, abs=0.01)
+        assert p_pass(dv, 0.3, Z(0.2), coeffs) == pytest.approx(0.25, abs=0.01)
+        assert (p_pass(dv, 0.3, Z(1.0), coeffs) > p_pass(dv, 0.3, Z(0.55), coeffs)
+                > p_pass(dv, 0.3, Z(0.2), coeffs))
+        # monotone in closing speed and in proximity
+        assert p_pass(dv - 1.0, 0.3, Z(1.0), coeffs) < p_pass(dv + 1.0, 0.3, Z(1.0), coeffs)
+        assert p_pass(dv, 1.4, Z(1.0), coeffs) < p_pass(dv, 0.1, Z(1.0), coeffs)
+
+    # b3 is set by the Zone A / Zone C spread alone, so re-anchoring the closing
+    # speed must move b0 and nothing else -- that is what makes these one model
+    # at two scales rather than two models.
+    assert ASSUMED_BRIEF_COEFFS.b3 == pytest.approx(ASSUMED_ENERGY_DV_COEFFS.b3)
+    assert ASSUMED_BRIEF_COEFFS.b1 == ASSUMED_ENERGY_DV_COEFFS.b1
+    assert ASSUMED_BRIEF_COEFFS.b2 == ASSUMED_ENERGY_DV_COEFFS.b2
+    assert ASSUMED_BRIEF_COEFFS.b0 != ASSUMED_ENERGY_DV_COEFFS.b0
 
 
 def test_pass_model_gap_sensitivity():

@@ -1,7 +1,8 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useMemo } from 'react';
-import type { Car, RaceDetail } from '../lib/api';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { api, type Car, type RaceDetail, type Situation } from '../lib/api';
 import { sampleCar, timeRange } from '../lib/carState';
+import { useBundle } from '../lib/useBundle';
 import { C } from '../lib/theme';
 import { usePlayback } from '../store/playback';
 import { useThrottledTime } from '../store/clock';
@@ -57,6 +58,37 @@ export function Theatre({ race, subject, rival, obs }: {
   const L = race.circuit_geometry.length;
   const sS = useMemo(() => sampleCar(subject, raceTime, L), [subject, raceTime, L]);
   const rS = useMemo(() => sampleCar(rival, raceTime, L), [rival, raceTime, L]);
+
+  // The decision points for this pair, so the replay can show what the engine
+  // called at the moment being watched. Same list the Situations tab renders,
+  // from the same bundle -- the two views must not be able to disagree about
+  // what P2 said at a given decision time. Replay is never gated on it: the
+  // scene, the clock and every readout above work while this is still solving.
+  const bundle = useBundle(race.id, subject?.driver ?? '', rival?.driver ?? '');
+  const [calls, setCalls] = useState<Situation[] | null>(null);
+  const callToken = useRef(0);
+
+  useEffect(() => {
+    const mine = ++callToken.current;
+    setCalls(null);
+    if (bundle.status !== 'ready' || !subject || !rival) return;
+    api.situations(race.id, subject.driver, rival.driver)
+      .then((d) => { if (callToken.current === mine) setCalls(d.situations); })
+      .catch(() => { if (callToken.current === mine) setCalls(null); });
+  }, [race.id, subject?.driver, rival?.driver, bundle.status]);
+
+  // The call that was live at this moment: the most recent decision point at or
+  // before the clock. Not the nearest -- a call made ten seconds from now has
+  // not been made yet, and showing it would be look-ahead on screen.
+  const call = useMemo(() => {
+    if (!calls?.length) return null;
+    let best: Situation | null = null;
+    for (const s of calls) {
+      if (s.decision_time_s <= raceTime
+          && (best == null || s.decision_time_s > best.decision_time_s)) best = s;
+    }
+    return best;
+  }, [calls, raceTime]);
 
   // Real on-track gap: distance between the two cars along the lap, divided by
   // the speed of the one behind. Both are sampled at the same race time, which
@@ -144,7 +176,7 @@ export function Theatre({ race, subject, rival, obs }: {
         </div>
         {/* HISTORICAL REPLAY, said at the top of the viewport. Without it this
             screen is indistinguishable from a live or simulated run, and the
-            P2 recommendation rendered beside it reads as an action being taken
+            P2 recommendation rendered below it reads as an action being taken
             — it is not: the recorded telemetry is the only thing moving here,
             and no counterfactual branch is executed anywhere in this view. */}
         <div style={{ marginTop: 9, display: 'inline-block', padding: '5px 9px',
@@ -160,6 +192,39 @@ export function Theatre({ race, subject, rival, obs }: {
             the counterfactual branch.
           </div>
         </div>
+
+        {/* What P2 called at the last decision point the clock has passed. The
+            recommendation the badge above disclaims used to live only in
+            Cockpit and the Situations rail, so the replay ran with no call on
+            screen at all. No outcome colour and no driver-action wording: this
+            is what the engine said at that cutoff, not what anyone did. */}
+        {subject && rival && (
+          <div style={{ marginTop: 7, fontSize: 11.5, color: C.gray,
+                        maxWidth: 440, lineHeight: 1.55 }}>
+            {bundle.status === 'building' ? (
+              <span style={{ color: C.dim }}>
+                decision trace solving — {Math.round(bundle.elapsed_s ?? 0)} s
+              </span>
+            ) : call == null ? (
+              <span style={{ color: C.dim }}>
+                no decision point reached yet on this clock
+              </span>
+            ) : (
+              <>
+                <span style={{ color: C.dim }}>X-RAY called at lap {call.lap},{' '}
+                  {call.decision_time_s.toFixed(1)} s: </span>
+                <b style={{ color: call.recommendation === 'ATTACK' ? C.green : C.white }}>
+                  {call.recommendation ?? '—'}
+                  {call.recommendation === 'ATTACK' && call.recommended_zone
+                    ? ` · zone ${call.recommended_zone}` : ''}
+                </b>
+                {call.recommendation === 'ATTACK' && call.deployment_budget_mj != null
+                  && <span style={{ color: C.dim }}>
+                       {' '}· {call.deployment_budget_mj.toFixed(3)} MJ</span>}
+              </>
+            )}
+          </div>
+        )}
         {gap && position && (
           <div style={{ marginTop: 9, display: 'flex', alignItems: 'baseline', gap: 8 }}>
             <span className="num" style={{ fontSize: 30, fontWeight: 800, color: C.white }}>

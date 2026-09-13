@@ -2,6 +2,13 @@ const BASE = (import.meta as any).env?.VITE_API ?? 'http://127.0.0.1:8011';
 
 async function j<T>(url: string): Promise<T> {
   const r = await fetch(BASE + url);
+  // 202 is "the decision trace for this pair is still solving" and its body is
+  // a job record, not the payload. `r.ok` is true for 202 as well as 200, so
+  // without this branch a progress report would be parsed as a decision
+  // payload and render as a silently empty tab. Views gate on `useBundle`
+  // before calling these, so reaching here means the bundle went away between
+  // the poll and the fetch — surfaced, not swallowed.
+  if (r.status === 202) throw new Error(`202 still solving ${url}`);
   if (!r.ok) throw new Error(`${r.status} ${url}`);
   return r.json() as Promise<T>;
 }
@@ -319,6 +326,21 @@ export type JudgeSet = {
   verdicts: Record<string, JudgeVerdict>;
 };
 
+/** Progress of one pair's decision-trace solve. Mirrors
+ *  `simulation/api/main.py::_bundle_job` verbatim.
+ *
+ *  A pair nobody has solved before costs ~112 s of particle-filter and DP work
+ *  (measured, one 22-lap pair). That used to run inline on the request, which
+ *  blocked every other endpoint in the API process — including the race fetch
+ *  behind the track picker. It now runs off-process and reports here. */
+export type BundleJob = {
+  status: 'ready' | 'building' | 'error';
+  job_id?: string;
+  elapsed_s?: number;
+  message?: string | null;
+  race?: string; car?: string; rival?: string;
+};
+
 export const api = {
   races: () => j<RaceSummary[]>('/api/races'),
   race: (id: string) => j<RaceDetail>(`/api/race/${id}/summary`),
@@ -345,6 +367,11 @@ export const api = {
   judge: (id: string, car: string, rival: string) =>
     j<JudgeSet>(`/api/race/${id}/judge?car=${car}&rival=${rival}`),
   judgeReport: () => j<any>('/api/judge/report'),
+  // Cheap poll for "is this pair's decision trace ready". Asking starts the
+  // solve if nothing is running; see `main.py::bundle_status`. Polled instead
+  // of re-fetching `/situations`, which is ~940 kB per attempt.
+  bundleStatus: (id: string, car: string, rival: string) =>
+    j<BundleJob>(`/api/race/${id}/bundle?car=${car}&rival=${rival}`),
   analyzeRace: (round: number, year = 2026, session = 'R') =>
     post<{ job_id: string }>('/api/races/analyze', { round, year, session }),
   analyzeStatus: (jobId: string) => j<AnalyzeJob>(`/api/races/analyze/${jobId}`),

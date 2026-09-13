@@ -5,7 +5,9 @@ import { ReplayPanel } from '../components/P3Panel';
 import { JudgePanel } from '../components/JudgePanel';
 import { SectionTitle } from '../components/Readouts';
 import { C } from '../lib/theme';
+import { solveProgressText, useBundle } from '../lib/useBundle';
 import { usePlayback } from '../store/playback';
+import { HypothesisPanel } from '../components/HypothesisPanel';
 
 /**
  * Pick a real situation out of the race — DISPLAY + NAVIGATION ONLY.
@@ -85,11 +87,17 @@ export function Situations({ raceId, car, rival }:
   const setView = usePlayback((s) => s.setView);
   const setTime = usePlayback((s) => s.setTime);
   const token = useRef(0);
+  // What the USER supposes the driver did. Never an observation -- see the
+  // hypothesis panel below.
+  const [supposed, setSupposed] = useState<'ATTACK' | 'HOLD' | null>(null);
+  const bundle = useBundle(raceId, car, rival);
+  const ready = bundle.status === 'ready';
 
   useEffect(() => {
     const mine = ++token.current;
     setList(null); setErr(null); setRefusal(null); setSel(null); setReplay(null);
     setJudge(null);
+    if (!ready) return;
     api.situations(raceId, car, rival)
       .then((d) => {
         if (token.current !== mine) return;
@@ -102,7 +110,7 @@ export function Situations({ raceId, car, rival }:
     api.judge(raceId, car, rival)
       .then((d) => { if (token.current === mine) setJudge(d.available ? d : null); })
       .catch(() => { if (token.current === mine) setJudge(null); });
-  }, [raceId, car, rival]);
+  }, [raceId, car, rival, ready]);
 
   const shown = useMemo(
     () => (list ?? []).filter((s) => matches(s, filter, judge)),
@@ -113,6 +121,11 @@ export function Situations({ raceId, car, rival }:
   // when you click a filter is worse than no selection at all.
   const current = useMemo(
     () => (list ?? []).find((s) => s.decision_time_s === sel) ?? null, [list, sel]);
+
+  // A new selection is a new hypothesis. Carrying the previous row's pick over
+  // would leave "you supposed ATTACK" sitting above a lap you have not looked
+  // at yet.
+  useEffect(() => { setSupposed(null); }, [sel]);
 
   useEffect(() => {
     if (current == null) { setReplay(null); return; }
@@ -131,15 +144,22 @@ export function Situations({ raceId, car, rival }:
       </div>
     );
   }
+  if (bundle.status === 'error') {
+    return (
+      <div style={{ padding: 34, color: C.red, fontSize: 13, lineHeight: 1.7,
+                    maxWidth: 640 }}>
+        Could not solve the decision trace for {car} vs {rival}.
+        <div style={{ marginTop: 8, color: C.gray, fontSize: 12 }}>
+          {bundle.message ?? 'no reason reported'}
+        </div>
+      </div>
+    );
+  }
   if (list === null) {
     return (
       <div style={{ padding: 34, color: C.dim, fontSize: 13, lineHeight: 1.7,
                     maxWidth: 640 }}>
-        Building the decision trace for {car} vs {rival}…
-        <div style={{ marginTop: 8, color: C.dim, fontSize: 12 }}>
-          Precomputed pairs load instantly. A pair nobody has opened before is
-          solved once, which takes about a minute, and is on disk from then on.
-        </div>
+        {solveProgressText(bundle)}
       </div>
     );
   }
@@ -301,6 +321,7 @@ export function Situations({ raceId, car, rival }:
                 watch this moment in Replay ▸
               </button>
             </div>
+            <HypothesisPanel s={current} pick={supposed} onPick={setSupposed} />
             {loadingReplay
               ? <div style={{ color: C.dim, fontSize: 12 }}>replaying…</div>
               : <ReplayPanel replay={replay} />}

@@ -184,10 +184,21 @@ def test_the_api_endpoint_returns_exactly_the_service_output():
     canonical = evaluate_opportunity_decision(payload, "OWN", "RIV")
     src = pathlib.Path(api_main.__file__).read_text(encoding="utf-8")
     i = src.index("def p2_decision(")
-    body = src[i:i + 1200]
+    body = src[i:i + 2000]
     assert "evaluate_opportunity_decision" in body
-    assert "return evaluate_opportunity_decision(" in body, (
+    # The service result is still returned exactly as produced. It is handed to
+    # a process pool on the way, because this is an `async def` route now and a
+    # solve called inline would block the event loop outright -- so the literal
+    # `return evaluate_opportunity_decision(` is gone while the invariant it
+    # stood for is not. What must stay true: nothing sits between the service
+    # and the response.
+    assert ("return evaluate_opportunity_decision(" in body
+            or re.search(r"return await loop\.run_in_executor\(\s*"
+                         r"_BUNDLE_POOL,\s*partial\(evaluate_opportunity_decision,",
+                         body)), (
         "the endpoint must return the service result unmodified")
+    assert not re.search(r"return\s*\{", body), (
+        "the endpoint rebuilds the payload instead of passing it through")
     # nothing numeric in the endpoint
     assert not re.search(r"[-+*/]\s*1e6", body), "the endpoint rescales values"
     assert json.dumps(canonical, allow_nan=False)

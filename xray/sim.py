@@ -9,7 +9,7 @@ from typing import Any
 import numpy as np
 
 from .constants import E_STORE_MAX, MOM_DEPLOYMENT_ALLOWANCE_J, MOM_GAP_S
-from .overtake import p_pass
+from .overtake import ASSUMED_BRIEF_COEFFS, p_pass
 from .environment import state_from_summary
 from .physics_context import PhysicsContext
 from .policy import DeploymentPolicy, get_policy
@@ -289,7 +289,14 @@ class Simulator:
                     dv = zone_peak[behind][zb.name] - zone_peak[ahead][zb.name]
                     gap_brake = min(zone_peak_gap[behind][zb.name], gap)
                     if gap_brake <= 0.9 and dv > 0.0:
-                        p = p_pass(dv, max(gap_brake, 0.0), zb)
+                        # Pinned to the brief anchors, not the module default.
+                        # `dv` here is the OBSERVED peak-speed difference between
+                        # two cars at this zone, not the energy-implied delta_v
+                        # the decision path feeds `p_pass`; the two quantities
+                        # have different ranges, so one anchor cannot serve both.
+                        # Every golden trace was also generated against these.
+                        p = p_pass(dv, max(gap_brake, 0.0), zb,
+                                   ASSUMED_BRIEF_COEFFS)
                         success = bool(self.rng.random() < p)
                         events.append(Event(t, max(st[behind].lap, 0), "overtake", behind,
                                             {"zone": zb.name, "p": p, "delta_v": dv,

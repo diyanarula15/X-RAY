@@ -96,8 +96,29 @@ def test_track_state_words_exist_and_are_not_strategy_words():
     # call the engine never made -- and `DEFEND` is the one that would reach the
     # solver's vocabulary by accident. \bDEFEND\b does not match DEFENDING.
     assert not re.search(r"\bDEFEND\b", body), "DEFEND must never be a strategy value"
-    assert not re.search(r"\bATTACK\b|\bHOLD\b", body), (
-        "Theatre must not render a strategy call at all; that is Cockpit, fed by P2")
+
+    # This used to ban ATTACK/HOLD from Theatre outright, on the grounds that
+    # the call belongs to Cockpit. Replay now shows the call for the decision
+    # point the clock has passed -- it ran with no recommendation on screen at
+    # all, under a badge that disclaimed one. The hazard the ban existed for is
+    # unchanged and still checked below: Theatre may DISPLAY the solver's word,
+    # never DERIVE one.
+    #
+    # The track-state vocabulary is the thing that would drift into a strategy
+    # call by accident, so that block specifically must stay clean of both.
+    i = body.index("const position")
+    state_block = body[i:body.index("windowsOverlap")]
+    assert not re.search(r"\bATTACK\b|\bHOLD\b", state_block), (
+        "the track-state vocabulary has taken a strategy value; CHASING and "
+        "DEFENDING POSITION describe the track, they are not calls")
+
+    # Every strategy word in the file is a read of the server's own field.
+    for m in re.finditer(r"\bATTACK\b|\bHOLD\b", body):
+        window = body[max(0, m.start() - 90):m.start()]
+        assert "call.recommendation" in window, (
+            "a strategy word in Theatre that is not a read of "
+            "`call.recommendation` -- the call must come from the bundle, not "
+            "from anything computed in this view")
 
 
 # ---------------------------------------------------------------- A4

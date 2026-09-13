@@ -7,19 +7,23 @@ judge is going to drag the cutoff.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import sys
 import threading
+import time
 import traceback
 import uuid
+from concurrent.futures import ProcessPoolExecutor
 from contextlib import asynccontextmanager
-from functools import lru_cache
+from functools import lru_cache, partial
 from math import isfinite
 from pathlib import Path
 
 import numpy as np
 from fastapi import Body, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 ROOT = Path(__file__).resolve().parent.parent        # simulation/  -- for app/dist
@@ -29,17 +33,39 @@ OUT = REPO_ROOT / "out"
 DECISIONS = REPO_ROOT / "out" / "decisions"
 sys.path.insert(0, str(REPO_ROOT))
 
+# `build_bundle` costs ~54 s of pure-Python `vehicle.step` calls for a pair
+# nobody has precomputed (see `build_bundle`'s docstring). Running that inline
+# on a `def` route still starves every other request in the process even
+# though FastAPI puts sync routes on a threadpool: a tight pure-Python loop
+# holds the GIL almost continuously, so `GET /api/race/{rid}` -- what the
+# RacePicker calls to switch track -- sat queued behind it, and switching races
+# looked broken for as long as Cockpit or Situations was mid-solve. A thread
+# doesn't fix that (still one GIL); it has to run in a separate process, the
+# way `scripts/16.precompute_decisions.py` already does for the same workload.
+_BUNDLE_POOL: ProcessPoolExecutor | None = None
+# One solve per pair, keyed by `bundle_path(...).stem`. Cockpit fires
+# `/decision` and `/p2` for the same pair on one mount and Situations adds a
+# third, so this is de-dupe as much as it is progress reporting: without it the
+# same bundle would be solved three times concurrently.
+_BUNDLE_JOBS: dict[str, dict] = {}
+
 
 @asynccontextmanager
 async def _lifespan(_app: FastAPI):
     """Preload so the first request is not the slow one."""
+    global _BUNDLE_POOL
+    _BUNDLE_POOL = ProcessPoolExecutor(max_workers=2)
     try:
         _all_races()
         for p in sorted(RACES.glob("*.json"))[:1]:
             _race(p.stem)
     except Exception:
         pass
-    yield
+    try:
+        yield
+    finally:
+        _BUNDLE_POOL.shutdown(wait=False, cancel_futures=True)
+        _BUNDLE_POOL = None
 
 
 app = FastAPI(title="X-RAY", version="2.0", lifespan=_lifespan)
@@ -199,8 +225,13 @@ def _annotate_battles(rid: str, battles: list[dict]) -> list[dict]:
     out = []
     for b in battles:
         e = idx.get(f"{rid}__{b['car']}__{b['ahead']}")
+        # `e is not None` was the old test, which counted a stale entry as
+        # solved -- see `bundle_is_current`. A stale entry still carries a
+        # usable refusal and situation count from the last build, so those are
+        # kept; only the "this is instant" claim is withdrawn.
+        solved = e is not None and bundle_is_current(rid, e)
         out.append({**b,
-                    "solved": e is not None,
+                    "solved": solved,
                     "refusal": (e or {}).get("refusal"),
                     "n_situations": (e or {}).get("n_situations")})
     return out
@@ -245,20 +276,22 @@ def _refusal_zones(d: dict) -> list:
 
 
 @app.get("/api/race/{rid}/decision")
-def decision(rid: str, car: str = Query(...), rival: str = Query(...)):
+async def decision(rid: str, car: str = Query(...), rival: str = Query(...)):
     """Threshold curve, opportunity quality and the policy-space fan."""
     d = _race(rid)
     if car not in d["cars"] or rival not in d["cars"]:
         raise HTTPException(404, "car not analysed")
-    b = _bundle(rid, car, rival)
+    b = _bundle_cached(rid, car, rival)
+    if b is None:
+        return _building(rid, car, rival)
     if b.get("refusal"):
         raise HTTPException(422, b["refusal"])
     return b["decision"]
 
 
 @app.get("/api/race/{rid}/p2")
-def p2_decision(rid: str, car: str = Query(...), rival: str = Query(...),
-                from_lap: int | None = Query(None)):
+async def p2_decision(rid: str, car: str = Query(...), rival: str = Query(...),
+                      from_lap: int | None = Query(None)):
     """The P2 recommendation: which opportunity, which zone, how many joules.
 
     Serialisation only. Every number comes from
@@ -272,12 +305,22 @@ def p2_decision(rid: str, car: str = Query(...), rival: str = Query(...),
         raise HTTPException(404, "car not analysed")
     if from_lap is None:
         # The default view is precomputed with everything else for this pair.
-        p2 = _bundle(rid, car, rival)["p2"]
+        b = _bundle_cached(rid, car, rival)
+        if b is None:
+            return _building(rid, car, rival)
+        p2 = b["p2"]
         if "error" in p2:
             raise HTTPException(422, p2["error"])
         return p2
+    # `from_lap` is not bundled -- no view requests it today, so it has no
+    # cache. It still has to leave this process: this is an `async def` route
+    # now, so a solve called inline here would block the event loop outright,
+    # which is worse than the threadpool it used to run on.
+    loop = asyncio.get_running_loop()
     try:
-        return evaluate_opportunity_decision(d, car, rival, from_lap=from_lap)
+        return await loop.run_in_executor(
+            _BUNDLE_POOL, partial(evaluate_opportunity_decision,
+                                  d, car, rival, from_lap=from_lap))
     except KeyError as exc:
         raise HTTPException(404, str(exc)) from exc
     except ValueError as exc:
@@ -486,6 +529,25 @@ def write_index_entry(key: str, entry: dict) -> None:
     tmp.replace(tmp.with_suffix(""))
 
 
+def bundle_is_current(rid: str, stamp: dict) -> bool:
+    """Would `_bundle` serve this, or rebuild it?
+
+    One predicate, because there used to be two. `_bundle` required both the
+    artefact mtime AND `situations_schema` to match, while the sidecar recorded
+    only the mtime -- so after `SITUATIONS_SCHEMA` went 2 -> 3 the pairing
+    picker advertised all 89 indexed battles as "solved · N situations" while
+    every one of them was in fact a full ~112 s rebuild. The picker was lying
+    about the only thing it exists to say. `stamp` is either a bundle or an
+    index entry; both carry the two fields this reads.
+    """
+    try:
+        mtime = (RACES / f"{rid}.json").stat().st_mtime_ns
+    except OSError:
+        return False
+    return (stamp.get("artefact_mtime_ns") == mtime
+            and stamp.get("situations_schema") == SITUATIONS_SCHEMA)
+
+
 def index_entry(bundle: dict) -> dict:
     sits = bundle.get("situations") or []
     return {"refusal": bundle.get("refusal"),
@@ -497,7 +559,10 @@ def index_entry(bundle: dict) -> dict:
             # subject: the window resolved, not the driver obeyed.
             "n_resolved": sum(1 for x in sits
                               if x.get("observed_position_delta") is not None),
-            "artefact_mtime_ns": bundle.get("artefact_mtime_ns")}
+            "artefact_mtime_ns": bundle.get("artefact_mtime_ns"),
+            # Without this the sidecar cannot answer `bundle_is_current`, which
+            # is the whole point of the entry.
+            "situations_schema": bundle.get("situations_schema")}
 
 
 def rebuild_index() -> dict:
@@ -563,18 +628,37 @@ def build_bundle(rid: str, car: str, rival: str, d: dict | None = None) -> dict:
     })
 
 
-def _bundle(rid: str, car: str, rival: str) -> dict:
+def _bundle_cached(rid: str, car: str, rival: str) -> dict | None:
+    """The bundle on disk, or None if there isn't a usable one.
+
+    `None` means "a solve is needed", never "an error". Same validity test the
+    pairing picker uses, so the two cannot disagree about what is instant.
+    """
     p = bundle_path(rid, car, rival)
-    mtime = (RACES / f"{rid}.json").stat().st_mtime_ns
-    if p.exists():
-        try:
-            cached = json.loads(p.read_text(encoding="utf-8"))
-            if (cached.get("artefact_mtime_ns") == mtime
-                    and cached.get("situations_schema") == SITUATIONS_SCHEMA):
-                return _json_safe(cached)
-        except (ValueError, OSError):
-            pass          # a truncated bundle is rebuilt, never served
-    out = build_bundle(rid, car, rival)
+    if not p.exists():
+        return None
+    try:
+        cached = json.loads(p.read_text(encoding="utf-8"))
+    except (ValueError, OSError):
+        return None       # a truncated bundle is rebuilt, never served
+    return _json_safe(cached) if bundle_is_current(rid, cached) else None
+
+
+async def _solve_bundle(rid: str, car: str, rival: str) -> dict:
+    """One solve, off-process, written through by the parent.
+
+    `build_bundle` is a tight pure-Python loop -- measured at 112 s for one
+    22-lap pair on the development machine, not the 54 s its docstring quotes.
+    Run in this process, even on a worker thread, it holds the GIL almost
+    continuously and starves every other request: `GET /api/race/{rid}`, the
+    call the RacePicker makes to switch track, sat behind it, which is what
+    "can't change track" was. A separate process has its own GIL. The file I/O
+    stays here so the atomic write and the sidecar update happen exactly once.
+    """
+    loop = asyncio.get_running_loop()
+    d = _race(rid)
+    out = await loop.run_in_executor(_BUNDLE_POOL, build_bundle, rid, car, rival, d)
+    p = bundle_path(rid, car, rival)
     DECISIONS.mkdir(parents=True, exist_ok=True)
     tmp = p.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(out, allow_nan=False), encoding="utf-8")
@@ -583,15 +667,104 @@ def _bundle(rid: str, car: str, rival: str) -> dict:
     return out
 
 
+def _job_public(job: dict) -> dict:
+    """The client-facing view.
+
+    `task` is an asyncio object and is not serialisable at all; `_t0` is a
+    `time.monotonic()` reading, which is meaningless outside this process and
+    was briefly served to the browser as if it were a timestamp. Anything
+    private stays private: underscore-prefixed keys are internal by convention
+    and dropped by that rule rather than by a growing deny-list.
+    """
+    return {k: v for k, v in job.items()
+            if k != "task" and not k.startswith("_")}
+
+
+def _bundle_job(rid: str, car: str, rival: str) -> dict:
+    """The running solve for this pair, started if there isn't one.
+
+    One job per pair, not per request: Cockpit opens `/decision` and `/p2`
+    simultaneously and Situations adds `/situations`, so three routes miss on
+    the same pair within a few milliseconds of each other. Without this they
+    would each start their own 112 s solve of the identical bundle.
+    """
+    key = bundle_path(rid, car, rival).stem
+    job = _BUNDLE_JOBS.get(key)
+    if job is not None:
+        if job["status"] == "building":
+            job["elapsed_s"] = round(time.monotonic() - job["_t0"], 1)
+            return job
+        # A finished record is not reusable: "ready" means the caller should
+        # have found it on disk, and "error" is reported once and then dropped
+        # so a transient failure does not pin the pair as broken for the rest
+        # of the process's life.
+        del _BUNDLE_JOBS[key]
+        if job["status"] == "error":
+            return job
+
+    job = {"job_id": uuid.uuid4().hex, "status": "building", "elapsed_s": 0.0,
+           "race": rid, "car": car, "rival": rival, "message": None,
+           "_t0": time.monotonic()}
+    task = asyncio.ensure_future(_solve_bundle(rid, car, rival))
+
+    def _finished(t: asyncio.Future, job: dict = job) -> None:
+        job["elapsed_s"] = round(time.monotonic() - job["_t0"], 1)
+        if t.cancelled():
+            job["status"], job["message"] = "error", "cancelled"
+            return
+        exc = t.exception()
+        if exc is None:
+            job["status"] = "ready"
+        else:
+            job["status"] = "error"
+            job["message"] = f"{type(exc).__name__}: {exc}"
+
+    task.add_done_callback(_finished)
+    job["task"] = task
+    _BUNDLE_JOBS[key] = job
+    return job
+
+
+def _building(rid: str, car: str, rival: str) -> JSONResponse:
+    """202 with the job state, rather than blocking the request for two minutes.
+
+    202 and not 200: the body is a progress report, not the payload the caller
+    asked for, and `lib/api.ts` branches on the status code. `r.ok` is true for
+    both, so a 200 here would be parsed as a decision payload and render as an
+    empty tab.
+    """
+    return JSONResponse(status_code=202,
+                        content=_job_public(_bundle_job(rid, car, rival)))
+
+
 @app.get("/api/race/{rid}/situations")
-def situations(rid: str, car: str = Query(...), rival: str = Query(...)):
+async def situations(rid: str, car: str = Query(...), rival: str = Query(...)):
     d = _race(rid)
     if car not in d["cars"] or rival not in d["cars"]:
         raise HTTPException(404, "car not analysed")
-    b = _bundle(rid, car, rival)
+    b = _bundle_cached(rid, car, rival)
+    if b is None:
+        return _building(rid, car, rival)
     return {"race": rid, "car": car, "rival": rival,
             "horizon_s": b["horizon_s"], "situations": b["situations"],
             "refusal": b.get("refusal")}
+
+
+@app.get("/api/race/{rid}/bundle")
+async def bundle_status(rid: str, car: str = Query(...), rival: str = Query(...)):
+    """Is this pair's decision trace ready, and if not, how long has it been?
+
+    Polled by the frontend so a pair nobody has solved before reports progress
+    instead of holding a tab in an indefinite spinner. Asking starts the solve,
+    which is deliberate: this is the endpoint a view calls when it wants the
+    bundle, not a passive probe.
+    """
+    d = _race(rid)
+    if car not in d["cars"] or rival not in d["cars"]:
+        raise HTTPException(404, "car not analysed")
+    if _bundle_cached(rid, car, rival) is not None:
+        return {"status": "ready", "race": rid, "car": car, "rival": rival}
+    return _job_public(_bundle_job(rid, car, rival))
 
 
 @lru_cache(maxsize=4)

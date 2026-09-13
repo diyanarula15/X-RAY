@@ -8,6 +8,7 @@ import { HorizonTimeline } from '../components/HorizonTimeline';
 import { P2Panel } from '../components/P2Panel';
 import { SectionTitle } from '../components/Readouts';
 import { C } from '../lib/theme';
+import { solveProgressText, useBundle } from '../lib/useBundle';
 
 /**
  * Cockpit — the first thing a race engineer sees. One question: what should
@@ -48,6 +49,11 @@ export function Cockpit({ raceId, car, rival }:
   const [loading, setLoading] = useState(true);
   const ref = useRef<SVGSVGElement>(null);
   const token = useRef(0);
+  // Gate on the solve before fetching. These two endpoints used to be the ones
+  // that blocked: both miss on the same uncached pair, and each miss was a
+  // ~112 s inline solve in the API process.
+  const bundle = useBundle(raceId, car, rival);
+  const ready = bundle.status === 'ready';
 
   useEffect(() => {
     // A stale response from the previously-selected pair must not overwrite the
@@ -55,13 +61,14 @@ export function Cockpit({ raceId, car, rival }:
     // request happened to finish last on screen, regardless of what was picked.
     const mine = ++token.current;
     setD(null); setP2(null); setSel(null); setLoading(true);
+    if (!ready) return;
     const guard = <T,>(f: (v: T) => void) => (v: T) => { if (token.current === mine) f(v); };
     Promise.allSettled([
       api.decision(raceId, car, rival).then(guard(setD)),
       api.p2(raceId, car, rival).then(guard(setP2)),
       api.p3Status().then(guard(setP3)),
     ]).finally(() => { if (token.current === mine) setLoading(false); });
-  }, [raceId, car, rival]);
+  }, [raceId, car, rival, ready]);
 
   // P1's per-lap row for "now" -- the current call if one exists, otherwise
   // the first row.
@@ -120,15 +127,22 @@ export function Cockpit({ raceId, car, rival }:
     }
   }, [d]);
 
-  if (loading && !d && !p2) {
+  if (bundle.status === 'error') {
+    return (
+      <div style={{ padding: 34, color: C.red, fontSize: 13, lineHeight: 1.7,
+                    maxWidth: 640 }}>
+        Could not solve the decision trace for {car} vs {rival}.
+        <div style={{ marginTop: 8, color: C.gray, fontSize: 12 }}>
+          {bundle.message ?? 'no reason reported'}
+        </div>
+      </div>
+    );
+  }
+  if (!ready || (loading && !d && !p2)) {
     return (
       <div style={{ padding: 34, color: C.dim, fontSize: 13, lineHeight: 1.7,
                     maxWidth: 640 }}>
-        Solving the decision trace for {car} vs {rival}…
-        <div style={{ marginTop: 8, fontSize: 12 }}>
-          Precomputed pairs load instantly. A pair nobody has opened before is
-          solved once, which takes about a minute, and is on disk from then on.
-        </div>
+        {solveProgressText(bundle)}
       </div>
     );
   }
