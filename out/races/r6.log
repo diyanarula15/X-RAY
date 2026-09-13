@@ -1,0 +1,57 @@
+core           INFO 	Loading data for Monaco Grand Prix - Race [v3.8.3]
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['12', '44', '10', '6', '81', '30', '41', '23', '31', '14', '5', '63', '27', '43', '11', '55', '16', '18', '1', '87', '77', '3']
+core           INFO 	Loading data for Monaco Grand Prix - Race [v3.8.3]
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['12', '44', '10', '6', '81', '30', '41', '23', '31', '14', '5', '63', '27', '43', '11', '55', '16', '18', '1', '87', '77', '3']
+/Users/apple/Desktop/x-ray/xray/realfit.py:417: RuntimeWarning: All-NaN slice encountered
+  shared = np.nanmedian(M, axis=0)          # common mode
+  NOR: CdA 0.849 ident 0.00 deploy 4.64 MJ/lap
+  GAS: CdA 0.339 ident 0.00 deploy 4.91 MJ/lap
+  PER: CdA 0.914 ident 0.00 deploy 4.49 MJ/lap
+  ANT: CdA 0.413 ident 0.00 deploy 4.81 MJ/lap
+  ALO: CdA 0.560 ident 0.00 deploy 4.86 MJ/lap
+  LEC: CdA 1.053 ident 0.06 deploy 4.28 MJ/lap
+  STR: CdA 0.583 ident 0.00 deploy 4.66 MJ/lap
+  ALB: CdA 0.316 ident 0.00 deploy 5.00 MJ/lap
+  HUL: CdA 0.522 ident 0.00 deploy 4.82 MJ/lap
+  LAW: CdA 1.227 ident 0.00 deploy 4.43 MJ/lap
+  OCO: CdA 0.244 ident 0.00 deploy 5.37 MJ/lap
+  LIN: CdA 1.080 ident 0.00 deploy 4.57 MJ/lap
+  COL: CdA 0.945 ident 0.00 deploy 4.70 MJ/lap
+  HAM: CdA 1.249 ident 0.84 deploy 4.35 MJ/lap
+  BOR: CdA 0.238 ident 0.00 deploy 5.06 MJ/lap
+  SAI: CdA 0.336 ident 0.00 deploy 5.03 MJ/lap
+  HAD: CdA 1.104 ident 0.04 deploy 4.18 MJ/lap
+  RUS: CdA 0.282 ident 0.00 deploy 5.11 MJ/lap
+  BOT: CdA 1.272 ident 0.72 deploy 4.19 MJ/lap
+  PIA: CdA 0.620 ident 0.00 deploy 4.72 MJ/lap
+  BEA: CdA 0.140 ident 0.00 deploy 5.27 MJ/lap
+
+Monaco Grand Prix: 21 cars analysed, 20 refused
+  telemetry 4.17 Hz, 1451/1452 laps usable
+  pooled CdA: {'available': False, 'reason': 'only 2 identifiable cars'}
+  RDD rows: 1300
+wrote /Users/apple/Desktop/x-ray/out/races/2026_r6_R.json (13.3 MB) in 80s

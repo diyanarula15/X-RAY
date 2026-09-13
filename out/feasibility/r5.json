@@ -1,0 +1,132 @@
+{
+  "year": 2026,
+  "round": 5,
+  "session": "R",
+  "event": "Canadian Grand Prix",
+  "circuit": "Montr\u00e9al",
+  "date": "2026-05-24",
+  "load_seconds": 22.6,
+  "n_drivers": 20,
+  "n_laps": 1211,
+  "dt_fastest_lap": {
+    "driver": "ANT",
+    "n_samples": 279,
+    "median_s": 0.23999999999978172,
+    "mean_s": 0.2661906474820151,
+    "p10_s": 0.15999999999985448,
+    "p90_s": 0.3999999999996362,
+    "max_s": 1.0399999999990541,
+    "effective_hz": 4.166666666670456,
+    "histogram": {
+      "0.00-0.10": 0,
+      "0.10-0.20": 68,
+      "0.20-0.25": 93,
+      "0.25-0.30": 26,
+      "0.30-0.35": 35,
+      "0.35-0.40": 35,
+      "0.40-0.50": 20,
+      "0.50-0.75": 0,
+      "0.75-1.00": 0,
+      "1.00-2.00": 1,
+      "2.00-10.00": 0
+    },
+    "median_dx_m": 14.400000000000546
+  },
+  "channels": {
+    "Speed": {
+      "present": true,
+      "frac_nonzero": 1.0,
+      "min": 61.0,
+      "max": 327.0
+    },
+    "Throttle": {
+      "present": true,
+      "frac_nonzero": 0.8315412186379928,
+      "min": 0.0,
+      "max": 100.0
+    },
+    "Brake": {
+      "present": true,
+      "frac_nonzero": 0.1863799283154122,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "nGear": {
+      "present": true,
+      "frac_nonzero": 1.0,
+      "min": 1.0,
+      "max": 8.0
+    },
+    "RPM": {
+      "present": true,
+      "frac_nonzero": 1.0,
+      "min": 6785.0,
+      "max": 12197.0
+    },
+    "DRS": {
+      "present": true,
+      "frac_nonzero": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    }
+  },
+  "position": {
+    "n_samples": 293,
+    "source": "lap",
+    "has_Z": true,
+    "z_range_m": [
+      12.6,
+      17.8
+    ],
+    "z_std_m": 1.6091533797583275,
+    "z_frac_zero": 0.0,
+    "xy_range_m": [
+      633.6,
+      1903.3
+    ]
+  },
+  "speed_window": {
+    "total_samples": 342127,
+    "laps_scanned": 1144,
+    "frac_above": {
+      "340": 0.0004062818777822271,
+      "330": 0.002174631058057388,
+      "320": 0.010420107153191652,
+      "310": 0.03889783618363941,
+      "300": 0.07760276154761243,
+      "290": 0.09974658533234734
+    },
+    "vmax_session_kmh": 350.0,
+    "vmax_by_driver": {
+      "NOR": 345.0,
+      "GAS": 350.0,
+      "PER": 345.0,
+      "ANT": 346.0,
+      "ALO": 338.0,
+      "LEC": 346.0,
+      "STR": 322.0,
+      "ALB": 339.0,
+      "HUL": 339.0,
+      "VER": 337.0,
+      "LAW": 329.0,
+      "OCO": 347.0,
+      "COL": 332.0,
+      "HAM": 341.0,
+      "BOR": 345.0,
+      "SAI": 323.0,
+      "HAD": 331.0,
+      "RUS": 339.0,
+      "BOT": 325.0,
+      "PIA": 349.0
+    },
+    "gaps_over_1s": 857,
+    "gaps_per_lap": 0.7491258741258742
+  },
+  "weather": {
+    "available": true,
+    "air_temp_c": 12.84875,
+    "pressure_mbar": 1024.204375,
+    "wind_speed_ms": 3.015625
+  },
+  "total_seconds": 25.9
+}

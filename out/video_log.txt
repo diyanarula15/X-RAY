@@ -1,0 +1,40 @@
+building scene (seed 42) ...
+  estimator: MAPE 3.5%, coverage 0.97, CdA err +1.8%
+  band width by regime: {'accel': 0.66, 'brake': 0.75, 'corner': 0.92, 'zone_straight': 0.74, 'elsewhere': 0.75}
+  rival deployable at zone entry (MJ): [1.43 0.77 0.65 0.39 0.39 0.42 0.2  0.15 0.19 0.17 0.23 0.53]
+  decision: hold on lap(s) [1], attack lap 2 zone C, P 0.21, optimal across 57% of opponent policy space
+  counterfactual: X-RAY 1.00 vs blind 0.48, gain +0.52 CI95 [0.38, 0.66]
+rendering out/xray_demo.mp4 ...
+    60/1860 frames (title)
+    120/1860 frames (world)
+    180/1860 frames (world)
+    240/1860 frames (world)
+    300/1860 frames (world)
+    360/1860 frames (world)
+    420/1860 frames (infer)
+    480/1860 frames (infer)
+    540/1860 frames (infer)
+    600/1860 frames (infer)
+    660/1860 frames (infer)
+    720/1860 frames (infer)
+    780/1860 frames (reveal)
+    840/1860 frames (reveal)
+    900/1860 frames (reveal)
+    960/1860 frames (reveal)
+    1020/1860 frames (reveal)
+    1080/1860 frames (decision)
+    1140/1860 frames (decision)
+    1200/1860 frames (decision)
+    1260/1860 frames (decision)
+    1320/1860 frames (decision)
+    1380/1860 frames (decision)
+    1440/1860 frames (decision)
+    1500/1860 frames (decision)
+    1560/1860 frames (counterfactual)
+    1620/1860 frames (counterfactual)
+    1680/1860 frames (counterfactual)
+    1740/1860 frames (counterfactual)
+    1800/1860 frames (close)
+    1860/1860 frames (close)
+
+wrote out/xray_demo.mp4  (23.2 MB, 94 s)

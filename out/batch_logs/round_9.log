@@ -1,0 +1,287 @@
+﻿=== Round 9 ===
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for British Grand Prix - Race [v3.8.3]
+At line:6 char:11
++     try { .\.venv\Scripts\python.exe scripts\07.a_feasibility.py --ro ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	No cached data found for session_info. Loading data...
+_api           INFO 	Fetching session info data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for driver_info. Loading data...
+_api           INFO 	Fetching driver list...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for session_status_data. Loading data...
+_api           INFO 	Fetching session status data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for lap_count. Loading data...
+_api           INFO 	Fetching lap count data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for track_status_data. Loading data...
+_api           INFO 	Fetching track status data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for _extended_timing_data. Loading data...
+_api           INFO 	Fetching timing data...
+_api           INFO 	Parsing timing data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for timing_app_data. Loading data...
+_api           INFO 	Fetching timing app data...
+req            INFO 	Data has been written to cache!
+core           INFO 	Processing timing data...
+req            INFO 	No cached data found for car_data. Loading data...
+_api           INFO 	Fetching car data...
+_api           INFO 	Parsing car data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for position_data. Loading data...
+_api           INFO 	Fetching position data...
+_api           INFO 	Parsing position data...
+_api        WARNING 	Driver 241: Position data is incomplete!
+_api        WARNING 	Driver 242: Position data is incomplete!
+_api        WARNING 	Driver 243: Position data is incomplete!
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for weather_data. Loading data...
+_api           INFO 	Fetching weather data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for race_control_messages. Loading data...
+_api           INFO 	Fetching race control messages...
+req            INFO 	Data has been written to cache!
+core           INFO 	Finished loading data for 22 drivers: ['16', '63', '44', '1', '6', '30', '41', '5', '43', '10', 
+'81', '87', '31', '11', '12', '77', '55', '14', '18', '3', '23', '27']
+{
+ "year": 2026,
+ "round": 9,
+ "session": "R",
+ "event": "British Grand Prix",
+ "circuit": "Silverstone",
+ "date": "2026-07-05",
+ "load_seconds": 37.0,
+ "n_drivers": 20,
+ "n_laps": 1113,
+ "dt_fastest_lap": {
+  "driver": "ANT",
+  "n_samples": 330,
+  "median_s": 0.24000000000069122,
+  "mean_s": 0.2784164133738607,
+  "p10_s": 0.15999999999985448,
+  "p90_s": 0.4000000000005457,
+  "max_s": 1.0,
+  "effective_hz": 4.166666666654667,
+  "histogram": {
+   "0.00-0.10": 0,
+   "0.10-0.20": 93,
+   "0.20-0.25": 77,
+   "0.25-0.30": 50,
+   "0.30-0.35": 28,
+   "0.35-0.40": 45,
+   "0.40-0.50": 30,
+   "0.50-0.75": 2,
+   "0.75-1.00": 3,
+   "1.00-2.00": 1,
+   "2.00-10.00": 0
+  },
+  "median_dx_m": 16.255555555555475
+ },
+ "channels": {
+  "Speed": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 80.0,
+   "max": 302.0
+  },
+  "Throttle": {
+   "present": true,
+   "frac_nonzero": 0.8575757575757575,
+   "min": 0.0,
+   "max": 100.0
+  },
+  "Brake": {
+   "present": true,
+   "frac_nonzero": 0.1303030303030303,
+   "min": 0.0,
+   "max": 1.0
+  },
+  "nGear": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 1.0,
+   "max": 7.0
+  },
+  "RPM": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 8529.0,
+   "max": 12084.0
+  },
+  "DRS": {
+   "present": true,
+   "frac_nonzero": 0.0,
+   "min": 0.0,
+   "max": 0.0
+  }
+ },
+ "position": {
+  "n_samples": 350,
+  "source": "lap",
+  "has_Z": true,
+  "z_range_m": [
+   196.2,
+   207.5
+  ],
+  "z_std_m": 3.175131120544955,
+  "z_frac_zero": 0.0,
+  "xy_range_m": [
+   1010.5,
+   1722.9
+  ]
+ },
+ "weather": {
+  "available": true,
+  "air_temp_c": 24.758333333333333,
+  "pressure_mbar": 1006.4083333333334,
+  "wind_speed_ms": 1.7506410256410259
+ },
+ "total_seconds": 40.4
+}
+speed window: {'340': 0.0001, '330': 0.0005, '320': 0.0021, '310': 0.008, '300': 0.0415, '290': 0.1169} vmax 350.0
+wrote out\feasibility\r9.json
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for British Grand Prix - Race [v3.8.3]
+At line:7 char:11
++     try { .\.venv\Scripts\python.exe scripts\07.b_run_real.py --round ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['16', '63', '44', '1', '6', '30', '41', '5', '43', '10', 
+'81', '87', '31', '11', '12', '77', '55', '14', '18', '3', '23', '27']
+core           INFO 	Loading data for British Grand Prix - Race [v3.8.3]
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['16', '63', '44', '1', '6', '30', '41', '5', '43', '10', 
+'81', '87', '31', '11', '12', '77', '55', '14', '18', '3', '23', '27']
+D:\Projects\XRay Energy F1\X-RAY\xray\realfit.py:650: RuntimeWarning: All-NaN slice encountered
+  shared = np.nanmedian(M, axis=0)          # common mode
+
+British Grand Prix — Silverstone: 5813 m, elevation yes, 14 corners, zones [('A', 840), ('B', 700), ('C', 590)]
+ingest: 22 cars, 1113 laps, 1112 usable (100%), rho=1.1700 kg/m^3
+
+car      CdA   identified set  ident  binding  coast   wind  resid kW
+LAW    1.151 [ 0.987, 1.314]   0.43    12706   1372   +0.0       209
+LIN    1.099 [ 0.891, 1.307]   0.24    11916   1277   +0.0       216
+NOR    0.878 [ 0.442, 1.314]   0.00     5227   1781   +0.0       218
+GAS    0.693 [ 0.177, 1.209]   0.00     1357   1200   +0.0       255
+PER    0.910 [ 0.542, 1.277]   0.00     5229   1865   +0.0       216
+ANT    0.817 [ 0.361, 1.273]   0.00     3643   1223   +0.0       241
+ALO    0.937 [ 0.394, 1.479]   0.00     3460   1869   +0.0       211
+LEC    0.705 [ 0.139, 1.271]   0.00     1412    607   +0.0       269
+STR    1.049 [ 0.650, 1.448]   0.00     5320   2147   +0.0       191
+ALB    0.742 [ 0.107, 1.377]   0.00      925   1205   +0.0       235
+HUL    0.878 [ 0.504, 1.251]   0.00     3381    634   +0.0       248
+VER    0.872 [ 0.480, 1.265]   0.00     5948   1520   +0.0       245
+OCO    0.821 [ 0.348, 1.294]   0.00     3175    608   +0.0       247
+COL    0.687 [ 0.135, 1.239]   0.00     1143    870   +0.0       261
+HAM    0.655 [ 0.208, 1.102]   0.00     1564    450   +0.0       285
+BOR    0.788 [ 0.208, 1.368]   0.00     2117    843   +0.0       248
+SAI    0.761 [ 0.262, 1.260]   0.00     2252    931   +0.0       252
+HAD    0.938 [ 0.669, 1.208]   0.00     8389   1988   +0.0       235
+RUS    0.822 [ 0.379, 1.265]   0.00     3886   1040   +0.0       242
+BOT    0.944 [ 0.473, 1.415]   0.00     5905   1656   +0.0       226
+PIA    0.848 [ 0.450, 1.246]   0.00     4319   1814   +0.0       224
+BEA    0.785 [ 0.311, 1.258]   0.00     2580   1035   +0.0       253
+
+field CdA: median 0.835, spread 0.655-1.151, iqr 0.163
+identifiability: median 0.00  (1/22 cars usable)
+field pooling: unavailable — only 2 identifiable cars
+cross-car common mode: 17 cars, shared rms 223 kW, per-car residual 92 kW, variance explained 80%
+
+NOR deployment: peak 352 kW, mean-when-on 159 kW, per-lap 11.23 MJ deployed / 3.25 MJ recovered (regulation: 4.0 MJ store, 7.0 MJ harvest/lap)
+
+total 41s
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for British Grand Prix - Race [v3.8.3]
+At line:8 char:11
++     try { .\.venv\Scripts\python.exe scripts\08.b_analyse_race.py --r ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['16', '63', '44', '1', '6', '30', '41', '5', '43', '10', 
+'81', '87', '31', '11', '12', '77', '55', '14', '18', '3', '23', '27']
+core           INFO 	Loading data for British Grand Prix - Race [v3.8.3]
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['16', '63', '44', '1', '6', '30', '41', '5', '43', '10', 
+'81', '87', '31', '11', '12', '77', '55', '14', '18', '3', '23', '27']
+D:\Projects\XRay Energy F1\X-RAY\xray\realfit.py:650: RuntimeWarning: All-NaN slice encountered
+  shared = np.nanmedian(M, axis=0)          # common mode
+  NOR: CdA 0.922 ident 0.00 deploy 3.41 MJ/lap
+  GAS: CdA 0.922 ident 0.00 deploy 3.61 MJ/lap
+  PER: CdA 0.922 ident 0.00 deploy 3.55 MJ/lap
+  ANT: CdA 0.922 ident 0.00 deploy 3.52 MJ/lap
+  ALO: CdA 0.922 ident 0.00 deploy 3.36 MJ/lap
+  LEC: CdA 0.922 ident 0.00 deploy 3.43 MJ/lap
+  STR: CdA 0.922 ident 0.00 deploy 3.34 MJ/lap
+  ALB: CdA 0.922 ident 0.00 deploy 3.26 MJ/lap
+  HUL: CdA 0.922 ident 0.00 deploy 3.38 MJ/lap
+  VER: CdA 0.922 ident 0.00 deploy 3.36 MJ/lap
+  LAW: CdA 1.004 ident 0.93 deploy 3.65 MJ/lap
+  OCO: CdA 0.922 ident 0.00 deploy 3.54 MJ/lap
+  LIN: CdA 0.936 ident 0.81 deploy 3.74 MJ/lap
+  COL: CdA 0.922 ident 0.00 deploy 3.75 MJ/lap
+  HAM: CdA 0.922 ident 0.00 deploy 3.64 MJ/lap
+  BOR: CdA 0.922 ident 0.00 deploy 3.60 MJ/lap
+  SAI: CdA 0.922 ident 0.00 deploy 3.77 MJ/lap
+  HAD: CdA 0.810 ident 0.31 deploy 3.30 MJ/lap
+  RUS: CdA 0.922 ident 0.00 deploy 3.30 MJ/lap
+  BOT: CdA 0.922 ident 0.00 deploy 3.67 MJ/lap
+  PIA: CdA 0.922 ident 0.00 deploy 3.14 MJ/lap
+  BEA: CdA 0.922 ident 0.00 deploy 3.52 MJ/lap
+
+British Grand Prix: 22 cars analysed, 19 refused
+  telemetry 4.17 Hz, 1112/1113 laps usable
+  pooled CdA: {'available': True, 'n_cars_pooled': 3, 'cda_pooled': 0.9215401088203037, 'cda_lo': 0.8728606150708722, 'cda_hi': 0.9702196025697352, 'per_car_deviation_pct': {'NOR': -22.18654021221844, 'GAS': -37.86717019833459, 'PER': -10.891190805621735, 'ANT': -27.173980014596218, 'ALO': -10.061966851309766, 'LEC': -37.93352750236688, 'STR': 2.754743461190648, 'ALB': -37.50802708932036, 'HUL': -16.617368418946025, 'VER': -21.585940507768186, 'LAW': 8.976251022441557, 'OCO': -24.43235717414464, 'LIN': 1.5885617911315446, 'COL': -39.33536983190281, 'HAM': -36.61189783701072, 'BOR': -30.760918246617255, 'SAI': -32.00212024424027, 'HAD': -12.153374604704647, 'RUS': -24.643688681027527, 'BOT': -11.584325024598453, 'PIA': -23.57999300094951, 'BEA': -26.365181320162268}, 'field_identifiability': 0.7887037437285379}
+  RDD rows: 959
+wrote D:\Projects\XRay Energy F1\X-RAY\out\races\2026_r9_R.json (14.1 MB) in 75s

@@ -1,0 +1,1792 @@
+{
+  "causal_snapshot": {
+    "definition": "input_fields are at or before feature_cutoff_time; evaluation_fields are after target_start_time",
+    "example_fingerprint": "ff57b61cd16aa383fad39025ae7ba87f3550dcda5c4b5226425d295774793d98"
+  },
+  "cda_bias_investigation": {
+    "baseline": {
+      "bias_range_pct": [
+        -103.53948962911551,
+        -101.93930657266206
+      ],
+      "mean_abs_cda_centre_error_pct": 102.74148455961881,
+      "mean_cda_centre_error_pct": -102.74148455961881,
+      "n_ok": 3,
+      "runs": [
+        {
+          "brake_dilate_cells": 0,
+          "cda": {
+            "centre_error_pct": -102.74565747707884,
+            "hat": -0.01812133934872029,
+            "hi": 2.158505989250838,
+            "identifiability": 0.0,
+            "lo": -2.1947486679482786,
+            "n_binding": 0,
+            "n_coast": 101,
+            "notes": [
+              "interval empty at the robust quantile; widened to the median of the bounds",
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": true,
+            "width_pct_of_truth": 659.584038969563
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 435,
+            "coast_samples": 101,
+            "in_zone_samples": 3014,
+            "lower_harvest_bound_samples": 5885,
+            "out_of_zone_samples": 3306,
+            "regime_proportions": {
+              "accel": 0.7800632911392406,
+              "brake": 0.07563291139240506,
+              "corner": 0.14430379746835442
+            },
+            "upper_ceiling_bound_samples": 6320,
+            "valid_samples": 6320,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": -5.383192401275199,
+            "lap_mape_pct": 5.745300810624801,
+            "sample_band_containment": 0.9341772151898734,
+            "sample_centre_bias_kw": -1.2650622012864077
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.09257867814358813,
+            "soc_mean_mae_mj": 0.16654883216100994,
+            "soc_particle_band_containment": 0.372626582278481
+          },
+          "grid_ds_m": 10.0,
+          "mass_kg": 790.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 6320
+          },
+          "regulation_variant": "stage1-simulator",
+          "seed": 42
+        },
+        {
+          "brake_dilate_cells": 0,
+          "cda": {
+            "centre_error_pct": -103.53948962911551,
+            "hat": -0.023360631552162392,
+            "hi": 2.155832982979451,
+            "identifiability": 0.0,
+            "lo": -2.2025542460837757,
+            "n_binding": 0,
+            "n_coast": 98,
+            "notes": [
+              "interval empty at the robust quantile; widened to the median of the bounds",
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": true,
+            "width_pct_of_truth": 660.3617013732162
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 435,
+            "coast_samples": 98,
+            "in_zone_samples": 3014,
+            "lower_harvest_bound_samples": 5885,
+            "out_of_zone_samples": 3306,
+            "regime_proportions": {
+              "accel": 0.7800632911392406,
+              "brake": 0.07563291139240506,
+              "corner": 0.14430379746835442
+            },
+            "upper_ceiling_bound_samples": 6320,
+            "valid_samples": 6320,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": -5.30676511702623,
+            "lap_mape_pct": 5.587773431953968,
+            "sample_band_containment": 0.9325949367088607,
+            "sample_centre_bias_kw": -1.3065270902087909
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.07300396448662884,
+            "soc_mean_mae_mj": 0.1921657168392361,
+            "soc_particle_band_containment": 0.395253164556962
+          },
+          "grid_ds_m": 10.0,
+          "mass_kg": 790.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 6320
+          },
+          "regulation_variant": "stage1-simulator",
+          "seed": 7
+        },
+        {
+          "brake_dilate_cells": 0,
+          "cda": {
+            "centre_error_pct": -101.93930657266206,
+            "hat": -0.01279942337956963,
+            "hi": 2.1515522835227334,
+            "identifiability": 0.0,
+            "lo": -2.1771511302818727,
+            "n_binding": 0,
+            "n_coast": 100,
+            "notes": [
+              "interval empty at the robust quantile; widened to the median of the bounds",
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": true,
+            "width_pct_of_truth": 655.8641536067584
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 435,
+            "coast_samples": 100,
+            "in_zone_samples": 3014,
+            "lower_harvest_bound_samples": 5885,
+            "out_of_zone_samples": 3306,
+            "regime_proportions": {
+              "accel": 0.7800632911392406,
+              "brake": 0.07563291139240506,
+              "corner": 0.14430379746835442
+            },
+            "upper_ceiling_bound_samples": 6320,
+            "valid_samples": 6320,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": -5.281484964517439,
+            "lap_mape_pct": 5.791824508009548,
+            "sample_band_containment": 0.9360759493670886,
+            "sample_centre_bias_kw": -1.2791205723356207
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.023731152393127224,
+            "soc_mean_mae_mj": 0.17487351633596132,
+            "soc_particle_band_containment": 0.5715189873417722
+          },
+          "grid_ds_m": 10.0,
+          "mass_kg": 790.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 6320
+          },
+          "regulation_variant": "stage1-simulator",
+          "seed": 13
+        }
+      ]
+    },
+    "brake_dilation_1cell": {
+      "bias_range_pct": [
+        -96.86317066797709,
+        -95.27696539503962
+      ],
+      "mean_abs_cda_centre_error_pct": 95.87707146851005,
+      "mean_cda_centre_error_pct": -95.87707146851005,
+      "n_ok": 3,
+      "runs": [
+        {
+          "brake_dilate_cells": 1,
+          "cda": {
+            "centre_error_pct": -96.86317066797709,
+            "hat": 0.020703073591351262,
+            "hi": 0.60093044404108,
+            "identifiability": 0.0,
+            "lo": -0.5595242968583775,
+            "n_binding": 0,
+            "n_coast": 92,
+            "notes": [
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": false,
+            "width_pct_of_truth": 175.82647589385718
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 715,
+            "coast_samples": 92,
+            "in_zone_samples": 3014,
+            "lower_harvest_bound_samples": 5605,
+            "out_of_zone_samples": 3306,
+            "regime_proportions": {
+              "accel": 0.7800632911392406,
+              "brake": 0.07563291139240506,
+              "corner": 0.14430379746835442
+            },
+            "upper_ceiling_bound_samples": 6320,
+            "valid_samples": 6320,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": 46.13662700667692,
+            "lap_mape_pct": 50.36827133198314,
+            "sample_band_containment": 0.9405063291139241,
+            "sample_centre_bias_kw": 13.402987040699838
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.06708900967510979,
+            "soc_mean_mae_mj": 0.16276386483131083,
+            "soc_particle_band_containment": 0.3634493670886076
+          },
+          "grid_ds_m": 10.0,
+          "mass_kg": 790.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 6320
+          },
+          "regulation_variant": "stage1-simulator",
+          "seed": 42
+        },
+        {
+          "brake_dilate_cells": 1,
+          "cda": {
+            "centre_error_pct": -95.49107834251345,
+            "hat": 0.029758882939411313,
+            "hi": 0.5897419342407416,
+            "identifiability": 0.0,
+            "lo": -0.530224168361919,
+            "n_binding": 0,
+            "n_coast": 89,
+            "notes": [
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": false,
+            "width_pct_of_truth": 169.69183372767586
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 715,
+            "coast_samples": 89,
+            "in_zone_samples": 3014,
+            "lower_harvest_bound_samples": 5605,
+            "out_of_zone_samples": 3306,
+            "regime_proportions": {
+              "accel": 0.7800632911392406,
+              "brake": 0.07563291139240506,
+              "corner": 0.14430379746835442
+            },
+            "upper_ceiling_bound_samples": 6320,
+            "valid_samples": 6320,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": 46.024126196769195,
+            "lap_mape_pct": 50.420565305067676,
+            "sample_band_containment": 0.9424050632911393,
+            "sample_centre_bias_kw": 13.376857079930659
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.04780260533839994,
+            "soc_mean_mae_mj": 0.17455947777425473,
+            "soc_particle_band_containment": 0.4036392405063291
+          },
+          "grid_ds_m": 10.0,
+          "mass_kg": 790.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 6320
+          },
+          "regulation_variant": "stage1-simulator",
+          "seed": 7
+        },
+        {
+          "brake_dilate_cells": 1,
+          "cda": {
+            "centre_error_pct": -95.27696539503962,
+            "hat": 0.03117202839273847,
+            "hi": 0.6727474515367768,
+            "identifiability": 0.0,
+            "lo": -0.6104033947512999,
+            "n_binding": 0,
+            "n_coast": 91,
+            "notes": [
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": true,
+            "width_pct_of_truth": 194.41679489213286
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 715,
+            "coast_samples": 91,
+            "in_zone_samples": 3014,
+            "lower_harvest_bound_samples": 5605,
+            "out_of_zone_samples": 3306,
+            "regime_proportions": {
+              "accel": 0.7800632911392406,
+              "brake": 0.07563291139240506,
+              "corner": 0.14430379746835442
+            },
+            "upper_ceiling_bound_samples": 6320,
+            "valid_samples": 6320,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": 46.11384927765877,
+            "lap_mape_pct": 50.43034566763788,
+            "sample_band_containment": 0.9441455696202532,
+            "sample_centre_bias_kw": 13.391907769421007
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.0350777024807806,
+            "soc_mean_mae_mj": 0.15371321162355622,
+            "soc_particle_band_containment": 0.635759493670886
+          },
+          "grid_ds_m": 10.0,
+          "mass_kg": 790.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 6320
+          },
+          "regulation_variant": "stage1-simulator",
+          "seed": 13
+        }
+      ]
+    },
+    "grid_20m": {
+      "bias_range_pct": [
+        -23.18216748655862,
+        -20.14479505633737
+      ],
+      "mean_abs_cda_centre_error_pct": 21.431626654721452,
+      "mean_cda_centre_error_pct": -21.431626654721452,
+      "n_ok": 3,
+      "runs": [
+        {
+          "brake_dilate_cells": 0,
+          "cda": {
+            "centre_error_pct": -23.18216748655862,
+            "hat": 0.5069976945887131,
+            "hi": 2.1950680108111973,
+            "identifiability": 0.0,
+            "lo": -1.181072621633771,
+            "n_binding": 504,
+            "n_coast": 67,
+            "notes": [
+              "interval empty at the robust quantile; widened to the median of the bounds",
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": true,
+            "width_pct_of_truth": 511.5364594613588
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 219,
+            "coast_samples": 67,
+            "in_zone_samples": 1497,
+            "lower_harvest_bound_samples": 2941,
+            "out_of_zone_samples": 1663,
+            "regime_proportions": {
+              "accel": 0.7876582278481012,
+              "brake": 0.07563291139240506,
+              "corner": 0.13670886075949368
+            },
+            "upper_ceiling_bound_samples": 3160,
+            "valid_samples": 3160,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": -6.494015075469167,
+            "lap_mape_pct": 6.494015075469167,
+            "sample_band_containment": 0.9240506329113924,
+            "sample_centre_bias_kw": -0.8932293259811377
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.03918857451726132,
+            "soc_mean_mae_mj": 0.17632689722018552,
+            "soc_particle_band_containment": 0.5132911392405063
+          },
+          "grid_ds_m": 20.0,
+          "mass_kg": 790.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 3160
+          },
+          "regulation_variant": "stage1-simulator",
+          "seed": 42
+        },
+        {
+          "brake_dilate_cells": 0,
+          "cda": {
+            "centre_error_pct": -20.967917421268364,
+            "hat": 0.5216117450196288,
+            "hi": 2.178474770467427,
+            "identifiability": 0.0,
+            "lo": -1.1352512804281696,
+            "n_binding": 523,
+            "n_coast": 63,
+            "notes": [
+              "interval empty at the robust quantile; widened to the median of the bounds",
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": true,
+            "width_pct_of_truth": 502.0797046811511
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 219,
+            "coast_samples": 63,
+            "in_zone_samples": 1497,
+            "lower_harvest_bound_samples": 2941,
+            "out_of_zone_samples": 1663,
+            "regime_proportions": {
+              "accel": 0.7876582278481012,
+              "brake": 0.07563291139240506,
+              "corner": 0.13670886075949368
+            },
+            "upper_ceiling_bound_samples": 3160,
+            "valid_samples": 3160,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": -6.727614784301343,
+            "lap_mape_pct": 6.805824011636775,
+            "sample_band_containment": 0.9227848101265823,
+            "sample_centre_bias_kw": -0.8757708252755253
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.029768557016114777,
+            "soc_mean_mae_mj": 0.1979745814236291,
+            "soc_particle_band_containment": 0.5050632911392405
+          },
+          "grid_ds_m": 20.0,
+          "mass_kg": 790.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 3160
+          },
+          "regulation_variant": "stage1-simulator",
+          "seed": 7
+        },
+        {
+          "brake_dilate_cells": 0,
+          "cda": {
+            "centre_error_pct": -20.14479505633737,
+            "hat": 0.5270443526281734,
+            "hi": 2.17305800275643,
+            "identifiability": 0.0,
+            "lo": -1.1189692975000831,
+            "n_binding": 555,
+            "n_coast": 65,
+            "notes": [
+              "interval empty at the robust quantile; widened to the median of the bounds",
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": true,
+            "width_pct_of_truth": 498.79201519038077
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 219,
+            "coast_samples": 65,
+            "in_zone_samples": 1497,
+            "lower_harvest_bound_samples": 2941,
+            "out_of_zone_samples": 1663,
+            "regime_proportions": {
+              "accel": 0.7876582278481012,
+              "brake": 0.07563291139240506,
+              "corner": 0.13670886075949368
+            },
+            "upper_ceiling_bound_samples": 3160,
+            "valid_samples": 3160,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": -6.672095997012131,
+            "lap_mape_pct": 6.672095997012131,
+            "sample_band_containment": 0.914873417721519,
+            "sample_centre_bias_kw": -0.881892527121576
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.017064948719379153,
+            "soc_mean_mae_mj": 0.18907686123409506,
+            "soc_particle_band_containment": 0.5759493670886076
+          },
+          "grid_ds_m": 20.0,
+          "mass_kg": 790.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 3160
+          },
+          "regulation_variant": "stage1-simulator",
+          "seed": 13
+        }
+      ]
+    },
+    "grid_5m": {
+      "bias_range_pct": [
+        -103.32645982012997,
+        -101.3862911720084
+      ],
+      "mean_abs_cda_centre_error_pct": 102.19318789910953,
+      "mean_cda_centre_error_pct": -102.19318789910953,
+      "n_ok": 3,
+      "runs": [
+        {
+          "brake_dilate_cells": 0,
+          "cda": {
+            "centre_error_pct": -101.86681270519023,
+            "hat": -0.012320963854255407,
+            "hi": 2.154470646282721,
+            "identifiability": 0.0,
+            "lo": -2.179112573991232,
+            "n_binding": 0,
+            "n_coast": 172,
+            "notes": [
+              "interval empty at the robust quantile; widened to the median of the bounds",
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": true,
+            "width_pct_of_truth": 656.6035182233261
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 857,
+            "coast_samples": 172,
+            "in_zone_samples": 6037,
+            "lower_harvest_bound_samples": 11788,
+            "out_of_zone_samples": 6608,
+            "regime_proportions": {
+              "accel": 0.7844207196520364,
+              "brake": 0.07133254250691973,
+              "corner": 0.1442467378410439
+            },
+            "upper_ceiling_bound_samples": 12645,
+            "valid_samples": 12645,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": -7.025812746051961,
+            "lap_mape_pct": 7.025812746051961,
+            "sample_band_containment": 0.9365757216291024,
+            "sample_centre_bias_kw": -2.0516299136739855
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.09795785998481835,
+            "soc_mean_mae_mj": 0.16849083766929818,
+            "soc_particle_band_containment": 0.40094899169632264
+          },
+          "grid_ds_m": 5.0,
+          "mass_kg": 790.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 12645
+          },
+          "regulation_variant": "stage1-simulator",
+          "seed": 42
+        },
+        {
+          "brake_dilate_cells": 0,
+          "cda": {
+            "centre_error_pct": -103.32645982012997,
+            "hat": -0.021954634812857865,
+            "hi": 2.1452804333540074,
+            "identifiability": 0.0,
+            "lo": -2.189189702979723,
+            "n_binding": 0,
+            "n_coast": 178,
+            "notes": [
+              "interval empty at the robust quantile; widened to the median of the bounds",
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": true,
+            "width_pct_of_truth": 656.7378994445046
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 857,
+            "coast_samples": 178,
+            "in_zone_samples": 6037,
+            "lower_harvest_bound_samples": 11788,
+            "out_of_zone_samples": 6608,
+            "regime_proportions": {
+              "accel": 0.7844207196520364,
+              "brake": 0.07133254250691973,
+              "corner": 0.1442467378410439
+            },
+            "upper_ceiling_bound_samples": 12645,
+            "valid_samples": 12645,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": -6.953699281745035,
+            "lap_mape_pct": 6.953699281745035,
+            "sample_band_containment": 0.9312771846579676,
+            "sample_centre_bias_kw": -2.113845357508876
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.04357133496054983,
+            "soc_mean_mae_mj": 0.18678172423314096,
+            "soc_particle_band_containment": 0.5115856069592725
+          },
+          "grid_ds_m": 5.0,
+          "mass_kg": 790.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 12645
+          },
+          "regulation_variant": "stage1-simulator",
+          "seed": 7
+        },
+        {
+          "brake_dilate_cells": 0,
+          "cda": {
+            "centre_error_pct": -101.3862911720084,
+            "hat": -0.009149521735255517,
+            "hi": 2.1525451659944768,
+            "identifiability": 0.0,
+            "lo": -2.170844209464988,
+            "n_binding": 0,
+            "n_coast": 172,
+            "notes": [
+              "interval empty at the robust quantile; widened to the median of the bounds",
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": true,
+            "width_pct_of_truth": 655.0589962817371
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 857,
+            "coast_samples": 172,
+            "in_zone_samples": 6037,
+            "lower_harvest_bound_samples": 11788,
+            "out_of_zone_samples": 6608,
+            "regime_proportions": {
+              "accel": 0.7844207196520364,
+              "brake": 0.07133254250691973,
+              "corner": 0.1442467378410439
+            },
+            "upper_ceiling_bound_samples": 12645,
+            "valid_samples": 12645,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": -6.9287978654204485,
+            "lap_mape_pct": 6.9287978654204485,
+            "sample_band_containment": 0.9358639778568604,
+            "sample_centre_bias_kw": -2.076581175407244
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.04104679840524163,
+            "soc_mean_mae_mj": 0.17364148252073916,
+            "soc_particle_band_containment": 0.5815737445630684
+          },
+          "grid_ds_m": 5.0,
+          "mass_kg": 790.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 12645
+          },
+          "regulation_variant": "stage1-simulator",
+          "seed": 13
+        }
+      ]
+    },
+    "mass_768kg": {
+      "bias_range_pct": [
+        -99.16549330554885,
+        -97.56872512970776
+      ],
+      "mean_abs_cda_centre_error_pct": 98.4710307616948,
+      "mean_cda_centre_error_pct": -98.4710307616948,
+      "n_ok": 3,
+      "runs": [
+        {
+          "brake_dilate_cells": 0,
+          "cda": {
+            "centre_error_pct": -98.67887384982782,
+            "hat": 0.008719432591136389,
+            "hi": 2.1886635108256067,
+            "identifiability": 0.0,
+            "lo": -2.171224645643334,
+            "n_binding": 0,
+            "n_coast": 101,
+            "notes": [
+              "interval empty at the robust quantile; widened to the median of the bounds",
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": true,
+            "width_pct_of_truth": 660.5891146165061
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 435,
+            "coast_samples": 101,
+            "in_zone_samples": 3014,
+            "lower_harvest_bound_samples": 5885,
+            "out_of_zone_samples": 3306,
+            "regime_proportions": {
+              "accel": 0.7800632911392406,
+              "brake": 0.07563291139240506,
+              "corner": 0.14430379746835442
+            },
+            "upper_ceiling_bound_samples": 6320,
+            "valid_samples": 6320,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": -5.4043378452556246,
+            "lap_mape_pct": 5.735594255365114,
+            "sample_band_containment": 0.9412974683544304,
+            "sample_centre_bias_kw": -1.061081039401742
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.09326423020747515,
+            "soc_mean_mae_mj": 0.16600468950644445,
+            "soc_particle_band_containment": 0.43227848101265826
+          },
+          "grid_ds_m": 10.0,
+          "mass_kg": 768.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 6320
+          },
+          "regulation_variant": "stage1-simulator",
+          "seed": 42
+        },
+        {
+          "brake_dilate_cells": 0,
+          "cda": {
+            "centre_error_pct": -99.16549330554885,
+            "hat": 0.0055077441833775165,
+            "hi": 2.1903325135974447,
+            "identifiability": 0.0,
+            "lo": -2.1793170252306897,
+            "n_binding": 0,
+            "n_coast": 98,
+            "notes": [
+              "interval empty at the robust quantile; widened to the median of the bounds",
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": true,
+            "width_pct_of_truth": 662.0681119436567
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 435,
+            "coast_samples": 98,
+            "in_zone_samples": 3014,
+            "lower_harvest_bound_samples": 5885,
+            "out_of_zone_samples": 3306,
+            "regime_proportions": {
+              "accel": 0.7800632911392406,
+              "brake": 0.07563291139240506,
+              "corner": 0.14430379746835442
+            },
+            "upper_ceiling_bound_samples": 6320,
+            "valid_samples": 6320,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": -5.334406130137998,
+            "lap_mape_pct": 5.565657504127869,
+            "sample_band_containment": 0.9379746835443038,
+            "sample_centre_bias_kw": -1.0984610006710933
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.051189764405907036,
+            "soc_mean_mae_mj": 0.18691756699017928,
+            "soc_particle_band_containment": 0.45031645569620254
+          },
+          "grid_ds_m": 10.0,
+          "mass_kg": 768.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 6320
+          },
+          "regulation_variant": "stage1-simulator",
+          "seed": 7
+        },
+        {
+          "brake_dilate_cells": 0,
+          "cda": {
+            "centre_error_pct": -97.56872512970776,
+            "hat": 0.01604641414392871,
+            "hi": 2.187009426905848,
+            "identifiability": 0.0,
+            "lo": -2.154916598617991,
+            "n_binding": 0,
+            "n_coast": 100,
+            "notes": [
+              "interval empty at the robust quantile; widened to the median of the bounds",
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": true,
+            "width_pct_of_truth": 657.8675796248241
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 435,
+            "coast_samples": 100,
+            "in_zone_samples": 3014,
+            "lower_harvest_bound_samples": 5885,
+            "out_of_zone_samples": 3306,
+            "regime_proportions": {
+              "accel": 0.7800632911392406,
+              "brake": 0.07563291139240506,
+              "corner": 0.14430379746835442
+            },
+            "upper_ceiling_bound_samples": 6320,
+            "valid_samples": 6320,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": -5.2952827679661505,
+            "lap_mape_pct": 5.872639068208852,
+            "sample_band_containment": 0.9443037974683545,
+            "sample_centre_bias_kw": -1.0600350883172935
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.02857203991310954,
+            "soc_mean_mae_mj": 0.17441322439471488,
+            "soc_particle_band_containment": 0.5841772151898734
+          },
+          "grid_ds_m": 10.0,
+          "mass_kg": 768.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 6320
+          },
+          "regulation_variant": "stage1-simulator",
+          "seed": 13
+        }
+      ]
+    },
+    "mass_821kg": {
+      "bias_range_pct": [
+        -109.53022093097987,
+        -107.84858451613168
+      ],
+      "mean_abs_cda_centre_error_pct": 108.53344390106302,
+      "mean_cda_centre_error_pct": -108.53344390106302,
+      "n_ok": 3,
+      "runs": [
+        {
+          "brake_dilate_cells": 0,
+          "cda": {
+            "centre_error_pct": -108.22152625607751,
+            "hat": -0.05426207329011157,
+            "hi": 2.1146520131698083,
+            "identifiability": 0.0,
+            "lo": -2.2231761597500315,
+            "n_binding": 1,
+            "n_coast": 101,
+            "notes": [
+              "interval empty at the robust quantile; widened to the median of the bounds",
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": true,
+            "width_pct_of_truth": 657.2466928666424
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 435,
+            "coast_samples": 101,
+            "in_zone_samples": 3014,
+            "lower_harvest_bound_samples": 5885,
+            "out_of_zone_samples": 3306,
+            "regime_proportions": {
+              "accel": 0.7800632911392406,
+              "brake": 0.07563291139240506,
+              "corner": 0.14430379746835442
+            },
+            "upper_ceiling_bound_samples": 6320,
+            "valid_samples": 6320,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": -5.334797162776759,
+            "lap_mape_pct": 5.69404161541136,
+            "sample_band_containment": 0.9237341772151899,
+            "sample_centre_bias_kw": -1.5574642959475755
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.09074889322873499,
+            "soc_mean_mae_mj": 0.1674556420277845,
+            "soc_particle_band_containment": 0.3938291139240506
+          },
+          "grid_ds_m": 10.0,
+          "mass_kg": 821.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 6320
+          },
+          "regulation_variant": "stage1-simulator",
+          "seed": 42
+        },
+        {
+          "brake_dilate_cells": 0,
+          "cda": {
+            "centre_error_pct": -109.53022093097987,
+            "hat": -0.06289945814446707,
+            "hi": 2.107136117936302,
+            "identifiability": 0.0,
+            "lo": -2.2329350342252363,
+            "n_binding": 1,
+            "n_coast": 98,
+            "notes": [
+              "interval empty at the robust quantile; widened to the median of the bounds",
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": true,
+            "width_pct_of_truth": 657.5865382062937
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 435,
+            "coast_samples": 98,
+            "in_zone_samples": 3014,
+            "lower_harvest_bound_samples": 5885,
+            "out_of_zone_samples": 3306,
+            "regime_proportions": {
+              "accel": 0.7800632911392406,
+              "brake": 0.07563291139240506,
+              "corner": 0.14430379746835442
+            },
+            "upper_ceiling_bound_samples": 6320,
+            "valid_samples": 6320,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": -5.268403452747456,
+            "lap_mape_pct": 5.597213391120004,
+            "sample_band_containment": 0.9210443037974684,
+            "sample_centre_bias_kw": -1.6013933792732558
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.0625022315004914,
+            "soc_mean_mae_mj": 0.1908950050291729,
+            "soc_particle_band_containment": 0.40727848101265823
+          },
+          "grid_ds_m": 10.0,
+          "mass_kg": 821.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 6320
+          },
+          "regulation_variant": "stage1-simulator",
+          "seed": 7
+        },
+        {
+          "brake_dilate_cells": 0,
+          "cda": {
+            "centre_error_pct": -107.84858451613168,
+            "hat": -0.05180065780646914,
+            "hi": 2.105693269102235,
+            "identifiability": 0.0,
+            "lo": -2.2092945847151735,
+            "n_binding": 0,
+            "n_coast": 100,
+            "notes": [
+              "interval empty at the robust quantile; widened to the median of the bounds",
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": true,
+            "width_pct_of_truth": 653.786038457183
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 435,
+            "coast_samples": 100,
+            "in_zone_samples": 3014,
+            "lower_harvest_bound_samples": 5885,
+            "out_of_zone_samples": 3306,
+            "regime_proportions": {
+              "accel": 0.7800632911392406,
+              "brake": 0.07563291139240506,
+              "corner": 0.14430379746835442
+            },
+            "upper_ceiling_bound_samples": 6320,
+            "valid_samples": 6320,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": -5.273206083323711,
+            "lap_mape_pct": 5.7374663269999795,
+            "sample_band_containment": 0.9224683544303798,
+            "sample_centre_bias_kw": -1.5862757980362794
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.03050040082564467,
+            "soc_mean_mae_mj": 0.17648455247934353,
+            "soc_particle_band_containment": 0.5658227848101266
+          },
+          "grid_ds_m": 10.0,
+          "mass_kg": 821.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 6320
+          },
+          "regulation_variant": "stage1-simulator",
+          "seed": 13
+        }
+      ]
+    },
+    "mass_838kg": {
+      "bias_range_pct": [
+        -111.6065232171153,
+        -103.77356721841112
+      ],
+      "mean_abs_cda_centre_error_pct": 107.82440453540084,
+      "mean_cda_centre_error_pct": -107.82440453540084,
+      "n_ok": 3,
+      "runs": [
+        {
+          "brake_dilate_cells": 0,
+          "cda": {
+            "centre_error_pct": -111.6065232171153,
+            "hat": -0.0766030532329609,
+            "hi": 2.0840582652962345,
+            "identifiability": 0.0,
+            "lo": -2.2372643717621563,
+            "n_binding": 1,
+            "n_coast": 101,
+            "notes": [
+              "interval empty at the robust quantile; widened to the median of the bounds",
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": true,
+            "width_pct_of_truth": 654.7458540997561
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 435,
+            "coast_samples": 101,
+            "in_zone_samples": 3014,
+            "lower_harvest_bound_samples": 5885,
+            "out_of_zone_samples": 3306,
+            "regime_proportions": {
+              "accel": 0.7800632911392406,
+              "brake": 0.07563291139240506,
+              "corner": 0.14430379746835442
+            },
+            "upper_ceiling_bound_samples": 6320,
+            "valid_samples": 6320,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": -5.3093596258067635,
+            "lap_mape_pct": 5.656572607959873,
+            "sample_band_containment": 0.915506329113924,
+            "sample_centre_bias_kw": -1.729288495973665
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.08589233804266388,
+            "soc_mean_mae_mj": 0.16781270917982177,
+            "soc_particle_band_containment": 0.45617088607594936
+          },
+          "grid_ds_m": 10.0,
+          "mass_kg": 838.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 6320
+          },
+          "regulation_variant": "stage1-simulator",
+          "seed": 42
+        },
+        {
+          "brake_dilate_cells": 0,
+          "cda": {
+            "centre_error_pct": -103.77356721841112,
+            "hat": -0.024905543641513317,
+            "hi": 2.077184496807686,
+            "identifiability": 0.0,
+            "lo": -2.1269955840907127,
+            "n_binding": 1,
+            "n_coast": 98,
+            "notes": [
+              "interval empty at the robust quantile; widened to the median of the bounds",
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": true,
+            "width_pct_of_truth": 636.9969819543027
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 435,
+            "coast_samples": 98,
+            "in_zone_samples": 3014,
+            "lower_harvest_bound_samples": 5885,
+            "out_of_zone_samples": 3306,
+            "regime_proportions": {
+              "accel": 0.7800632911392406,
+              "brake": 0.07563291139240506,
+              "corner": 0.14430379746835442
+            },
+            "upper_ceiling_bound_samples": 6320,
+            "valid_samples": 6320,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": -5.268668745870036,
+            "lap_mape_pct": 5.641596314566686,
+            "sample_band_containment": 0.9272151898734177,
+            "sample_centre_bias_kw": -1.5791620973066305
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.05522009885298984,
+            "soc_mean_mae_mj": 0.18836597309189604,
+            "soc_particle_band_containment": 0.43955696202531647
+          },
+          "grid_ds_m": 10.0,
+          "mass_kg": 838.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 6320
+          },
+          "regulation_variant": "stage1-simulator",
+          "seed": 7
+        },
+        {
+          "brake_dilate_cells": 0,
+          "cda": {
+            "centre_error_pct": -108.09312317067614,
+            "hat": -0.053414612926462546,
+            "hi": 2.081932073038669,
+            "identifiability": 0.0,
+            "lo": -2.188761298891594,
+            "n_binding": 0,
+            "n_coast": 100,
+            "notes": [
+              "interval empty at the robust quantile; widened to the median of the bounds",
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": true,
+            "width_pct_of_truth": 647.074753322767
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 435,
+            "coast_samples": 100,
+            "in_zone_samples": 3014,
+            "lower_harvest_bound_samples": 5885,
+            "out_of_zone_samples": 3306,
+            "regime_proportions": {
+              "accel": 0.7800632911392406,
+              "brake": 0.07563291139240506,
+              "corner": 0.14430379746835442
+            },
+            "upper_ceiling_bound_samples": 6320,
+            "valid_samples": 6320,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": -5.274526015346196,
+            "lap_mape_pct": 5.751472837967327,
+            "sample_band_containment": 0.9197784810126582,
+            "sample_centre_bias_kw": -1.6933172374753307
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.027884068347279942,
+            "soc_mean_mae_mj": 0.17711393548061793,
+            "soc_particle_band_containment": 0.5596518987341772
+          },
+          "grid_ds_m": 10.0,
+          "mass_kg": 838.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 6320
+          },
+          "regulation_variant": "stage1-simulator",
+          "seed": 13
+        }
+      ]
+    },
+    "post_miami_bounds": {
+      "bias_range_pct": [
+        -124.53497195054524,
+        -123.0156912089021
+      ],
+      "mean_abs_cda_centre_error_pct": 124.01107086437385,
+      "mean_cda_centre_error_pct": -124.01107086437385,
+      "n_ok": 3,
+      "runs": [
+        {
+          "brake_dilate_cells": 0,
+          "cda": {
+            "centre_error_pct": -124.48254943367422,
+            "hat": -0.1615848262622499,
+            "hi": 1.8715790154237788,
+            "identifiability": 0.0,
+            "lo": -2.1947486679482786,
+            "n_binding": 0,
+            "n_coast": 101,
+            "notes": [
+              "interval empty at the robust quantile; widened to the median of the bounds",
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": true,
+            "width_pct_of_truth": 616.1102550563722
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 435,
+            "coast_samples": 101,
+            "in_zone_samples": 3014,
+            "lower_harvest_bound_samples": 5885,
+            "out_of_zone_samples": 3306,
+            "regime_proportions": {
+              "accel": 0.7800632911392406,
+              "brake": 0.07563291139240506,
+              "corner": 0.14430379746835442
+            },
+            "upper_ceiling_bound_samples": 6320,
+            "valid_samples": 6320,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": -5.3288669913923306,
+            "lap_mape_pct": 5.559200443261438,
+            "sample_band_containment": 0.8759493670886076,
+            "sample_centre_bias_kw": -1.621587804000375
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.07170214955800028,
+            "soc_mean_mae_mj": 0.19010422609195302,
+            "soc_particle_band_containment": 0.37341772151898733
+          },
+          "grid_ds_m": 10.0,
+          "mass_kg": 790.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 6320
+          },
+          "regulation_variant": "post-Miami-2026",
+          "seed": 42
+        },
+        {
+          "brake_dilate_cells": 0,
+          "cda": {
+            "centre_error_pct": -124.53497195054524,
+            "hat": -0.16193081487359862,
+            "hi": 1.8786926163365785,
+            "identifiability": 0.0,
+            "lo": -2.2025542460837757,
+            "n_binding": 0,
+            "n_coast": 98,
+            "notes": [
+              "interval empty at the robust quantile; widened to the median of the bounds",
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": true,
+            "width_pct_of_truth": 618.3707367303566
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 435,
+            "coast_samples": 98,
+            "in_zone_samples": 3014,
+            "lower_harvest_bound_samples": 5885,
+            "out_of_zone_samples": 3306,
+            "regime_proportions": {
+              "accel": 0.7800632911392406,
+              "brake": 0.07563291139240506,
+              "corner": 0.14430379746835442
+            },
+            "upper_ceiling_bound_samples": 6320,
+            "valid_samples": 6320,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": -5.30477704042094,
+            "lap_mape_pct": 5.493842331002991,
+            "sample_band_containment": 0.8795886075949367,
+            "sample_centre_bias_kw": -1.6402099314693024
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.02868490064240335,
+            "soc_mean_mae_mj": 0.20545182172609702,
+            "soc_particle_band_containment": 0.4389240506329114
+          },
+          "grid_ds_m": 10.0,
+          "mass_kg": 790.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 6320
+          },
+          "regulation_variant": "post-Miami-2026",
+          "seed": 7
+        },
+        {
+          "brake_dilate_cells": 0,
+          "cda": {
+            "centre_error_pct": -123.0156912089021,
+            "hat": -0.15190356197875388,
+            "hi": 1.873344006324365,
+            "identifiability": 0.0,
+            "lo": -2.1771511302818727,
+            "n_binding": 0,
+            "n_coast": 100,
+            "notes": [
+              "interval empty at the robust quantile; widened to the median of the bounds",
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": true,
+            "width_pct_of_truth": 613.7113843342783
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 435,
+            "coast_samples": 100,
+            "in_zone_samples": 3014,
+            "lower_harvest_bound_samples": 5885,
+            "out_of_zone_samples": 3306,
+            "regime_proportions": {
+              "accel": 0.7800632911392406,
+              "brake": 0.07563291139240506,
+              "corner": 0.14430379746835442
+            },
+            "upper_ceiling_bound_samples": 6320,
+            "valid_samples": 6320,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": -5.211384851445472,
+            "lap_mape_pct": 5.571949328616602,
+            "sample_band_containment": 0.8810126582278481,
+            "sample_centre_bias_kw": -1.612107942904369
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.01580872736451116,
+            "soc_mean_mae_mj": 0.18139878114467833,
+            "soc_particle_band_containment": 0.654113924050633
+          },
+          "grid_ds_m": 10.0,
+          "mass_kg": 790.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 6320
+          },
+          "regulation_variant": "post-Miami-2026",
+          "seed": 13
+        }
+      ]
+    },
+    "pre_miami_bounds": {
+      "bias_range_pct": [
+        60.89111824877976,
+        67.49787652316793
+      ],
+      "mean_abs_cda_centre_error_pct": 64.19200965227445,
+      "mean_cda_centre_error_pct": 64.19200965227445,
+      "n_ok": 3,
+      "runs": [
+        {
+          "brake_dilate_cells": 0,
+          "cda": {
+            "centre_error_pct": 60.89111824877976,
+            "hat": 1.0618813804419465,
+            "hi": 2.158505989250838,
+            "identifiability": 0.0,
+            "lo": -0.03474322836694517,
+            "n_binding": 3107,
+            "n_coast": 101,
+            "notes": [
+              "interval empty at the robust quantile; widened to the median of the bounds",
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": true,
+            "width_pct_of_truth": 332.3104875178459
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 435,
+            "coast_samples": 101,
+            "in_zone_samples": 3014,
+            "lower_harvest_bound_samples": 5885,
+            "out_of_zone_samples": 3306,
+            "regime_proportions": {
+              "accel": 0.7800632911392406,
+              "brake": 0.07563291139240506,
+              "corner": 0.14430379746835442
+            },
+            "upper_ceiling_bound_samples": 6320,
+            "valid_samples": 6320,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": 163.6041395970047,
+            "lap_mape_pct": 163.6041395970047,
+            "sample_band_containment": 0.2848101265822785,
+            "sample_centre_bias_kw": 57.48420404892937
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.17809500214216903,
+            "soc_mean_mae_mj": 0.2100811103148947,
+            "soc_particle_band_containment": 0.24715189873417723
+          },
+          "grid_ds_m": 10.0,
+          "mass_kg": 790.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 6320
+          },
+          "regulation_variant": "pre-Miami-2026",
+          "seed": 42
+        },
+        {
+          "brake_dilate_cells": 0,
+          "cda": {
+            "centre_error_pct": 67.49787652316793,
+            "hat": 1.1054859850529084,
+            "hi": 2.155832982979451,
+            "identifiability": 0.0,
+            "lo": 0.055138987126365765,
+            "n_binding": 3261,
+            "n_coast": 98,
+            "notes": [
+              "interval empty at the robust quantile; widened to the median of the bounds",
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": true,
+            "width_pct_of_truth": 318.2869690686492
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 435,
+            "coast_samples": 98,
+            "in_zone_samples": 3014,
+            "lower_harvest_bound_samples": 5885,
+            "out_of_zone_samples": 3306,
+            "regime_proportions": {
+              "accel": 0.7800632911392406,
+              "brake": 0.07563291139240506,
+              "corner": 0.14430379746835442
+            },
+            "upper_ceiling_bound_samples": 6320,
+            "valid_samples": 6320,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": 182.32345513538687,
+            "lap_mape_pct": 182.32345513538687,
+            "sample_band_containment": 0.2786392405063291,
+            "sample_centre_bias_kw": 63.336381103101374
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.1577486061880386,
+            "soc_mean_mae_mj": 0.2049903046881641,
+            "soc_particle_band_containment": 0.32832278481012656
+          },
+          "grid_ds_m": 10.0,
+          "mass_kg": 790.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 6320
+          },
+          "regulation_variant": "pre-Miami-2026",
+          "seed": 7
+        },
+        {
+          "brake_dilate_cells": 0,
+          "cda": {
+            "centre_error_pct": 64.18703418487564,
+            "hat": 1.0836344256201793,
+            "hi": 2.1515522835227334,
+            "identifiability": 0.0,
+            "lo": 0.01571656771762534,
+            "n_binding": 3195,
+            "n_coast": 100,
+            "notes": [
+              "interval empty at the robust quantile; widened to the median of the bounds",
+              "coast-down channel intersected with the ceiling constraint"
+            ],
+            "truth": 0.66,
+            "truth_contained": true,
+            "width_pct_of_truth": 323.6114720916831
+          },
+          "coverage_counts": {
+            "braking_exclusion_samples": 435,
+            "coast_samples": 100,
+            "in_zone_samples": 3014,
+            "lower_harvest_bound_samples": 5885,
+            "out_of_zone_samples": 3306,
+            "regime_proportions": {
+              "accel": 0.7800632911392406,
+              "brake": 0.07563291139240506,
+              "corner": 0.14430379746835442
+            },
+            "upper_ceiling_bound_samples": 6320,
+            "valid_samples": 6320,
+            "zone_mask_source": "circuit_zone_geometry_current_distance"
+          },
+          "deployment": {
+            "lap_bias_pct": 174.48788345500245,
+            "lap_mape_pct": 174.48788345500245,
+            "sample_band_containment": 0.28022151898734177,
+            "sample_centre_bias_kw": 60.920545981917456
+          },
+          "energy_belief": {
+            "soc_mean_bias_mj": -0.16530514692666703,
+            "soc_mean_mae_mj": 0.20679773070870938,
+            "soc_particle_band_containment": 0.34129746835443037
+          },
+          "grid_ds_m": 10.0,
+          "mass_kg": 790.0,
+          "quality": {
+            "total_laps": 13,
+            "usable_laps": 12,
+            "usable_samples": 6320
+          },
+          "regulation_variant": "pre-Miami-2026",
+          "seed": 13
+        }
+      ]
+    }
+  },
+  "coverage_map": [
+    {
+      "channel": "acceleration/power balance",
+      "evidence": "6320 valid canonical samples",
+      "synthetic_coverage": "YES"
+    },
+    {
+      "channel": "deployment upper ceiling from speed taper",
+      "evidence": "6320 upper-bound samples",
+      "synthetic_coverage": "YES"
+    },
+    {
+      "channel": "deployment-zone eligibility mask construction",
+      "evidence": "3014 in-zone and 3306 out-of-zone samples",
+      "synthetic_coverage": "YES"
+    },
+    {
+      "channel": "post-Miami reduced outside-zone deployment cap",
+      "evidence": "validation regulations: stage1-simulator",
+      "synthetic_coverage": "NO"
+    },
+    {
+      "channel": "braking exclusion",
+      "evidence": "435 brake-flagged samples",
+      "synthetic_coverage": "YES"
+    },
+    {
+      "channel": "harvest lower bound away from brakes",
+      "evidence": "5885 finite lower-bound samples",
+      "synthetic_coverage": "YES"
+    },
+    {
+      "channel": "lift/coast drag identification",
+      "evidence": "101 coast samples under realfit's published definition",
+      "synthetic_coverage": "NO"
+    },
+    {
+      "channel": "weather/wind causal projection",
+      "evidence": "Circuit Sigma has no physical heading; rho is synthetic constant",
+      "synthetic_coverage": "NO"
+    }
+  ],
+  "generated_at": "2026-09-12T20:03:10.492603+00:00",
+  "real_corpus": {
+    "manifest_dir": "/Users/apple/Desktop/x-ray/out/p3/corpus/20260912T200308Z",
+    "source_payloads": [
+      "/Users/apple/Desktop/x-ray/out/races/2026_r10_R.json",
+      "/Users/apple/Desktop/x-ray/out/races/2026_r12_R.json",
+      "/Users/apple/Desktop/x-ray/out/races/2026_r1_R.json",
+      "/Users/apple/Desktop/x-ray/out/races/2026_r6_R.json",
+      "/Users/apple/Desktop/x-ray/out/races/2026_r9_R.json"
+    ]
+  },
+  "realfit_output_semantics": {
+    "cda": "identified interval/set with midpoint centre",
+    "deployment": "per-sample identified band plus balance-selected centre used by particles",
+    "energy": "particle belief summaries; p10/p90 are particle quantiles, not credible-interval claims"
+  },
+  "summary_fingerprint": "db82fe018d9db8e9f671d3c16ddd1d8d4b21db16fca4260fb42e5fb3ed225f21",
+  "synthetic_direct_validation": [
+    {
+      "brake_dilate_cells": 0,
+      "cda": {
+        "centre_error_pct": -102.74565747707884,
+        "hat": -0.01812133934872029,
+        "hi": 2.158505989250838,
+        "identifiability": 0.0,
+        "lo": -2.1947486679482786,
+        "n_binding": 0,
+        "n_coast": 101,
+        "notes": [
+          "interval empty at the robust quantile; widened to the median of the bounds",
+          "coast-down channel intersected with the ceiling constraint"
+        ],
+        "truth": 0.66,
+        "truth_contained": true,
+        "width_pct_of_truth": 659.584038969563
+      },
+      "coverage_counts": {
+        "braking_exclusion_samples": 435,
+        "coast_samples": 101,
+        "in_zone_samples": 3014,
+        "lower_harvest_bound_samples": 5885,
+        "out_of_zone_samples": 3306,
+        "regime_proportions": {
+          "accel": 0.7800632911392406,
+          "brake": 0.07563291139240506,
+          "corner": 0.14430379746835442
+        },
+        "upper_ceiling_bound_samples": 6320,
+        "valid_samples": 6320,
+        "zone_mask_source": "circuit_zone_geometry_current_distance"
+      },
+      "deployment": {
+        "lap_bias_pct": -5.383192401275199,
+        "lap_mape_pct": 5.745300810624801,
+        "sample_band_containment": 0.9341772151898734,
+        "sample_centre_bias_kw": -1.2650622012864077
+      },
+      "energy_belief": {
+        "soc_mean_bias_mj": -0.08418490314950836,
+        "soc_mean_mae_mj": 0.18776210757754913,
+        "soc_particle_band_containment": 0.3569620253164557
+      },
+      "grid_ds_m": 10.0,
+      "mass_kg": 790.0,
+      "quality": {
+        "total_laps": 13,
+        "usable_laps": 12,
+        "usable_samples": 6320
+      },
+      "regulation_variant": "stage1-simulator",
+      "seed": 42
+    },
+    {
+      "brake_dilate_cells": 0,
+      "cda": {
+        "centre_error_pct": -103.53948962911551,
+        "hat": -0.023360631552162392,
+        "hi": 2.155832982979451,
+        "identifiability": 0.0,
+        "lo": -2.2025542460837757,
+        "n_binding": 0,
+        "n_coast": 98,
+        "notes": [
+          "interval empty at the robust quantile; widened to the median of the bounds",
+          "coast-down channel intersected with the ceiling constraint"
+        ],
+        "truth": 0.66,
+        "truth_contained": true,
+        "width_pct_of_truth": 660.3617013732162
+      },
+      "coverage_counts": {
+        "braking_exclusion_samples": 435,
+        "coast_samples": 98,
+        "in_zone_samples": 3014,
+        "lower_harvest_bound_samples": 5885,
+        "out_of_zone_samples": 3306,
+        "regime_proportions": {
+          "accel": 0.7800632911392406,
+          "brake": 0.07563291139240506,
+          "corner": 0.14430379746835442
+        },
+        "upper_ceiling_bound_samples": 6320,
+        "valid_samples": 6320,
+        "zone_mask_source": "circuit_zone_geometry_current_distance"
+      },
+      "deployment": {
+        "lap_bias_pct": -5.30676511702623,
+        "lap_mape_pct": 5.587773431953968,
+        "sample_band_containment": 0.9325949367088607,
+        "sample_centre_bias_kw": -1.3065270902087909
+      },
+      "energy_belief": {
+        "soc_mean_bias_mj": -0.007945552354972338,
+        "soc_mean_mae_mj": 0.18377984174020254,
+        "soc_particle_band_containment": 0.5495253164556962
+      },
+      "grid_ds_m": 10.0,
+      "mass_kg": 790.0,
+      "quality": {
+        "total_laps": 13,
+        "usable_laps": 12,
+        "usable_samples": 6320
+      },
+      "regulation_variant": "stage1-simulator",
+      "seed": 7
+    },
+    {
+      "brake_dilate_cells": 0,
+      "cda": {
+        "centre_error_pct": -101.93930657266206,
+        "hat": -0.01279942337956963,
+        "hi": 2.1515522835227334,
+        "identifiability": 0.0,
+        "lo": -2.1771511302818727,
+        "n_binding": 0,
+        "n_coast": 100,
+        "notes": [
+          "interval empty at the robust quantile; widened to the median of the bounds",
+          "coast-down channel intersected with the ceiling constraint"
+        ],
+        "truth": 0.66,
+        "truth_contained": true,
+        "width_pct_of_truth": 655.8641536067584
+      },
+      "coverage_counts": {
+        "braking_exclusion_samples": 435,
+        "coast_samples": 100,
+        "in_zone_samples": 3014,
+        "lower_harvest_bound_samples": 5885,
+        "out_of_zone_samples": 3306,
+        "regime_proportions": {
+          "accel": 0.7800632911392406,
+          "brake": 0.07563291139240506,
+          "corner": 0.14430379746835442
+        },
+        "upper_ceiling_bound_samples": 6320,
+        "valid_samples": 6320,
+        "zone_mask_source": "circuit_zone_geometry_current_distance"
+      },
+      "deployment": {
+        "lap_bias_pct": -5.281484964517439,
+        "lap_mape_pct": 5.791824508009548,
+        "sample_band_containment": 0.9360759493670886,
+        "sample_centre_bias_kw": -1.2791205723356207
+      },
+      "energy_belief": {
+        "soc_mean_bias_mj": -0.08205091930792219,
+        "soc_mean_mae_mj": 0.16926849868270247,
+        "soc_particle_band_containment": 0.4069620253164557
+      },
+      "grid_ds_m": 10.0,
+      "mass_kg": 790.0,
+      "quality": {
+        "total_laps": 13,
+        "usable_laps": 12,
+        "usable_samples": 6320
+      },
+      "regulation_variant": "stage1-simulator",
+      "seed": 13
+    }
+  ],
+  "zone_mask_result": {
+    "causal": true,
+    "implemented": true,
+    "regulation_variant_separate": true,
+    "semantics": "current-sample distance inside deployment-zone straight",
+    "source": "track.zones geometry shared by synthetic Track and real RealTrack"
+  }
+}

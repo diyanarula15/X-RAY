@@ -1,0 +1,138 @@
+core           INFO 	Loading data for Australian Grand Prix - Race [v3.8.3]
+req            INFO 	No cached data found for session_info. Loading data...
+_api           INFO 	Fetching session info data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for driver_info. Loading data...
+_api           INFO 	Fetching driver list...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for session_status_data. Loading data...
+_api           INFO 	Fetching session status data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for lap_count. Loading data...
+_api           INFO 	Fetching lap count data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for track_status_data. Loading data...
+_api           INFO 	Fetching track status data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for _extended_timing_data. Loading data...
+_api           INFO 	Fetching timing data...
+_api           INFO 	Parsing timing data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for timing_app_data. Loading data...
+_api           INFO 	Fetching timing app data...
+req            INFO 	Data has been written to cache!
+core           INFO 	Processing timing data...
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 81)
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 27)
+req            INFO 	No cached data found for car_data. Loading data...
+_api           INFO 	Fetching car data...
+_api           INFO 	Parsing car data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for position_data. Loading data...
+_api           INFO 	Fetching position data...
+_api           INFO 	Parsing position data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for weather_data. Loading data...
+_api           INFO 	Fetching weather data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for race_control_messages. Loading data...
+_api           INFO 	Fetching race control messages...
+req            INFO 	Data has been written to cache!
+core           INFO 	Finished loading data for 22 drivers: ['63', '12', '16', '44', '1', '3', '87', '41', '5', '10', '31', '23', '30', '43', '55', '11', '18', '14', '77', '6', '81', '27']
+{
+ "year": 2026,
+ "round": 1,
+ "session": "R",
+ "event": "Australian Grand Prix",
+ "circuit": "Melbourne",
+ "date": "2026-03-08",
+ "load_seconds": 35.6,
+ "n_drivers": 20,
+ "n_laps": 1006,
+ "dt_fastest_lap": {
+  "driver": "VER",
+  "n_samples": 313,
+  "median_s": 0.23999999999978172,
+  "mean_s": 0.26230769230768985,
+  "p10_s": 0.15999999999985448,
+  "p90_s": 0.36000000000049115,
+  "max_s": 1.1190000000005966,
+  "effective_hz": 4.166666666670456,
+  "histogram": {
+   "0.00-0.10": 0,
+   "0.10-0.20": 96,
+   "0.20-0.25": 82,
+   "0.25-0.30": 44,
+   "0.30-0.35": 36,
+   "0.35-0.40": 36,
+   "0.40-0.50": 16,
+   "0.50-0.75": 0,
+   "0.75-1.00": 1,
+   "1.00-2.00": 1,
+   "2.00-10.00": 0
+  },
+  "median_dx_m": 15.420833333333462
+ },
+ "channels": {
+  "Speed": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 83.0,
+   "max": 323.0
+  },
+  "Throttle": {
+   "present": true,
+   "frac_nonzero": 0.792332268370607,
+   "min": 0.0,
+   "max": 100.0
+  },
+  "Brake": {
+   "present": true,
+   "frac_nonzero": 0.134185303514377,
+   "min": 0.0,
+   "max": 1.0
+  },
+  "nGear": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 2.0,
+   "max": 8.0
+  },
+  "RPM": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 7658.0,
+   "max": 12129.0
+  },
+  "DRS": {
+   "present": true,
+   "frac_nonzero": 0.0,
+   "min": 0.0,
+   "max": 0.0
+  }
+ },
+ "position": {
+  "n_samples": 307,
+  "source": "lap",
+  "has_Z": true,
+  "z_range_m": [
+   7.5,
+   10.0
+  ],
+  "z_std_m": 0.49843285903274276,
+  "z_frac_zero": 0.0,
+  "xy_range_m": [
+   1471.3,
+   1741.6
+  ]
+ },
+ "weather": {
+  "available": true,
+  "air_temp_c": 24.23445945945946,
+  "pressure_mbar": 1012.5608108108108,
+  "wind_speed_ms": 2.5614864864864866
+ },
+ "total_seconds": 37.2
+}
+speed window: {'340': 0.0, '330': 0.0014, '320': 0.0153, '310': 0.0578, '300': 0.1023, '290': 0.1484} vmax 343.0
+wrote out/feasibility/r1.json

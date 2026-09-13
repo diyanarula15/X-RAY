@@ -1,0 +1,7 @@
+{
+ "window_id": "2026_r1_R:ALB:4936.622",
+ "cutoff_time_s": 4936.622324873097,
+ "label": "EVALUATION ONLY \u2014 NEVER AN ESTIMATOR INPUT",
+ "arrays_file": "2026_r1_R_ALB_4936p622.targets.npz",
+ "n_samples": 16
+}

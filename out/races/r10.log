@@ -1,0 +1,61 @@
+core           INFO 	Loading data for Belgian Grand Prix - Race [v3.8.3]
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Fixed incorrect tyre stint information for driver '12'
+core        WARNING 	Driver 12 completed the race distance 00:00.045000 before the recorded end of the session.
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['12', '16', '3', '44', '81', '6', '1', '5', '41', '43', '10', '30', '27', '87', '23', '55', '31', '77', '14', '18', '11', '63']
+core           INFO 	Loading data for Belgian Grand Prix - Race [v3.8.3]
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Fixed incorrect tyre stint information for driver '12'
+core        WARNING 	Driver 12 completed the race distance 00:00.045000 before the recorded end of the session.
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['12', '16', '3', '44', '81', '6', '1', '5', '41', '43', '10', '30', '27', '87', '23', '55', '31', '77', '14', '18', '11', '63']
+/Users/apple/Desktop/x-ray/xray/realfit.py:417: RuntimeWarning: All-NaN slice encountered
+  shared = np.nanmedian(M, axis=0)          # common mode
+  ANT: CdA 0.835 ident 0.25 deploy 4.02 MJ/lap
+  LEC: CdA 0.870 ident 0.00 deploy 3.96 MJ/lap
+  VER: CdA 0.929 ident 0.82 deploy 3.84 MJ/lap
+  HAM: CdA 0.870 ident 0.00 deploy 4.33 MJ/lap
+  PIA: CdA 0.870 ident 0.00 deploy 4.04 MJ/lap
+  HAD: CdA 0.870 ident 0.00 deploy 4.10 MJ/lap
+  NOR: CdA 0.811 ident 0.33 deploy 4.05 MJ/lap
+  BOR: CdA 0.906 ident 0.56 deploy 4.16 MJ/lap
+  LIN: CdA 0.870 ident 0.00 deploy 4.09 MJ/lap
+  COL: CdA 0.756 ident 0.19 deploy 4.50 MJ/lap
+  GAS: CdA 0.846 ident 0.78 deploy 4.60 MJ/lap
+  LAW: CdA 0.870 ident 0.00 deploy 4.08 MJ/lap
+  HUL: CdA 0.870 ident 0.00 deploy 4.06 MJ/lap
+  BEA: CdA 0.870 ident 0.00 deploy 3.95 MJ/lap
+  ALB: CdA 0.870 ident 0.00 deploy 4.20 MJ/lap
+  SAI: CdA 0.870 ident 0.00 deploy 4.23 MJ/lap
+  OCO: CdA 0.870 ident 0.00 deploy 4.19 MJ/lap
+  BOT: CdA 0.870 ident 0.00 deploy 4.07 MJ/lap
+  ALO: CdA 0.870 ident 0.00 deploy 3.89 MJ/lap
+  STR: CdA 1.118 ident 0.60 deploy 4.26 MJ/lap
+  PER: CdA 0.870 ident 0.00 deploy 5.08 MJ/lap
+
+Belgian Grand Prix: 21 cars analysed, 15 refused
+  telemetry 4.17 Hz, 871/872 laps usable
+  pooled CdA: {'available': True, 'n_cars_pooled': 7, 'cda_pooled': 0.8700161004065101, 'cda_lo': 0.822589134302875, 'cda_hi': 0.9174430665101452, 'per_car_deviation_pct': {'ANT': -4.0628855653806335, 'LEC': -38.060190704646025, 'VER': 6.7406712820927694, 'HAM': -57.39865787959402, 'PIA': -40.61383265861619, 'HAD': -42.93351367995862, 'NOR': -6.839663498130993, 'BOR': 4.161877781418844, 'LIN': -19.386727812727266, 'COL': -13.075242583338465, 'GAS': -2.7397379479061854, 'LAW': -18.720792195379087, 'HUL': -21.91709429853857, 'BEA': -32.32243587856266, 'ALB': -46.209300306743046, 'SAI': -8.659417519566976, 'OCO': -11.399796995495215, 'BOT': -21.631371692897854, 'ALO': -1.500207044500602, 'STR': 28.47022712014616, 'PER': -24.724680847850316}, 'field_identifiability': 0.7819490187297677}
+  RDD rows: 782
+wrote /Users/apple/Desktop/x-ray/out/races/2026_r10_R.json (12.9 MB) in 87s

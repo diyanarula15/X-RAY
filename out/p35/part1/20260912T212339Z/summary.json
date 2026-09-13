@@ -1,0 +1,665 @@
+{
+ "generated_at": "2026-09-12T21:23:37.376852+00:00",
+ "versions": {
+  "window_schema": "p35-estimator-input-window-v1",
+  "nuisance_registry": "p35-nuisance-registry-v1",
+  "diagnostics": "p35-estimator-diagnostics-v1",
+  "mismatch": "p35-synthetic-mismatch-v1"
+ },
+ "estimator_state_semantics": {
+  "cda": "identified SET from regulation-derived per-sample intervals; midpoint is a reporting convenience, NOT a posterior mean",
+  "deployment": "identified per-sample BAND; centre selected by the race-long energy-balance closure, not by a likelihood",
+  "stored_energy": "particle belief; p10/p90 are particle QUANTILES and are not calibrated credible intervals"
+ },
+ "windows": {
+  "n": 9,
+  "ids": [
+   "2026_r1_R:ALB:4416.664",
+   "2026_r1_R:ALB:4660.714",
+   "2026_r1_R:ALB:4936.622",
+   "2026_r1_R:LEC:4395.846",
+   "2026_r1_R:LEC:4638.359",
+   "2026_r1_R:LEC:4895.869",
+   "2026_r1_R:NOR:4407.357",
+   "2026_r1_R:NOR:4650.236",
+   "2026_r1_R:NOR:4926.742"
+  ]
+ },
+ "nuisance_registry": {
+  "registry_version": "p35-nuisance-registry-v1",
+  "inclusion_rule": "appears in the equations realfit evaluates on the production path",
+  "nuisances": [
+   {
+    "name": "Drag area",
+    "symbol": "CdA",
+    "canonical_source": "fit_nuisance_real interval intersection",
+    "enters": "_terms: B = 0.5*rho*cda_scale*(v-w+v_wind)^2*v",
+    "value": "identified set per car",
+    "low": null,
+    "high": null,
+    "reason_for_range": "bracketed from both sides by the regulation; the set width IS the identifiability score and is not a range to be narrowed by hand",
+    "p3_status": "INFERRED",
+    "static": true,
+    "currently_inferred": true,
+    "affects_energy_directly": true,
+    "constrainable_now": true,
+    "constrainable_note": "constrained by the coast-down channel, which exists at every circuit; width is the open problem, not absence of a channel",
+    "override": null
+   },
+   {
+    "name": "Vehicle mass",
+    "symbol": "m",
+    "canonical_source": "analysis.py constant 790 kg",
+    "enters": "_terms: A = m*a*v + crr*m*G*v + m*G*sin(grade)*v \u2014 all three terms",
+    "value": 790.0,
+    "low": 768.0,
+    "high": 838.0,
+    "reason_for_range": "768 kg is the published dry minimum and 838 kg is dry plus a full fuel load, so the truth lies inside. 790 kg is BELOW dry+fuel, i.e. an end-of-race number applied to a whole race; realfit.mass_series measured that as ~3 points of MAPE and most of an 8% low bias on synthetic truth",
+    "p3_status": "PHYSICS",
+    "static": true,
+    "currently_inferred": false,
+    "affects_energy_directly": true,
+    "constrainable_now": false,
+    "constrainable_note": "no public channel publishes a fuel load; mass is degenerate with CdA in the accel term and cannot be separated from it by a speed trace alone",
+    "override": "mass_kg"
+   },
+   {
+    "name": "Rolling resistance",
+    "symbol": "crr",
+    "canonical_source": "fit_nuisance_real / deployment_trace default",
+    "enters": "_terms: crr*m*G*v",
+    "value": 0.012,
+    "low": 0.008,
+    "high": 0.016,
+    "reason_for_range": "slick-on-asphalt literature spread; no measurement for 2026 compounds exists in this corpus",
+    "p3_status": "SYNTHETIC",
+    "static": true,
+    "currently_inferred": false,
+    "affects_energy_directly": true,
+    "constrainable_now": false,
+    "constrainable_note": "enters linearly in v like part of the drag term; not separable from CdA without a load sweep",
+    "override": "crr"
+   },
+   {
+    "name": "Air density",
+    "symbol": "rho",
+    "canonical_source": "session weather summary (sd.weather['rho'])",
+    "enters": "_terms: B scales linearly with rho",
+    "value": "session mean",
+    "low": -0.03,
+    "high": 0.03,
+    "reason_for_range": "+/-3% covers a cold first lap to a hot last one; the corpus has no weather TRACE, only a session summary, so the within-race variation is unobserved",
+    "p3_status": "HEURISTIC",
+    "static": false,
+    "currently_inferred": false,
+    "affects_energy_directly": true,
+    "constrainable_now": false,
+    "constrainable_note": "a per-sample rho channel exists in the code (rho_series) but the corpus cannot fill it",
+    "override": "rho"
+   },
+   {
+    "name": "Drivetrain / ICE efficiency",
+    "symbol": "eta",
+    "canonical_source": "fit_nuisance_real default 0.95",
+    "enters": "interval_bounds upper bound (P_ICE_MAX + ceiling)*eta; deployment_trace p_wheel = P_obs/eta",
+    "value": 0.95,
+    "low": 0.9,
+    "high": 0.98,
+    "reason_for_range": "mechanical efficiency of a modern F1 drivetrain; no published figure for 2026",
+    "p3_status": "SYNTHETIC",
+    "static": true,
+    "currently_inferred": false,
+    "affects_energy_directly": true,
+    "constrainable_now": false,
+    "constrainable_note": "scales the whole power budget, so it trades off against CdA and against the deployment band together",
+    "override": "eta"
+   },
+   {
+    "name": "Derivative smoothing length",
+    "symbol": "smooth_m",
+    "canonical_source": "build_kin default 60 m",
+    "enters": "a = v*dv/ds via Savitzky-Golay; a enters _terms through m*a*v",
+    "value": 60.0,
+    "low": 40.0,
+    "high": 100.0,
+    "reason_for_range": "real telemetry is 4.17 Hz median and irregular; too short amplifies noise into a, too long smears real acceleration across corner exits",
+    "p3_status": "HEURISTIC",
+    "static": true,
+    "currently_inferred": false,
+    "affects_energy_directly": true,
+    "constrainable_now": true,
+    "constrainable_note": "observable: the residual RMS of the power balance responds to it, so it can be chosen rather than assumed",
+    "override": "smooth_m"
+   },
+   {
+    "name": "Along-track wind",
+    "symbol": "v_wind / w_along",
+    "canonical_source": "fitted nuisance; measured projection only if oriented",
+    "enters": "_terms: (v - w_along + v_wind)^2",
+    "value": "fitted over the wind grid",
+    "low": -4.0,
+    "high": 4.0,
+    "reason_for_range": "the grid fit_nuisance_real already searches",
+    "p3_status": "UNAVAILABLE",
+    "static": true,
+    "currently_inferred": true,
+    "affects_energy_directly": true,
+    "constrainable_now": false,
+    "constrainable_note": "no verified circuit orientation, so the MEASURED projection is unavailable and the fitted term is the whole wind rather than a residual",
+    "override": null
+   },
+   {
+    "name": "Regulation variant",
+    "symbol": "RegSet",
+    "canonical_source": "regs_for(session date)",
+    "enters": "interval_bounds harvest floor; build_kin deployment ceiling via p_dep_max",
+    "value": "date-dispatched",
+    "low": null,
+    "high": null,
+    "reason_for_range": "not a nuisance to vary: the rule in force is a fact about the date, and varying it would be analysing the wrong race",
+    "p3_status": "REGULATION",
+    "static": true,
+    "currently_inferred": false,
+    "affects_energy_directly": true,
+    "constrainable_now": true,
+    "constrainable_note": "known exactly from the calendar",
+    "override": null
+   },
+   {
+    "name": "Particle reserve prior",
+    "symbol": "reserve_max_frac",
+    "canonical_source": "belief_from_deployment 0.35",
+    "enters": "sets how much store the driver may be holding back, which is what makes DEPLOYABLE energy differ from stored energy",
+    "value": 0.35,
+    "low": 0.2,
+    "high": 0.5,
+    "reason_for_range": "a buffer below 20% leaves no room for the cut-out observation to be informative; above 50% the reported deployable energy becomes mostly prior",
+    "p3_status": "SYNTHETIC",
+    "static": true,
+    "currently_inferred": false,
+    "affects_energy_directly": true,
+    "constrainable_now": true,
+    "constrainable_note": "cut-out events are observable and do constrain it, but only on laps where one occurs",
+    "override": "reserve_max_frac"
+   },
+   {
+    "name": "Cut-out locating sigma",
+    "symbol": "RESERVE_SIGMA_REAL",
+    "canonical_source": "realfit module constant 0.5 MJ",
+    "enters": "the particle likelihood charged at a detected deployment cut-out",
+    "value": 500000.0,
+    "low": 250000.0,
+    "high": 1000000.0,
+    "reason_for_range": "halving and doubling the only observation-noise knob in the energy likelihood",
+    "p3_status": "SYNTHETIC",
+    "static": true,
+    "currently_inferred": false,
+    "affects_energy_directly": true,
+    "constrainable_now": false,
+    "constrainable_note": "a synthetic calibration knob, not a battery parameter; nothing in the corpus measures it",
+    "override": "reserve_sigma_j"
+   }
+  ],
+  "affecting_energy_directly": [
+   "CdA",
+   "m",
+   "crr",
+   "rho",
+   "eta",
+   "smooth_m",
+   "v_wind / w_along",
+   "RegSet",
+   "reserve_max_frac",
+   "RESERVE_SIGMA_REAL"
+  ],
+  "fixed_by_assumption": [
+   "m",
+   "crr",
+   "rho",
+   "eta",
+   "smooth_m",
+   "RegSet",
+   "reserve_max_frac",
+   "RESERVE_SIGMA_REAL"
+  ],
+  "constrainable_now": [
+   "CdA",
+   "smooth_m",
+   "RegSet",
+   "reserve_max_frac"
+  ],
+  "not_constrainable_now": [
+   "m",
+   "crr",
+   "rho",
+   "eta",
+   "v_wind / w_along",
+   "RESERVE_SIGMA_REAL"
+  ],
+  "overridable": {
+   "m": "mass_kg",
+   "crr": "crr",
+   "rho": "rho",
+   "eta": "eta",
+   "smooth_m": "smooth_m",
+   "reserve_max_frac": "reserve_max_frac",
+   "RESERVE_SIGMA_REAL": "reserve_sigma_j"
+  },
+  "not_reached_by_this_estimator": {
+   "tyres / grip": "TyreState and the wear model reach the simulator and the decision layer. `realfit` never reads them, so calibrating tyres cannot move the energy belief.",
+   "ClA / downforce": "DISABLED in P3 and absent from _terms, which has no normal-load term at all.",
+   "wake / dirty air": "an exponential surrogate inside sim/policy; no wake term appears in the canonical inference equations.",
+   "wetness": "reaches grip in the decision layer; not a term in the power balance the estimator solves.",
+   "p_pass coefficients": "decision layer only; downstream of the belief."
+  }
+ },
+ "nuisance_ranking": [
+  {
+   "nuisance": "m",
+   "name": "Vehicle mass",
+   "mean_abs_d_energy_mj": 0.05374073238087634,
+   "max_abs_d_energy_mj": 0.6627761313562929,
+   "mean_d_low_mj": -0.011444477071124844,
+   "mean_d_high_mj": 0.08169379953127825,
+   "span_mj": 0.0931382766024031,
+   "mean_abs_d_width_mj": 0.0360049995296503,
+   "mean_abs_d_deploy_kw": 11.950104907181347,
+   "infeasible_arms": 0
+  },
+  {
+   "nuisance": "eta",
+   "name": "Drivetrain / ICE efficiency",
+   "mean_abs_d_energy_mj": 0.03412570748853559,
+   "max_abs_d_energy_mj": 0.4079192835668954,
+   "mean_d_low_mj": 0.05552272339869413,
+   "mean_d_high_mj": -0.011087091204672201,
+   "span_mj": 0.06660981460336633,
+   "mean_abs_d_width_mj": 0.022144033553776515,
+   "mean_abs_d_deploy_kw": 8.136708473029987,
+   "infeasible_arms": 0
+  },
+  {
+   "nuisance": "reserve_max_frac",
+   "name": "Particle reserve prior",
+   "mean_abs_d_energy_mj": 0.023134322327167875,
+   "max_abs_d_energy_mj": 0.1727607690764938,
+   "mean_d_low_mj": 0.023259360144560186,
+   "mean_d_high_mj": -0.012303040743032569,
+   "span_mj": 0.03556240088759276,
+   "mean_abs_d_width_mj": 0.025229968579792705,
+   "mean_abs_d_deploy_kw": 0.0,
+   "infeasible_arms": 0
+  },
+  {
+   "nuisance": "crr",
+   "name": "Rolling resistance",
+   "mean_abs_d_energy_mj": 0.012265604136513637,
+   "max_abs_d_energy_mj": 0.09961233648589765,
+   "mean_d_low_mj": -0.012142410393174019,
+   "mean_d_high_mj": 0.010569678026753775,
+   "span_mj": 0.022712088419927792,
+   "mean_abs_d_width_mj": 0.018102233308514827,
+   "mean_abs_d_deploy_kw": 0.1313423757294424,
+   "infeasible_arms": 0
+  },
+  {
+   "nuisance": "smooth_m",
+   "name": "Derivative smoothing length",
+   "mean_abs_d_energy_mj": 0.06117173603667632,
+   "max_abs_d_energy_mj": 0.48154125262077946,
+   "mean_d_low_mj": 0.05598523950093996,
+   "mean_d_high_mj": 0.05452439861295161,
+   "span_mj": 0.0014608408879883572,
+   "mean_abs_d_width_mj": 0.05674932759565517,
+   "mean_abs_d_deploy_kw": 13.118815819551505,
+   "infeasible_arms": 0
+  },
+  {
+   "nuisance": "rho",
+   "name": "Air density",
+   "mean_abs_d_energy_mj": 0.000563737625721869,
+   "max_abs_d_energy_mj": 0.0101472772629924,
+   "mean_d_low_mj": -5.3829875742058184e-17,
+   "mean_d_high_mj": -0.0011274752514436493,
+   "span_mj": 0.0011274752514435955,
+   "mean_abs_d_width_mj": 0.0015026953543731789,
+   "mean_abs_d_deploy_kw": 5.659078144364887e-15,
+   "infeasible_arms": 0
+  },
+  {
+   "nuisance": "RESERVE_SIGMA_REAL",
+   "name": "Cut-out locating sigma",
+   "mean_abs_d_energy_mj": 0.0,
+   "max_abs_d_energy_mj": 0.0,
+   "mean_d_low_mj": 0.0,
+   "mean_d_high_mj": 0.0,
+   "span_mj": 0.0,
+   "mean_abs_d_width_mj": 0.0,
+   "mean_abs_d_deploy_kw": 0.0,
+   "infeasible_arms": 0
+  }
+ ],
+ "saturation": {
+  "n_windows": 9,
+  "frac_upper_edge_at_ceiling": 0.5460412407283325,
+  "frac_censored": 0.025912791526350495,
+  "frac_band_pinned_at_ceiling": 0.025912791526350495,
+  "mean_centre_below_ceiling_kw": 123.20387073558196,
+  "clipped_fraction_of_band_energy": 0.01948967524730136,
+  "current_observation_semantics": "latent = ceiling (exact)",
+  "implied_correct_semantics": "latent <= ceiling (censored from above)"
+ },
+ "identifiability": {
+  "definition": {
+   "variance_ratio": "between-nuisance sd of inferred energy divided by the particle band's 1-sigma equivalent (p10-p90 / 2.563)",
+   "material_energy_mj": 0.25,
+   "similar_fit_rel": 0.1,
+   "degenerate_width_mj": 0.01,
+   "cda_admissible_domain": [
+    0.5,
+    1.6
+   ],
+   "cda_admissible_note": "0.50-1.60 m^2 spans low-drag to high-downforce 2026 configurations. This is a PRIOR DOMAIN for reporting overlap, not a clamp: clamping the identified set would manufacture precision the observations do not contain, and P3 already showed the honest answer is to report the set as unidentifiable."
+  },
+  "windows": [
+   {
+    "window_id": "2026_r1_R:ALB:4416.664",
+    "variance_ratio": 1.355523931310223,
+    "energy_particle_width_mj": 0.05822482035155709,
+    "between_nuisance_sd_mj": 0.030794045018639932,
+    "cda_set_width": 0.616075112420063,
+    "cda_admissible_overlap": 0.9208929080915306,
+    "label": "LOW",
+    "profile_width_mj": 0.0038242827303423196
+   },
+   {
+    "window_id": "2026_r1_R:ALB:4660.714",
+    "variance_ratio": NaN,
+    "energy_particle_width_mj": 0.0,
+    "between_nuisance_sd_mj": 0.0014735841616434111,
+    "cda_set_width": 0.7302317670321501,
+    "cda_admissible_overlap": 0.8418025403620437,
+    "label": "UNIDENTIFIABLE",
+    "profile_width_mj": 0.0004697260996492001
+   },
+   {
+    "window_id": "2026_r1_R:ALB:4936.622",
+    "variance_ratio": 0.5739759866516005,
+    "energy_particle_width_mj": 0.20932184560593434,
+    "between_nuisance_sd_mj": 0.046876985118767124,
+    "cda_set_width": 0.8096260135275762,
+    "cda_admissible_overlap": 0.7753839181315529,
+    "label": "MODERATE",
+    "profile_width_mj": 0.04119854992717525
+   },
+   {
+    "window_id": "2026_r1_R:LEC:4395.846",
+    "variance_ratio": 0.17878173652678672,
+    "energy_particle_width_mj": 0.06544019837482747,
+    "between_nuisance_sd_mj": 0.0045647726508423955,
+    "cda_set_width": 0.30075379361983423,
+    "cda_admissible_overlap": 1.0,
+    "label": "HIGH",
+    "profile_width_mj": 0.0
+   },
+   {
+    "window_id": "2026_r1_R:LEC:4638.359",
+    "variance_ratio": NaN,
+    "energy_particle_width_mj": 0.0,
+    "between_nuisance_sd_mj": 0.0014531770839899846,
+    "cda_set_width": 0.36797761996818756,
+    "cda_admissible_overlap": 1.0,
+    "label": "UNIDENTIFIABLE",
+    "profile_width_mj": 0.0
+   },
+   {
+    "window_id": "2026_r1_R:LEC:4895.869",
+    "variance_ratio": 0.205849949821768,
+    "energy_particle_width_mj": 2.9908207662470665,
+    "between_nuisance_sd_mj": 0.24021080946463533,
+    "cda_set_width": 0.49080287066489225,
+    "cda_admissible_overlap": 1.0,
+    "label": "HIGH",
+    "profile_width_mj": 0.0
+   },
+   {
+    "window_id": "2026_r1_R:NOR:4407.357",
+    "variance_ratio": NaN,
+    "energy_particle_width_mj": 0.0,
+    "between_nuisance_sd_mj": 0.005142862522448884,
+    "cda_set_width": 0.035383748240333524,
+    "cda_admissible_overlap": 1.0,
+    "label": "UNIDENTIFIABLE",
+    "profile_width_mj": 0.0022038231381414355
+   },
+   {
+    "window_id": "2026_r1_R:NOR:4650.236",
+    "variance_ratio": NaN,
+    "energy_particle_width_mj": 0.0,
+    "between_nuisance_sd_mj": 0.012377124242064753,
+    "cda_set_width": 0.5444474587905633,
+    "cda_admissible_overlap": 1.0,
+    "label": "UNIDENTIFIABLE",
+    "profile_width_mj": 0.007113517445037883
+   },
+   {
+    "window_id": "2026_r1_R:NOR:4926.742",
+    "variance_ratio": 0.07066888608498637,
+    "energy_particle_width_mj": 0.6293326819399179,
+    "between_nuisance_sd_mj": 0.01735241498617675,
+    "cda_set_width": 0.6139919623248428,
+    "cda_admissible_overlap": 1.0,
+    "label": "HIGH",
+    "profile_width_mj": 0.04257232567787178
+   }
+  ]
+ },
+ "production_floor_pinning": {
+  "per_race": {
+   "2026_r10_R": {
+    "n_cars": 21,
+    "frac_reported_empty": 0.5456736154106049,
+    "frac_band_degenerate": 0.46467059588802767,
+    "frac_empty_and_degenerate": 0.4644549461188812,
+    "mean_width_mj": 0.2643128881228493,
+    "mean_usable_mj": 0.18784484822225642
+   },
+   "2026_r12_R": {
+    "n_cars": 21,
+    "frac_reported_empty": 0.3752029793412539,
+    "frac_band_degenerate": 0.2743136164816007,
+    "frac_empty_and_degenerate": 0.27414599659975253,
+    "mean_width_mj": 0.37115030003584115,
+    "mean_usable_mj": 0.25395147862946044
+   },
+   "2026_r1_R": {
+    "n_cars": 20,
+    "frac_reported_empty": 0.488193559994195,
+    "frac_band_degenerate": 0.3845061200870754,
+    "frac_empty_and_degenerate": 0.3842506464265017,
+    "mean_width_mj": 0.28739244473705733,
+    "mean_usable_mj": 0.1912112669309398
+   },
+   "2026_r6_R": {
+    "n_cars": 21,
+    "frac_reported_empty": 0.2440292490486363,
+    "frac_band_degenerate": 0.15252060336301543,
+    "frac_empty_and_degenerate": 0.15233507083979583,
+    "mean_width_mj": 0.3846625415670978,
+    "mean_usable_mj": 0.2990161846507314
+   },
+   "2026_r9_R": {
+    "n_cars": 22,
+    "frac_reported_empty": 0.44429305519383405,
+    "frac_band_degenerate": 0.31699067612776854,
+    "frac_empty_and_degenerate": 0.3167583217056494,
+    "mean_width_mj": 0.265465557861368,
+    "mean_usable_mj": 0.21585305731022889
+   }
+  },
+  "n_races": 5,
+  "n_car_races": 105,
+  "frac_reported_empty": 0.41947849179770486,
+  "frac_band_degenerate": 0.3186003223894976,
+  "frac_empty_and_degenerate": 0.3183889963381161,
+  "mean_width_mj": 0.3145967464648427,
+  "mean_usable_mj": 0.22957536714872337
+ },
+ "synthetic_mismatch": {
+  "cases": [
+   {
+    "case": "matched",
+    "note": "control: simulator physics equals the estimator's assumptions",
+    "patch": {},
+    "soc_mae_mj": 0.18577097465887582,
+    "soc_bias_mj": -0.04606522775224035,
+    "soc_containment": 0.453243670886076,
+    "soc_width_mj": 0.5074324290825165,
+    "cda_width_pct_of_truth": 659.9728701713896,
+    "identifiability": 0.0,
+    "cda_contained": 1.0,
+    "dep_lap_mape_pct": 5.666537121289385,
+    "dep_lap_bias_pct": -5.344978759150715
+   },
+   {
+    "case": "cda_low",
+    "note": "truth drag 17% below the configured value",
+    "patch": {
+     "vehicle.cda_straight": 0.55
+    },
+    "soc_mae_mj": 0.19156196393164338,
+    "soc_bias_mj": -0.07807771734583241,
+    "soc_containment": 0.5251701757163211,
+    "soc_width_mj": 0.5790678645137048,
+    "cda_width_pct_of_truth": 755.9389727609127,
+    "identifiability": 0.0,
+    "cda_contained": 1.0,
+    "dep_lap_mape_pct": 9.284737557259996,
+    "dep_lap_bias_pct": -9.284737557259996
+   },
+   {
+    "case": "cda_high",
+    "note": "truth drag 20% above the configured value",
+    "patch": {
+     "vehicle.cda_straight": 0.79
+    },
+    "soc_mae_mj": 0.1825606161852551,
+    "soc_bias_mj": 0.004484804822328849,
+    "soc_containment": 0.48512893529504825,
+    "soc_width_mj": 0.5154777878768372,
+    "cda_width_pct_of_truth": 574.7874617224843,
+    "identifiability": 0.0,
+    "cda_contained": 1.0,
+    "dep_lap_mape_pct": 5.8335526247950655,
+    "dep_lap_bias_pct": -2.72937737586908
+   },
+   {
+    "case": "mass_high",
+    "note": "truth mass 845 kg against the estimator's assumed 790",
+    "patch": {
+     "vehicle.mass_car": 845.0
+    },
+    "soc_mae_mj": 0.1829345722880478,
+    "soc_bias_mj": -0.029851976721082387,
+    "soc_containment": 0.41340826341617853,
+    "soc_width_mj": 0.4834686558115998,
+    "cda_width_pct_of_truth": 697.9915535573236,
+    "identifiability": 0.0,
+    "cda_contained": 1.0,
+    "dep_lap_mape_pct": 7.57295066211233,
+    "dep_lap_bias_pct": -7.57295066211233
+   },
+   {
+    "case": "mass_low",
+    "note": "truth mass 760 kg against the estimator's assumed 790",
+    "patch": {
+     "vehicle.mass_car": 760.0
+    },
+    "soc_mae_mj": 0.1875567838542807,
+    "soc_bias_mj": -0.021954254648396707,
+    "soc_containment": 0.5148640101201771,
+    "soc_width_mj": 0.5966349105463084,
+    "cda_width_pct_of_truth": 650.6044330421933,
+    "identifiability": 0.0,
+    "cda_contained": 1.0,
+    "dep_lap_mape_pct": 6.418316531754768,
+    "dep_lap_bias_pct": -6.418316531754768
+   },
+   {
+    "case": "noise_high",
+    "note": "feed noise 0.90 m/s against the 0.35 the estimator was tuned at",
+    "patch": {
+     "observe.speed_noise_ms": 0.9
+    },
+    "soc_mae_mj": 0.18919844857615664,
+    "soc_bias_mj": -0.05845897596654087,
+    "soc_containment": 0.4493670886075949,
+    "soc_width_mj": 0.5050139435914986,
+    "cda_width_pct_of_truth": 666.0390115040072,
+    "identifiability": 0.0,
+    "cda_contained": 1.0,
+    "dep_lap_mape_pct": 6.381057561020116,
+    "dep_lap_bias_pct": -5.394634769703524
+   }
+  ],
+  "verdict": {
+   "available": true,
+   "cases": [
+    {
+     "case": "cda_low",
+     "d_soc_mae_mj": 0.005790989272767555,
+     "d_soc_width_mj": 0.07163543543118833,
+     "containment": 0.5251701757163211,
+     "error_grew": false,
+     "band_widened": true,
+     "compensating_error": false,
+     "reading": "no material error increase"
+    },
+    {
+     "case": "cda_high",
+     "d_soc_mae_mj": -0.0032103584736207225,
+     "d_soc_width_mj": 0.008045358794320667,
+     "containment": 0.48512893529504825,
+     "error_grew": false,
+     "band_widened": false,
+     "compensating_error": false,
+     "reading": "no material error increase"
+    },
+    {
+     "case": "mass_high",
+     "d_soc_mae_mj": -0.002836402370828023,
+     "d_soc_width_mj": -0.0239637732709167,
+     "containment": 0.41340826341617853,
+     "error_grew": false,
+     "band_widened": false,
+     "compensating_error": false,
+     "reading": "no material error increase"
+    },
+    {
+     "case": "mass_low",
+     "d_soc_mae_mj": 0.001785809195404886,
+     "d_soc_width_mj": 0.08920248146379184,
+     "containment": 0.5148640101201771,
+     "error_grew": false,
+     "band_widened": true,
+     "compensating_error": false,
+     "reading": "no material error increase"
+    },
+    {
+     "case": "noise_high",
+     "d_soc_mae_mj": 0.003427473917280821,
+     "d_soc_width_mj": -0.0024184854910178633,
+     "containment": 0.4493670886075949,
+     "error_grew": false,
+     "band_widened": false,
+     "compensating_error": false,
+     "reading": "no material error increase"
+    }
+   ],
+   "n_compensating": 0,
+   "n_cases": 5,
+   "headline": "0 of 5 mismatch cases produced a LARGER energy error WITHOUT a wider band"
+  }
+ },
+ "summary_fingerprint": "38865c15f7861051ed21207452bc3084a7e97b5ba82fccd39b224a623b9d8e08"
+}

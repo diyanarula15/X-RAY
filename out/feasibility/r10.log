@@ -1,0 +1,162 @@
+core           INFO 	Loading data for Belgian Grand Prix - Race [v3.8.3]
+req            INFO 	No cached data found for session_info. Loading data...
+_api           INFO 	Fetching session info data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for driver_info. Loading data...
+_api           INFO 	Fetching driver list...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for session_status_data. Loading data...
+_api           INFO 	Fetching session status data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for lap_count. Loading data...
+_api           INFO 	Fetching lap count data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for track_status_data. Loading data...
+_api           INFO 	Fetching track status data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for _extended_timing_data. Loading data...
+_api           INFO 	Fetching timing data...
+_api           INFO 	Parsing timing data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for timing_app_data. Loading data...
+_api           INFO 	Fetching timing app data...
+req            INFO 	Data has been written to cache!
+core           INFO 	Processing timing data...
+core        WARNING 	Fixed incorrect tyre stint information for driver '12'
+core        WARNING 	Driver 12 completed the race distance 00:00.045000 before the recorded end of the session.
+req            INFO 	No cached data found for car_data. Loading data...
+_api           INFO 	Fetching car data...
+_api           INFO 	Parsing car data...
+_api        WARNING 	Driver 22: Car data is incomplete!
+_api        WARNING 	Driver 26: Car data is incomplete!
+_api        WARNING 	Driver  3: Car data is incomplete!
+_api        WARNING 	Driver  5: Car data is incomplete!
+_api        WARNING 	Driver  6: Car data is incomplete!
+_api        WARNING 	Driver 10: Car data is incomplete!
+_api        WARNING 	Driver 12: Car data is incomplete!
+_api        WARNING 	Driver 14: Car data is incomplete!
+_api        WARNING 	Driver 16: Car data is incomplete!
+_api        WARNING 	Driver 18: Car data is incomplete!
+_api        WARNING 	Driver 23: Car data is incomplete!
+_api        WARNING 	Driver 27: Car data is incomplete!
+_api        WARNING 	Driver 30: Car data is incomplete!
+_api        WARNING 	Driver 31: Car data is incomplete!
+_api        WARNING 	Driver 41: Car data is incomplete!
+_api        WARNING 	Driver 43: Car data is incomplete!
+_api        WARNING 	Driver 44: Car data is incomplete!
+_api        WARNING 	Driver 55: Car data is incomplete!
+_api        WARNING 	Driver 63: Car data is incomplete!
+_api        WARNING 	Driver 77: Car data is incomplete!
+_api        WARNING 	Driver 81: Car data is incomplete!
+_api        WARNING 	Driver 87: Car data is incomplete!
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for position_data. Loading data...
+_api           INFO 	Fetching position data...
+_api           INFO 	Parsing position data...
+_api        WARNING 	Driver 241: Position data is incomplete!
+_api        WARNING 	Driver 242: Position data is incomplete!
+_api        WARNING 	Driver 243: Position data is incomplete!
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for weather_data. Loading data...
+_api           INFO 	Fetching weather data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for race_control_messages. Loading data...
+_api           INFO 	Fetching race control messages...
+req            INFO 	Data has been written to cache!
+core           INFO 	Finished loading data for 22 drivers: ['12', '16', '3', '44', '81', '6', '1', '5', '41', '43', '10', '30', '27', '87', '23', '55', '31', '77', '14', '18', '11', '63']
+{
+ "year": 2026,
+ "round": 10,
+ "session": "R",
+ "event": "Belgian Grand Prix",
+ "circuit": "Spa-Francorchamps",
+ "date": "2026-07-19",
+ "load_seconds": 27.9,
+ "n_drivers": 20,
+ "n_laps": 872,
+ "dt_fastest_lap": {
+  "driver": "NOR",
+  "n_samples": 409,
+  "median_s": 0.23999999999978172,
+  "mean_s": 0.2657867647058841,
+  "p10_s": 0.15999999999985448,
+  "p90_s": 0.3993000000007669,
+  "max_s": 1.1199999999989814,
+  "effective_hz": 4.166666666670456,
+  "histogram": {
+   "0.00-0.10": 0,
+   "0.10-0.20": 100,
+   "0.20-0.25": 122,
+   "0.25-0.30": 54,
+   "0.30-0.35": 54,
+   "0.35-0.40": 58,
+   "0.40-0.50": 18,
+   "0.50-0.75": 0,
+   "0.75-1.00": 0,
+   "1.00-2.00": 2,
+   "2.00-10.00": 0
+  },
+  "median_dx_m": 14.972222222222172
+ },
+ "channels": {
+  "Speed": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 66.0,
+   "max": 326.0
+  },
+  "Throttle": {
+   "present": true,
+   "frac_nonzero": 0.8386308068459658,
+   "min": 0.0,
+   "max": 100.0
+  },
+  "Brake": {
+   "present": true,
+   "frac_nonzero": 0.1295843520782396,
+   "min": 0.0,
+   "max": 1.0
+  },
+  "nGear": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 1.0,
+   "max": 8.0
+  },
+  "RPM": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 8371.0,
+   "max": 12257.0
+  },
+  "DRS": {
+   "present": true,
+   "frac_nonzero": 0.0,
+   "min": 0.0,
+   "max": 0.0
+  }
+ },
+ "position": {
+  "n_samples": 435,
+  "has_Z": true,
+  "z_range_m": [
+   365.5,
+   467.9
+  ],
+  "z_std_m": 30.089806997332865,
+  "z_frac_zero": 0.0,
+  "xy_range_m": [
+   1264.6,
+   2031.9
+  ]
+ },
+ "weather": {
+  "available": true,
+  "air_temp_c": 18.035616438356165,
+  "pressure_mbar": 972.7952054794521,
+  "wind_speed_ms": 1.9739726027397264
+ },
+ "total_seconds": 29.2
+}
+speed window: {'340': 0.0008, '330': 0.0048, '320': 0.0317, '310': 0.0967, '300': 0.1435, '290': 0.1884} vmax 349.0
+wrote out/feasibility/r10.json

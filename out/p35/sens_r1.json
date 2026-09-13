@@ -1,0 +1,2846 @@
+{
+ "sensitivity": [
+  {
+   "window_id": "2026_r1_R:ALB:4416.664",
+   "cutoff_time_s": 4416.664016666667,
+   "nominal": {
+    "cda_hat": 0.7593016456692969,
+    "cda_set_width": 0.616075112420063,
+    "identifiability": 0.0,
+    "usable_mean_j": 22563.109439283908,
+    "usable_particle_width_j": 58224.82035155709,
+    "deploy_mean_w": 120479.78105889053,
+    "balance": 0.07980904048673311,
+    "n_binding": 494,
+    "n_coast": 167
+   },
+   "arms": [
+    {
+     "nuisance": "m",
+     "name": "Vehicle mass",
+     "arm": "low",
+     "override": {
+      "mass_kg": 768.0
+     },
+     "feasible": true,
+     "cda_hat": 0.742901599791043,
+     "cda_set_width": 0.6673130086374328,
+     "identifiability": 0.0,
+     "usable_mean_j": 20528.27735849967,
+     "usable_particle_width_j": 70488.1867148255,
+     "deploy_mean_w": 117900.27283705265,
+     "balance": 0.09511729658020912,
+     "d_usable_mean_j": -2034.8320807842392,
+     "d_usable_width_j": 12263.366363268404,
+     "d_deploy_mean_w": -2579.508221837881,
+     "d_cda_hat": -0.016400045878253944
+    },
+    {
+     "nuisance": "m",
+     "name": "Vehicle mass",
+     "arm": "high",
+     "override": {
+      "mass_kg": 838.0
+     },
+     "feasible": true,
+     "cda_hat": 0.7754682842124008,
+     "cda_set_width": 0.5075327507135516,
+     "identifiability": 0.0,
+     "usable_mean_j": 16086.927462907257,
+     "usable_particle_width_j": 56258.09929607881,
+     "deploy_mean_w": 124971.9952611697,
+     "balance": 0.05020429854582398,
+     "d_usable_mean_j": -6476.181976376651,
+     "d_usable_width_j": -1966.7210554782796,
+     "d_deploy_mean_w": 4492.214202279167,
+     "d_cda_hat": 0.01616663854310385
+    },
+    {
+     "nuisance": "crr",
+     "name": "Rolling resistance",
+     "arm": "low",
+     "override": {
+      "crr": 0.008
+     },
+     "feasible": true,
+     "cda_hat": 0.7662623593472501,
+     "cda_set_width": 0.6152097257981886,
+     "identifiability": 0.0,
+     "usable_mean_j": 23051.12274565804,
+     "usable_particle_width_j": 46338.49297194184,
+     "deploy_mean_w": 120286.98543725001,
+     "balance": 0.0810694917797972,
+     "d_usable_mean_j": 488.0133063741305,
+     "d_usable_width_j": -11886.32737961525,
+     "d_deploy_mean_w": -192.79562164051458,
+     "d_cda_hat": 0.006960713677953145
+    },
+    {
+     "nuisance": "crr",
+     "name": "Rolling resistance",
+     "arm": "high",
+     "override": {
+      "crr": 0.016
+     },
+     "feasible": true,
+     "cda_hat": 0.7531362643503832,
+     "cda_set_width": 0.6185311637600162,
+     "identifiability": 0.0,
+     "usable_mean_j": 22870.718333588564,
+     "usable_particle_width_j": 69382.54455443885,
+     "deploy_mean_w": 120721.50449643507,
+     "balance": 0.0782588490043781,
+     "d_usable_mean_j": 307.60889430465613,
+     "d_usable_width_j": 11157.724202881756,
+     "d_deploy_mean_w": 241.7234375445405,
+     "d_cda_hat": -0.006165381318913754
+    },
+    {
+     "nuisance": "rho",
+     "name": "Air density",
+     "arm": "low",
+     "override": {
+      "rho": 1.1435337606473495
+     },
+     "feasible": true,
+     "cda_hat": 0.7827852017209247,
+     "cda_set_width": 0.6351289818763536,
+     "identifiability": 0.0,
+     "usable_mean_j": 22563.109439283995,
+     "usable_particle_width_j": 58224.820351557064,
+     "deploy_mean_w": 120479.78105889053,
+     "balance": 0.07980904048673304,
+     "d_usable_mean_j": 8.731149137020111e-11,
+     "d_usable_width_j": -2.9103830456733704e-11,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.023483556051627774
+    },
+    {
+     "nuisance": "rho",
+     "name": "Air density",
+     "arm": "high",
+     "override": {
+      "rho": 1.214267807697701
+     },
+     "feasible": true,
+     "cda_hat": 0.7371860637565989,
+     "cda_set_width": 0.5981311771068574,
+     "identifiability": 0.0,
+     "usable_mean_j": 22563.109439283944,
+     "usable_particle_width_j": 58224.820351557195,
+     "deploy_mean_w": 120479.78105889053,
+     "balance": 0.07980904048673312,
+     "d_usable_mean_j": 3.637978807091713e-11,
+     "d_usable_width_j": 1.0186340659856796e-10,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": -0.022115581912698024
+    },
+    {
+     "nuisance": "eta",
+     "name": "Drivetrain / ICE efficiency",
+     "arm": "low",
+     "override": {
+      "eta": 0.9
+     },
+     "feasible": true,
+     "cda_hat": 0.7173955847685195,
+     "cda_set_width": 0.5322629906185081,
+     "identifiability": 0.0,
+     "usable_mean_j": 25687.180093208717,
+     "usable_particle_width_j": 82923.75660061356,
+     "deploy_mean_w": 123547.26634499893,
+     "balance": 0.056603104661913935,
+     "d_usable_mean_j": 3124.0706539248094,
+     "d_usable_width_j": 24698.936249056467,
+     "d_deploy_mean_w": 3067.4852861084073,
+     "d_cda_hat": -0.04190606090077742
+    },
+    {
+     "nuisance": "eta",
+     "name": "Drivetrain / ICE efficiency",
+     "arm": "high",
+     "override": {
+      "eta": 0.98
+     },
+     "feasible": true,
+     "cda_hat": 0.7826224805383601,
+     "cda_set_width": 0.6627167821581894,
+     "identifiability": 0.0,
+     "usable_mean_j": 16803.45455853452,
+     "usable_particle_width_j": 46675.42373340973,
+     "deploy_mean_w": 118700.56675811845,
+     "balance": 0.092269604005462,
+     "d_usable_mean_j": -5759.654880749389,
+     "d_usable_width_j": -11549.396618147366,
+     "d_deploy_mean_w": -1779.2143007720733,
+     "d_cda_hat": 0.023320834869063223
+    },
+    {
+     "nuisance": "smooth_m",
+     "name": "Derivative smoothing length",
+     "arm": "low",
+     "override": {
+      "smooth_m": 40.0
+     },
+     "feasible": true,
+     "cda_hat": 0.6804407128753022,
+     "cda_set_width": 0.5983712141242183,
+     "identifiability": 0.0,
+     "usable_mean_j": 140190.9996431784,
+     "usable_particle_width_j": 194977.7293145808,
+     "deploy_mean_w": 116652.75977388404,
+     "balance": 0.09015232190440679,
+     "d_usable_mean_j": 117627.8902038945,
+     "d_usable_width_j": 136752.90896302368,
+     "d_deploy_mean_w": -3827.0212850064854,
+     "d_cda_hat": -0.07886093279399475
+    },
+    {
+     "nuisance": "smooth_m",
+     "name": "Derivative smoothing length",
+     "arm": "high",
+     "override": {
+      "smooth_m": 100.0
+     },
+     "feasible": true,
+     "cda_hat": 0.854870900954928,
+     "cda_set_width": 0.5293330044453257,
+     "identifiability": 0.0,
+     "usable_mean_j": 24352.560088841987,
+     "usable_particle_width_j": 79618.76413167136,
+     "deploy_mean_w": 123739.63540054172,
+     "balance": 0.056534043086477005,
+     "d_usable_mean_j": 1789.450649558079,
+     "d_usable_width_j": 21393.943780114263,
+     "d_deploy_mean_w": 3259.8543416511966,
+     "d_cda_hat": 0.0955692552856311
+    },
+    {
+     "nuisance": "reserve_max_frac",
+     "name": "Particle reserve prior",
+     "arm": "low",
+     "override": {
+      "reserve_max_frac": 0.2
+     },
+     "feasible": true,
+     "cda_hat": 0.7593016456692969,
+     "cda_set_width": 0.616075112420063,
+     "identifiability": 0.0,
+     "usable_mean_j": 17701.903059938588,
+     "usable_particle_width_j": 26440.113489714822,
+     "deploy_mean_w": 120479.78105889053,
+     "balance": 0.07980904048673311,
+     "d_usable_mean_j": -4861.20637934532,
+     "d_usable_width_j": -31784.70686184227,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "reserve_max_frac",
+     "name": "Particle reserve prior",
+     "arm": "high",
+     "override": {
+      "reserve_max_frac": 0.5
+     },
+     "feasible": true,
+     "cda_hat": 0.7593016456692969,
+     "cda_set_width": 0.616075112420063,
+     "identifiability": 0.0,
+     "usable_mean_j": 19710.060840135324,
+     "usable_particle_width_j": 55370.026022648555,
+     "deploy_mean_w": 120479.78105889053,
+     "balance": 0.07980904048673311,
+     "d_usable_mean_j": -2853.048599148584,
+     "d_usable_width_j": -2854.794328908538,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "RESERVE_SIGMA_REAL",
+     "name": "Cut-out locating sigma",
+     "arm": "low",
+     "override": {
+      "reserve_sigma_j": 250000.0
+     },
+     "feasible": true,
+     "cda_hat": 0.7593016456692969,
+     "cda_set_width": 0.616075112420063,
+     "identifiability": 0.0,
+     "usable_mean_j": 22563.109439283908,
+     "usable_particle_width_j": 58224.82035155709,
+     "deploy_mean_w": 120479.78105889053,
+     "balance": 0.07980904048673311,
+     "d_usable_mean_j": 0.0,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "RESERVE_SIGMA_REAL",
+     "name": "Cut-out locating sigma",
+     "arm": "high",
+     "override": {
+      "reserve_sigma_j": 1000000.0
+     },
+     "feasible": true,
+     "cda_hat": 0.7593016456692969,
+     "cda_set_width": 0.616075112420063,
+     "identifiability": 0.0,
+     "usable_mean_j": 22563.109439283908,
+     "usable_particle_width_j": 58224.82035155709,
+     "deploy_mean_w": 120479.78105889053,
+     "balance": 0.07980904048673311,
+     "d_usable_mean_j": 0.0,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    }
+   ],
+   "driver": "ALB",
+   "race": "2026_r1_R",
+   "secs": 4.7
+  },
+  {
+   "window_id": "2026_r1_R:ALB:4660.714",
+   "cutoff_time_s": 4660.714286644952,
+   "nominal": {
+    "cda_hat": 0.749595073024653,
+    "cda_set_width": 0.7302317670321501,
+    "identifiability": 0.0,
+    "usable_mean_j": 3739.885798837273,
+    "usable_particle_width_j": 0.0,
+    "deploy_mean_w": 121235.8836779167,
+    "balance": 0.08506480350829032,
+    "n_binding": 533,
+    "n_coast": 205
+   },
+   "arms": [
+    {
+     "nuisance": "m",
+     "name": "Vehicle mass",
+     "arm": "low",
+     "override": {
+      "mass_kg": 768.0
+     },
+     "feasible": true,
+     "cda_hat": 0.7386732495729393,
+     "cda_set_width": 0.7707715223184914,
+     "identifiability": 0.0,
+     "usable_mean_j": 3677.283718852381,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 119012.96010941648,
+     "balance": 0.09754403233073008,
+     "d_usable_mean_j": -62.60207998489204,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": -2222.9235685002204,
+     "d_cda_hat": -0.010921823451713664
+    },
+    {
+     "nuisance": "m",
+     "name": "Vehicle mass",
+     "arm": "high",
+     "override": {
+      "mass_kg": 838.0
+     },
+     "feasible": true,
+     "cda_hat": 0.7622924204598407,
+     "cda_set_width": 0.6178562620987479,
+     "identifiability": 0.0,
+     "usable_mean_j": 704.9142581841638,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 125472.59130651169,
+     "balance": 0.058516361669985716,
+     "d_usable_mean_j": -3034.971540653109,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 4236.707628594988,
+     "d_cda_hat": 0.01269734743518769
+    },
+    {
+     "nuisance": "crr",
+     "name": "Rolling resistance",
+     "arm": "low",
+     "override": {
+      "crr": 0.008
+     },
+     "feasible": true,
+     "cda_hat": 0.7569325644833049,
+     "cda_set_width": 0.7297288869379998,
+     "identifiability": 0.0,
+     "usable_mean_j": 3505.851774621428,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 121065.11787945345,
+     "balance": 0.08613788815819462,
+     "d_usable_mean_j": -234.03402421584497,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": -170.7657984632533,
+     "d_cda_hat": 0.0073374914586519235
+    },
+    {
+     "nuisance": "crr",
+     "name": "Rolling resistance",
+     "arm": "high",
+     "override": {
+      "crr": 0.016
+     },
+     "feasible": true,
+     "cda_hat": 0.7422575815660012,
+     "cda_set_width": 0.7307346471263003,
+     "identifiability": 0.0,
+     "usable_mean_j": 2378.2580167568035,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 121406.84267040422,
+     "balance": 0.08398705884279138,
+     "d_usable_mean_j": -1361.6277820804694,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 170.95899248751812,
+     "d_cda_hat": -0.0073374914586518125
+    },
+    {
+     "nuisance": "rho",
+     "name": "Air density",
+     "arm": "low",
+     "override": {
+      "rho": 1.1435337606473495
+     },
+     "feasible": true,
+     "cda_hat": 0.7727784257986113,
+     "cda_set_width": 0.7528162546723196,
+     "identifiability": 0.0,
+     "usable_mean_j": 3739.8857988372743,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 121235.8836779167,
+     "balance": 0.0850648035082903,
+     "d_usable_mean_j": 1.3642420526593924e-12,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.023183352773958332
+    },
+    {
+     "nuisance": "rho",
+     "name": "Air density",
+     "arm": "high",
+     "override": {
+      "rho": 1.214267807697701
+     },
+     "feasible": true,
+     "cda_hat": 0.7277622068200515,
+     "cda_set_width": 0.708962880613738,
+     "identifiability": 0.0,
+     "usable_mean_j": 3739.885798837272,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 121235.8836779167,
+     "balance": 0.0850648035082903,
+     "d_usable_mean_j": -9.094947017729282e-13,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": -0.021832866204601453
+    },
+    {
+     "nuisance": "eta",
+     "name": "Drivetrain / ICE efficiency",
+     "arm": "low",
+     "override": {
+      "eta": 0.9
+     },
+     "feasible": true,
+     "cda_hat": 0.7017576895588709,
+     "cda_set_width": 0.6345570001005858,
+     "identifiability": 0.0,
+     "usable_mean_j": 2727.803583278264,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 123830.50338707223,
+     "balance": 0.06560327565741146,
+     "d_usable_mean_j": -1012.082215559009,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 2594.6197091555223,
+     "d_cda_hat": -0.047837383465782146
+    },
+    {
+     "nuisance": "eta",
+     "name": "Drivetrain / ICE efficiency",
+     "arm": "high",
+     "override": {
+      "eta": 0.98
+     },
+     "feasible": true,
+     "cda_hat": 0.7716221269890644,
+     "cda_set_width": 0.7742858749609729,
+     "identifiability": 0.0,
+     "usable_mean_j": 3426.1462191266355,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 119430.16892842662,
+     "balance": 0.0969745868577801,
+     "d_usable_mean_j": -313.7395797106374,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": -1805.7147494900855,
+     "d_cda_hat": 0.022027053964411403
+    },
+    {
+     "nuisance": "smooth_m",
+     "name": "Derivative smoothing length",
+     "arm": "low",
+     "override": {
+      "smooth_m": 40.0
+     },
+     "feasible": true,
+     "cda_hat": 0.6510251625585648,
+     "cda_set_width": 0.706412341440152,
+     "identifiability": 0.0,
+     "usable_mean_j": 7750.463939508922,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 116094.7633073084,
+     "balance": 0.09958215803225659,
+     "d_usable_mean_j": 4010.5781406716487,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": -5141.120370608303,
+     "d_cda_hat": -0.0985699104660882
+    },
+    {
+     "nuisance": "smooth_m",
+     "name": "Derivative smoothing length",
+     "arm": "high",
+     "override": {
+      "smooth_m": 100.0
+     },
+     "feasible": true,
+     "cda_hat": 0.8237979470438093,
+     "cda_set_width": 0.6566055627154959,
+     "identifiability": 0.0,
+     "usable_mean_j": 3207.557619203181,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 123063.42128747771,
+     "balance": 0.07279054670872273,
+     "d_usable_mean_j": -532.3281796340921,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 1827.5376095610118,
+     "d_cda_hat": 0.07420287401915626
+    },
+    {
+     "nuisance": "reserve_max_frac",
+     "name": "Particle reserve prior",
+     "arm": "low",
+     "override": {
+      "reserve_max_frac": 0.2
+     },
+     "feasible": true,
+     "cda_hat": 0.749595073024653,
+     "cda_set_width": 0.7302317670321501,
+     "identifiability": 0.0,
+     "usable_mean_j": 2240.4613766430416,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 121235.8836779167,
+     "balance": 0.08506480350829032,
+     "d_usable_mean_j": -1499.4244221942313,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "reserve_max_frac",
+     "name": "Particle reserve prior",
+     "arm": "high",
+     "override": {
+      "reserve_max_frac": 0.5
+     },
+     "feasible": true,
+     "cda_hat": 0.749595073024653,
+     "cda_set_width": 0.7302317670321501,
+     "identifiability": 0.0,
+     "usable_mean_j": 2583.192761100304,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 121235.8836779167,
+     "balance": 0.08506480350829032,
+     "d_usable_mean_j": -1156.693037736969,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "RESERVE_SIGMA_REAL",
+     "name": "Cut-out locating sigma",
+     "arm": "low",
+     "override": {
+      "reserve_sigma_j": 250000.0
+     },
+     "feasible": true,
+     "cda_hat": 0.749595073024653,
+     "cda_set_width": 0.7302317670321501,
+     "identifiability": 0.0,
+     "usable_mean_j": 3739.885798837273,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 121235.8836779167,
+     "balance": 0.08506480350829032,
+     "d_usable_mean_j": 0.0,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "RESERVE_SIGMA_REAL",
+     "name": "Cut-out locating sigma",
+     "arm": "high",
+     "override": {
+      "reserve_sigma_j": 1000000.0
+     },
+     "feasible": true,
+     "cda_hat": 0.749595073024653,
+     "cda_set_width": 0.7302317670321501,
+     "identifiability": 0.0,
+     "usable_mean_j": 3739.885798837273,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 121235.8836779167,
+     "balance": 0.08506480350829032,
+     "d_usable_mean_j": 0.0,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    }
+   ],
+   "driver": "ALB",
+   "race": "2026_r1_R",
+   "secs": 6.4
+  },
+  {
+   "window_id": "2026_r1_R:ALB:4936.622",
+   "cutoff_time_s": 4936.622324873097,
+   "nominal": {
+    "cda_hat": 0.7229579838264537,
+    "cda_set_width": 0.8096260135275762,
+    "identifiability": 0.0,
+    "usable_mean_j": 92593.4795182377,
+    "usable_particle_width_j": 209321.84560593433,
+    "deploy_mean_w": 111677.48626897932,
+    "balance": 0.1208341033978448,
+    "n_binding": 480,
+    "n_coast": 254
+   },
+   "arms": [
+    {
+     "nuisance": "m",
+     "name": "Vehicle mass",
+     "arm": "low",
+     "override": {
+      "mass_kg": 768.0
+     },
+     "feasible": true,
+     "cda_hat": 0.7138947004571643,
+     "cda_set_width": 0.8494628995221833,
+     "identifiability": 0.0,
+     "usable_mean_j": 99771.94873317136,
+     "usable_particle_width_j": 256802.1057739245,
+     "deploy_mean_w": 109702.56436396374,
+     "balance": 0.13085757680705182,
+     "d_usable_mean_j": 7178.469214933662,
+     "d_usable_width_j": 47480.26016799017,
+     "d_deploy_mean_w": -1974.9219050155807,
+     "d_cda_hat": -0.00906328336928941
+    },
+    {
+     "nuisance": "m",
+     "name": "Vehicle mass",
+     "arm": "high",
+     "override": {
+      "mass_kg": 838.0
+     },
+     "feasible": true,
+     "cda_hat": 0.7429819513726059,
+     "cda_set_width": 0.6861057248314925,
+     "identifiability": 0.0,
+     "usable_mean_j": 87690.22875272647,
+     "usable_particle_width_j": 211619.13013376645,
+     "deploy_mean_w": 116079.33942678089,
+     "balance": 0.0961378249148304,
+     "d_usable_mean_j": -4903.250765511228,
+     "d_usable_width_j": 2297.2845278321183,
+     "d_deploy_mean_w": 4401.853157801568,
+     "d_cda_hat": 0.02002396754615221
+    },
+    {
+     "nuisance": "crr",
+     "name": "Rolling resistance",
+     "arm": "low",
+     "override": {
+      "crr": 0.008
+     },
+     "feasible": true,
+     "cda_hat": 0.7300814044339865,
+     "cda_set_width": 0.8088952717527954,
+     "identifiability": 0.0,
+     "usable_mean_j": 86610.22656348438,
+     "usable_particle_width_j": 239263.040716233,
+     "deploy_mean_w": 111481.32467782394,
+     "balance": 0.12202955733266577,
+     "d_usable_mean_j": -5983.2529547533195,
+     "d_usable_width_j": 29941.195110298664,
+     "d_deploy_mean_w": -196.16159115538176,
+     "d_cda_hat": 0.007123420607532793
+    },
+    {
+     "nuisance": "crr",
+     "name": "Rolling resistance",
+     "arm": "high",
+     "override": {
+      "crr": 0.016
+     },
+     "feasible": true,
+     "cda_hat": 0.7151900142434957,
+     "cda_set_width": 0.8090676573515068,
+     "identifiability": 0.0,
+     "usable_mean_j": 111737.47637004199,
+     "usable_particle_width_j": 272740.62278646923,
+     "deploy_mean_w": 111837.67737343267,
+     "balance": 0.11981897446219862,
+     "d_usable_mean_j": 19143.996851804288,
+     "d_usable_width_j": 63418.777180534904,
+     "d_deploy_mean_w": 160.1911044533481,
+     "d_cda_hat": -0.007767969582958001
+    },
+    {
+     "nuisance": "rho",
+     "name": "Air density",
+     "arm": "low",
+     "override": {
+      "rho": 1.1435337606473495
+     },
+     "feasible": true,
+     "cda_hat": 0.7453175090994367,
+     "cda_set_width": 0.8346659933273981,
+     "identifiability": 0.0,
+     "usable_mean_j": 92593.4795182377,
+     "usable_particle_width_j": 209321.84560593433,
+     "deploy_mean_w": 111677.48626897931,
+     "balance": 0.12083410339784481,
+     "d_usable_mean_j": 0.0,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": -1.4551915228366852e-11,
+     "d_cda_hat": 0.022359525272983016
+    },
+    {
+     "nuisance": "rho",
+     "name": "Air density",
+     "arm": "high",
+     "override": {
+      "rho": 1.214267807697701
+     },
+     "feasible": true,
+     "cda_hat": 0.7019009551713143,
+     "cda_set_width": 0.786044673327744,
+     "identifiability": 0.0,
+     "usable_mean_j": 92593.47951823767,
+     "usable_particle_width_j": 209321.84560593433,
+     "deploy_mean_w": 111677.48626897932,
+     "balance": 0.12083410339784478,
+     "d_usable_mean_j": -2.9103830456733704e-11,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": -0.021057028655139365
+    },
+    {
+     "nuisance": "eta",
+     "name": "Drivetrain / ICE efficiency",
+     "arm": "low",
+     "override": {
+      "eta": 0.9
+     },
+     "feasible": true,
+     "cda_hat": 0.6750402639890378,
+     "cda_set_width": 0.7137905738527445,
+     "identifiability": 0.0,
+     "usable_mean_j": 108784.77338136887,
+     "usable_particle_width_j": 265981.8852374052,
+     "deploy_mean_w": 114054.5741250242,
+     "balance": 0.10427636545516032,
+     "d_usable_mean_j": 16191.29386313117,
+     "d_usable_width_j": 56660.03963147086,
+     "d_deploy_mean_w": 2377.0878560448764,
+     "d_cda_hat": -0.047917719837415884
+    },
+    {
+     "nuisance": "eta",
+     "name": "Drivetrain / ICE efficiency",
+     "arm": "high",
+     "override": {
+      "eta": 0.98
+     },
+     "feasible": true,
+     "cda_hat": 0.747308049767534,
+     "cda_set_width": 0.858326145409737,
+     "identifiability": 0.0,
+     "usable_mean_j": 95674.30573238016,
+     "usable_particle_width_j": 276499.8329848528,
+     "deploy_mean_w": 110148.62003673671,
+     "balance": 0.13042951552641205,
+     "d_usable_mean_j": 3080.826214142464,
+     "d_usable_width_j": 67177.98737891845,
+     "d_deploy_mean_w": -1528.8662322426098,
+     "d_cda_hat": 0.024350065941080246
+    },
+    {
+     "nuisance": "smooth_m",
+     "name": "Derivative smoothing length",
+     "arm": "low",
+     "override": {
+      "smooth_m": 40.0
+     },
+     "feasible": true,
+     "cda_hat": 0.6361081534154616,
+     "cda_set_width": 0.7482822166251695,
+     "identifiability": 0.0,
+     "usable_mean_j": 266854.4776876292,
+     "usable_particle_width_j": 728729.5164876733,
+     "deploy_mean_w": 107815.42280556496,
+     "balance": 0.13013812194180233,
+     "d_usable_mean_j": 174260.99816939147,
+     "d_usable_width_j": 519407.67088173894,
+     "d_deploy_mean_w": -3862.0634634143644,
+     "d_cda_hat": -0.08684983041099215
+    },
+    {
+     "nuisance": "smooth_m",
+     "name": "Derivative smoothing length",
+     "arm": "high",
+     "override": {
+      "smooth_m": 100.0
+     },
+     "feasible": true,
+     "cda_hat": 0.8252880552928117,
+     "cda_set_width": 0.7009911985009363,
+     "identifiability": 0.0,
+     "usable_mean_j": 58573.39880599611,
+     "usable_particle_width_j": 175696.91340195498,
+     "deploy_mean_w": 114463.68511473306,
+     "balance": 0.10187909189750727,
+     "d_usable_mean_j": -34020.080712241586,
+     "d_usable_width_j": -33624.93220397935,
+     "d_deploy_mean_w": 2786.1988457537373,
+     "d_cda_hat": 0.10233007146635797
+    },
+    {
+     "nuisance": "reserve_max_frac",
+     "name": "Particle reserve prior",
+     "arm": "low",
+     "override": {
+      "reserve_max_frac": 0.2
+     },
+     "feasible": true,
+     "cda_hat": 0.7229579838264537,
+     "cda_set_width": 0.8096260135275762,
+     "identifiability": 0.0,
+     "usable_mean_j": 136095.99935784595,
+     "usable_particle_width_j": 358633.4456297411,
+     "deploy_mean_w": 111677.48626897932,
+     "balance": 0.1208341033978448,
+     "d_usable_mean_j": 43502.519839608256,
+     "d_usable_width_j": 149311.6000238068,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "reserve_max_frac",
+     "name": "Particle reserve prior",
+     "arm": "high",
+     "override": {
+      "reserve_max_frac": 0.5
+     },
+     "feasible": true,
+     "cda_hat": 0.7229579838264537,
+     "cda_set_width": 0.8096260135275762,
+     "identifiability": 0.0,
+     "usable_mean_j": 105512.36810143205,
+     "usable_particle_width_j": 256042.22064452636,
+     "deploy_mean_w": 111677.48626897932,
+     "balance": 0.1208341033978448,
+     "d_usable_mean_j": 12918.888583194348,
+     "d_usable_width_j": 46720.37503859203,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "RESERVE_SIGMA_REAL",
+     "name": "Cut-out locating sigma",
+     "arm": "low",
+     "override": {
+      "reserve_sigma_j": 250000.0
+     },
+     "feasible": true,
+     "cda_hat": 0.7229579838264537,
+     "cda_set_width": 0.8096260135275762,
+     "identifiability": 0.0,
+     "usable_mean_j": 92593.4795182377,
+     "usable_particle_width_j": 209321.84560593433,
+     "deploy_mean_w": 111677.48626897932,
+     "balance": 0.1208341033978448,
+     "d_usable_mean_j": 0.0,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "RESERVE_SIGMA_REAL",
+     "name": "Cut-out locating sigma",
+     "arm": "high",
+     "override": {
+      "reserve_sigma_j": 1000000.0
+     },
+     "feasible": true,
+     "cda_hat": 0.7229579838264537,
+     "cda_set_width": 0.8096260135275762,
+     "identifiability": 0.0,
+     "usable_mean_j": 92593.4795182377,
+     "usable_particle_width_j": 209321.84560593433,
+     "deploy_mean_w": 111677.48626897932,
+     "balance": 0.1208341033978448,
+     "d_usable_mean_j": 0.0,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    }
+   ],
+   "driver": "ALB",
+   "race": "2026_r1_R",
+   "secs": 7.8
+  },
+  {
+   "window_id": "2026_r1_R:LEC:4395.846",
+   "cutoff_time_s": 4395.8462340845745,
+   "nominal": {
+    "cda_hat": 0.9259969857031778,
+    "cda_set_width": 0.30075379361983423,
+    "identifiability": 0.3504216573848786,
+    "usable_mean_j": 15847.819086612355,
+    "usable_particle_width_j": 65440.198374827465,
+    "deploy_mean_w": 124579.10306822161,
+    "balance": 0.008093597937456147,
+    "n_binding": 785,
+    "n_coast": 130
+   },
+   "arms": [
+    {
+     "nuisance": "m",
+     "name": "Vehicle mass",
+     "arm": "low",
+     "override": {
+      "mass_kg": 768.0
+     },
+     "feasible": true,
+     "cda_hat": 0.9093894660481476,
+     "cda_set_width": 0.38016288417511823,
+     "identifiability": 0.16391623530200317,
+     "usable_mean_j": 13366.863829165957,
+     "usable_particle_width_j": 52852.375940755206,
+     "deploy_mean_w": 122108.32906081303,
+     "balance": 0.023274008675756064,
+     "d_usable_mean_j": -2480.955257446398,
+     "d_usable_width_j": -12587.822434072259,
+     "d_deploy_mean_w": -2470.774007408574,
+     "d_cda_hat": -0.016607519655030156
+    },
+    {
+     "nuisance": "m",
+     "name": "Vehicle mass",
+     "arm": "high",
+     "override": {
+      "mass_kg": 838.0
+     },
+     "feasible": true,
+     "cda_hat": 0.9615985499448159,
+     "cda_set_width": 0.1224923105475465,
+     "identifiability": 0.7452319150136487,
+     "usable_mean_j": 7272.900893871845,
+     "usable_particle_width_j": 22405.92620408864,
+     "deploy_mean_w": 129998.60549995281,
+     "balance": 0.0,
+     "d_usable_mean_j": -8574.91819274051,
+     "d_usable_width_j": -43034.27217073883,
+     "d_deploy_mean_w": 5419.502431731205,
+     "d_cda_hat": 0.03560156424163807
+    },
+    {
+     "nuisance": "crr",
+     "name": "Rolling resistance",
+     "arm": "low",
+     "override": {
+      "crr": 0.008
+     },
+     "feasible": true,
+     "cda_hat": 0.9353316683885998,
+     "cda_set_width": 0.29785036388030384,
+     "identifiability": 0.36311284232801855,
+     "usable_mean_j": 19067.4677311791,
+     "usable_particle_width_j": 73703.97022031501,
+     "deploy_mean_w": 124552.34269525428,
+     "balance": 0.008149003812791359,
+     "d_usable_mean_j": 3219.6486445667433,
+     "d_usable_width_j": 8263.771845487543,
+     "d_deploy_mean_w": -26.760372967328294,
+     "d_cda_hat": 0.009334682685422035
+    },
+    {
+     "nuisance": "crr",
+     "name": "Rolling resistance",
+     "arm": "high",
+     "override": {
+      "crr": 0.016
+     },
+     "feasible": true,
+     "cda_hat": 0.9148452715128261,
+     "cda_set_width": 0.3036966689949635,
+     "identifiability": 0.3360698722467941,
+     "usable_mean_j": 19494.850015205233,
+     "usable_particle_width_j": 69289.97910103251,
+     "deploy_mean_w": 124470.91032793037,
+     "balance": 0.008732516476243748,
+     "d_usable_mean_j": 3647.030928592878,
+     "d_usable_width_j": 3849.7807262050483,
+     "d_deploy_mean_w": -108.19274029124063,
+     "d_cda_hat": -0.011151714190351658
+    },
+    {
+     "nuisance": "rho",
+     "name": "Air density",
+     "arm": "low",
+     "override": {
+      "rho": 1.1435337606473495
+     },
+     "feasible": true,
+     "cda_hat": 0.9546360677352348,
+     "cda_set_width": 0.3100554573400355,
+     "identifiability": 0.3504216573848782,
+     "usable_mean_j": 15847.819086612366,
+     "usable_particle_width_j": 65440.198374827436,
+     "deploy_mean_w": 124579.10306822161,
+     "balance": 0.008093597937456147,
+     "d_usable_mean_j": 1.0913936421275139e-11,
+     "d_usable_width_j": -2.9103830456733704e-11,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.028639082032057006
+    },
+    {
+     "nuisance": "rho",
+     "name": "Air density",
+     "arm": "high",
+     "override": {
+      "rho": 1.214267807697701
+     },
+     "feasible": true,
+     "cda_hat": 0.8990261997118231,
+     "cda_set_width": 0.29199397438818875,
+     "identifiability": 0.3504216573848782,
+     "usable_mean_j": 15847.819086612364,
+     "usable_particle_width_j": 65440.198374827494,
+     "deploy_mean_w": 124579.10306822161,
+     "balance": 0.008093597937456147,
+     "d_usable_mean_j": 9.094947017729282e-12,
+     "d_usable_width_j": 2.9103830456733704e-11,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": -0.026970785991354718
+    },
+    {
+     "nuisance": "eta",
+     "name": "Drivetrain / ICE efficiency",
+     "arm": "low",
+     "override": {
+      "eta": 0.9
+     },
+     "feasible": true,
+     "cda_hat": 0.8730158898363671,
+     "cda_set_width": 0.19479160188621303,
+     "identifiability": 0.5537501570040756,
+     "usable_mean_j": 17561.048935406096,
+     "usable_particle_width_j": 73690.12203649979,
+     "deploy_mean_w": 126756.17857902616,
+     "balance": 0.0,
+     "d_usable_mean_j": 1713.2298487937405,
+     "d_usable_width_j": 8249.923661672321,
+     "d_deploy_mean_w": 2177.075510804556,
+     "d_cda_hat": -0.05298109586681066
+    },
+    {
+     "nuisance": "eta",
+     "name": "Drivetrain / ICE efficiency",
+     "arm": "high",
+     "override": {
+      "eta": 0.98
+     },
+     "feasible": true,
+     "cda_hat": 0.9568722905160294,
+     "cda_set_width": 0.36250440324553745,
+     "identifiability": 0.24231392874791413,
+     "usable_mean_j": 11523.49848393385,
+     "usable_particle_width_j": 38980.67742824952,
+     "deploy_mean_w": 123332.98893169205,
+     "balance": 0.018327126288412963,
+     "d_usable_mean_j": -4324.320602678505,
+     "d_usable_width_j": -26459.520946577948,
+     "d_deploy_mean_w": -1246.1141365295625,
+     "d_cda_hat": 0.03087530481285161
+    },
+    {
+     "nuisance": "smooth_m",
+     "name": "Derivative smoothing length",
+     "arm": "low",
+     "override": {
+      "smooth_m": 40.0
+     },
+     "feasible": true,
+     "cda_hat": 0.9526196785081731,
+     "cda_set_width": 0.016165737655345125,
+     "identifiability": 0.9660604582918945,
+     "usable_mean_j": 16397.143226464512,
+     "usable_particle_width_j": 63135.88529192141,
+     "deploy_mean_w": 127399.86865859613,
+     "balance": 0.0,
+     "d_usable_mean_j": 549.3241398521568,
+     "d_usable_width_j": -2304.3130829060538,
+     "d_deploy_mean_w": 2820.765590374518,
+     "d_cda_hat": 0.026622692804995296
+    },
+    {
+     "nuisance": "smooth_m",
+     "name": "Derivative smoothing length",
+     "arm": "high",
+     "override": {
+      "smooth_m": 100.0
+     },
+     "feasible": true,
+     "cda_hat": 1.0880635217989638,
+     "cda_set_width": 0.1418728219878158,
+     "identifiability": 0.7392195967506593,
+     "usable_mean_j": 4297.397818323608,
+     "usable_particle_width_j": 8724.14970554733,
+     "deploy_mean_w": 135683.7141717481,
+     "balance": 0.0,
+     "d_usable_mean_j": -11550.421268288748,
+     "d_usable_width_j": -56716.048669280135,
+     "d_deploy_mean_w": 11104.611103526506,
+     "d_cda_hat": 0.16206653609578603
+    },
+    {
+     "nuisance": "reserve_max_frac",
+     "name": "Particle reserve prior",
+     "arm": "low",
+     "override": {
+      "reserve_max_frac": 0.2
+     },
+     "feasible": true,
+     "cda_hat": 0.9259969857031778,
+     "cda_set_width": 0.30075379361983423,
+     "identifiability": 0.3504216573848786,
+     "usable_mean_j": 15064.577003856824,
+     "usable_particle_width_j": 60841.591039746156,
+     "deploy_mean_w": 124579.10306822161,
+     "balance": 0.008093597937456147,
+     "d_usable_mean_j": -783.2420827555306,
+     "d_usable_width_j": -4598.607335081309,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "reserve_max_frac",
+     "name": "Particle reserve prior",
+     "arm": "high",
+     "override": {
+      "reserve_max_frac": 0.5
+     },
+     "feasible": true,
+     "cda_hat": 0.9259969857031778,
+     "cda_set_width": 0.30075379361983423,
+     "identifiability": 0.3504216573848786,
+     "usable_mean_j": 22340.442657463784,
+     "usable_particle_width_j": 83596.4935999516,
+     "deploy_mean_w": 124579.10306822161,
+     "balance": 0.008093597937456147,
+     "d_usable_mean_j": 6492.623570851429,
+     "d_usable_width_j": 18156.295225124137,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "RESERVE_SIGMA_REAL",
+     "name": "Cut-out locating sigma",
+     "arm": "low",
+     "override": {
+      "reserve_sigma_j": 250000.0
+     },
+     "feasible": true,
+     "cda_hat": 0.9259969857031778,
+     "cda_set_width": 0.30075379361983423,
+     "identifiability": 0.3504216573848786,
+     "usable_mean_j": 15847.819086612355,
+     "usable_particle_width_j": 65440.198374827465,
+     "deploy_mean_w": 124579.10306822161,
+     "balance": 0.008093597937456147,
+     "d_usable_mean_j": 0.0,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "RESERVE_SIGMA_REAL",
+     "name": "Cut-out locating sigma",
+     "arm": "high",
+     "override": {
+      "reserve_sigma_j": 1000000.0
+     },
+     "feasible": true,
+     "cda_hat": 0.9259969857031778,
+     "cda_set_width": 0.30075379361983423,
+     "identifiability": 0.3504216573848786,
+     "usable_mean_j": 15847.819086612355,
+     "usable_particle_width_j": 65440.198374827465,
+     "deploy_mean_w": 124579.10306822161,
+     "balance": 0.008093597937456147,
+     "d_usable_mean_j": 0.0,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    }
+   ],
+   "driver": "LEC",
+   "race": "2026_r1_R",
+   "secs": 4.7
+  },
+  {
+   "window_id": "2026_r1_R:LEC:4638.359",
+   "cutoff_time_s": 4638.358660194174,
+   "nominal": {
+    "cda_hat": 0.9542329031908032,
+    "cda_set_width": 0.36797761996818756,
+    "identifiability": 0.2287467373264349,
+    "usable_mean_j": 4125.405039619762,
+    "usable_particle_width_j": 0.0,
+    "deploy_mean_w": 127930.45493614287,
+    "balance": 0.005185607914217364,
+    "n_binding": 1135,
+    "n_coast": 174
+   },
+   "arms": [
+    {
+     "nuisance": "m",
+     "name": "Vehicle mass",
+     "arm": "low",
+     "override": {
+      "mass_kg": 768.0
+     },
+     "feasible": true,
+     "cda_hat": 0.9377836044926366,
+     "cda_set_width": 0.4547638694678787,
+     "identifiability": 0.030130475113356536,
+     "usable_mean_j": 2014.1517679486556,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 125449.9199217165,
+     "balance": 0.020486659673731946,
+     "d_usable_mean_j": -2111.253271671106,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": -2480.535014426365,
+     "d_cda_hat": -0.01644929869816658
+    },
+    {
+     "nuisance": "m",
+     "name": "Vehicle mass",
+     "arm": "high",
+     "override": {
+      "mass_kg": 838.0
+     },
+     "feasible": true,
+     "cda_hat": 0.9667407311513954,
+     "cda_set_width": 0.16958582424832702,
+     "identifiability": 0.649159658254289,
+     "usable_mean_j": 606.7214859709684,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 131648.97720558767,
+     "balance": 0.0,
+     "d_usable_mean_j": -3518.6835536487933,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 3718.522269444802,
+     "d_cda_hat": 0.012507827960592133
+    },
+    {
+     "nuisance": "crr",
+     "name": "Rolling resistance",
+     "arm": "low",
+     "override": {
+      "crr": 0.008
+     },
+     "feasible": true,
+     "cda_hat": 0.9643037766786006,
+     "cda_set_width": 0.3703934553702142,
+     "identifiability": 0.23179092661862477,
+     "usable_mean_j": 1819.1146656696428,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 127956.63786309438,
+     "balance": 0.004962720063956168,
+     "d_usable_mean_j": -2306.290373950119,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 26.182926951514673,
+     "d_cda_hat": 0.010070873487797338
+    },
+    {
+     "nuisance": "crr",
+     "name": "Rolling resistance",
+     "arm": "high",
+     "override": {
+      "crr": 0.016
+     },
+     "feasible": true,
+     "cda_hat": 0.9443858985466753,
+     "cda_set_width": 0.3660095222534997,
+     "identifiability": 0.2248729617484646,
+     "usable_mean_j": 2565.526748033639,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 127921.45051866461,
+     "balance": 0.005314126308530055,
+     "d_usable_mean_j": -1559.878291586123,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": -9.004417478252435,
+     "d_cda_hat": -0.00984700464412791
+    },
+    {
+     "nuisance": "rho",
+     "name": "Air density",
+     "arm": "low",
+     "override": {
+      "rho": 1.1435337606473495
+     },
+     "feasible": true,
+     "cda_hat": 0.9837452610214464,
+     "cda_set_width": 0.37935837110122406,
+     "identifiability": 0.22874673732643525,
+     "usable_mean_j": 4125.405039619767,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 127930.45493614287,
+     "balance": 0.005185607914217433,
+     "d_usable_mean_j": 5.4569682106375694e-12,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.02951235783064321
+    },
+    {
+     "nuisance": "rho",
+     "name": "Air density",
+     "arm": "high",
+     "override": {
+      "rho": 1.214267807697701
+     },
+     "feasible": true,
+     "cda_hat": 0.9264397118357313,
+     "cda_set_width": 0.35725982521183264,
+     "identifiability": 0.2287467373264348,
+     "usable_mean_j": 4125.405039619765,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 127930.45493614287,
+     "balance": 0.005185607914217387,
+     "d_usable_mean_j": 3.637978807091713e-12,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": -0.027793191355071967
+    },
+    {
+     "nuisance": "eta",
+     "name": "Drivetrain / ICE efficiency",
+     "arm": "low",
+     "override": {
+      "eta": 0.9
+     },
+     "feasible": true,
+     "cda_hat": 0.8861449856508119,
+     "cda_set_width": 0.2318017848882047,
+     "identifiability": 0.4768310183057406,
+     "usable_mean_j": 977.6782785200313,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 129071.35869912207,
+     "balance": 0.0,
+     "d_usable_mean_j": -3147.7267610997305,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 1140.9037629792,
+     "d_cda_hat": -0.06808791753999133
+    },
+    {
+     "nuisance": "eta",
+     "name": "Drivetrain / ICE efficiency",
+     "arm": "high",
+     "override": {
+      "eta": 0.98
+     },
+     "feasible": true,
+     "cda_hat": 0.9880575170621455,
+     "cda_set_width": 0.4356268477108721,
+     "identifiability": 0.11821560954032462,
+     "usable_mean_j": 3634.213470318963,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 126814.0206820776,
+     "balance": 0.014701499500552249,
+     "d_usable_mean_j": -491.1915693007986,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": -1116.4342540652724,
+     "d_cda_hat": 0.03382461387134228
+    },
+    {
+     "nuisance": "smooth_m",
+     "name": "Derivative smoothing length",
+     "arm": "low",
+     "override": {
+      "smooth_m": 40.0
+     },
+     "feasible": true,
+     "cda_hat": 0.9102815280210035,
+     "cda_set_width": 0.18651407400744435,
+     "identifiability": 0.5902057368714598,
+     "usable_mean_j": 1074.3314054215398,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 125556.48985171916,
+     "balance": 0.006061491343753025,
+     "d_usable_mean_j": -3051.073634198222,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": -2373.965084423704,
+     "d_cda_hat": -0.043951375169799745
+    },
+    {
+     "nuisance": "smooth_m",
+     "name": "Derivative smoothing length",
+     "arm": "high",
+     "override": {
+      "smooth_m": 100.0
+     },
+     "feasible": true,
+     "cda_hat": 1.096864687739052,
+     "cda_set_width": 0.18564977974166297,
+     "identifiability": 0.6614900966055537,
+     "usable_mean_j": 27.05601640779106,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 137380.4769701901,
+     "balance": 0.0,
+     "d_usable_mean_j": -4098.34902321197,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 9450.02203404723,
+     "d_cda_hat": 0.14263178454824876
+    },
+    {
+     "nuisance": "reserve_max_frac",
+     "name": "Particle reserve prior",
+     "arm": "low",
+     "override": {
+      "reserve_max_frac": 0.2
+     },
+     "feasible": true,
+     "cda_hat": 0.9542329031908032,
+     "cda_set_width": 0.36797761996818756,
+     "identifiability": 0.2287467373264349,
+     "usable_mean_j": 2761.8079311558104,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 127930.45493614287,
+     "balance": 0.005185607914217364,
+     "d_usable_mean_j": -1363.5971084639514,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "reserve_max_frac",
+     "name": "Particle reserve prior",
+     "arm": "high",
+     "override": {
+      "reserve_max_frac": 0.5
+     },
+     "feasible": true,
+     "cda_hat": 0.9542329031908032,
+     "cda_set_width": 0.36797761996818756,
+     "identifiability": 0.2287467373264349,
+     "usable_mean_j": 3176.587607080646,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 127930.45493614287,
+     "balance": 0.005185607914217364,
+     "d_usable_mean_j": -948.8174325391155,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "RESERVE_SIGMA_REAL",
+     "name": "Cut-out locating sigma",
+     "arm": "low",
+     "override": {
+      "reserve_sigma_j": 250000.0
+     },
+     "feasible": true,
+     "cda_hat": 0.9542329031908032,
+     "cda_set_width": 0.36797761996818756,
+     "identifiability": 0.2287467373264349,
+     "usable_mean_j": 4125.405039619762,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 127930.45493614287,
+     "balance": 0.005185607914217364,
+     "d_usable_mean_j": 0.0,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "RESERVE_SIGMA_REAL",
+     "name": "Cut-out locating sigma",
+     "arm": "high",
+     "override": {
+      "reserve_sigma_j": 1000000.0
+     },
+     "feasible": true,
+     "cda_hat": 0.9542329031908032,
+     "cda_set_width": 0.36797761996818756,
+     "identifiability": 0.2287467373264349,
+     "usable_mean_j": 4125.405039619762,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 127930.45493614287,
+     "balance": 0.005185607914217364,
+     "d_usable_mean_j": 0.0,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    }
+   ],
+   "driver": "LEC",
+   "race": "2026_r1_R",
+   "secs": 6.4
+  },
+  {
+   "window_id": "2026_r1_R:LEC:4895.869",
+   "cutoff_time_s": 4895.869200882275,
+   "nominal": {
+    "cda_hat": 0.9289011291984648,
+    "cda_set_width": 0.49080287066489225,
+    "identifiability": 0.0,
+    "usable_mean_j": 1912896.7020161138,
+    "usable_particle_width_j": 2990820.7662470667,
+    "deploy_mean_w": 119253.22694227546,
+    "balance": 0.047956411028682415,
+    "n_binding": 1075,
+    "n_coast": 226
+   },
+   "arms": [
+    {
+     "nuisance": "m",
+     "name": "Vehicle mass",
+     "arm": "low",
+     "override": {
+      "mass_kg": 768.0
+     },
+     "feasible": true,
+     "cda_hat": 0.8965350484056607,
+     "cda_set_width": 0.5862408210104469,
+     "identifiability": 0.0,
+     "usable_mean_j": 1778549.7103777342,
+     "usable_particle_width_j": 2657600.171482393,
+     "deploy_mean_w": 115853.3214961463,
+     "balance": 0.06589434118305294,
+     "d_usable_mean_j": -134346.99163837964,
+     "d_usable_width_j": -333220.5947646736,
+     "d_deploy_mean_w": -3399.905446129167,
+     "d_cda_hat": -0.03236608079280412
+    },
+    {
+     "nuisance": "m",
+     "name": "Vehicle mass",
+     "arm": "high",
+     "override": {
+      "mass_kg": 838.0
+     },
+     "feasible": true,
+     "cda_hat": 0.9687271196201082,
+     "cda_set_width": 0.30452704646994944,
+     "identifiability": 0.3712841515382135,
+     "usable_mean_j": 2575672.8333724067,
+     "usable_particle_width_j": 2924830.8124435823,
+     "deploy_mean_w": 124694.77369581153,
+     "balance": 0.015258503961849206,
+     "d_usable_mean_j": 662776.1313562929,
+     "d_usable_width_j": -65989.95380348433,
+     "d_deploy_mean_w": 5441.546753536066,
+     "d_cda_hat": 0.039825990421643365
+    },
+    {
+     "nuisance": "crr",
+     "name": "Rolling resistance",
+     "arm": "low",
+     "override": {
+      "crr": 0.008
+     },
+     "feasible": true,
+     "cda_hat": 0.938390619126833,
+     "cda_set_width": 0.48449013355757975,
+     "identifiability": 0.0,
+     "usable_mean_j": 1813284.3655302161,
+     "usable_particle_width_j": 2946532.7945774486,
+     "deploy_mean_w": 119205.33217296527,
+     "balance": 0.048153267579354606,
+     "d_usable_mean_j": -99612.33648589766,
+     "d_usable_width_j": -44287.97166961804,
+     "d_deploy_mean_w": -47.89476931019453,
+     "d_cda_hat": 0.009489489928368178
+    },
+    {
+     "nuisance": "crr",
+     "name": "Rolling resistance",
+     "arm": "high",
+     "override": {
+      "crr": 0.016
+     },
+     "feasible": true,
+     "cda_hat": 0.9193327398607494,
+     "cda_set_width": 0.49727340659089914,
+     "identifiability": 0.0,
+     "usable_mean_j": 1979762.208935054,
+     "usable_particle_width_j": 2957590.513340315,
+     "deploy_mean_w": 119295.97033302554,
+     "balance": 0.047783780562330604,
+     "d_usable_mean_j": 66865.50691894023,
+     "d_usable_width_j": -33230.25290675182,
+     "d_deploy_mean_w": 42.743390750081744,
+     "d_cda_hat": -0.009568389337715422
+    },
+    {
+     "nuisance": "rho",
+     "name": "Air density",
+     "arm": "low",
+     "override": {
+      "rho": 1.1435337606473495
+     },
+     "feasible": true,
+     "cda_hat": 0.9576300301015098,
+     "cda_set_width": 0.5059823408916413,
+     "identifiability": 0.0,
+     "usable_mean_j": 1912896.7020161133,
+     "usable_particle_width_j": 2990820.7662470667,
+     "deploy_mean_w": 119253.22694227545,
+     "balance": 0.047956411028682484,
+     "d_usable_mean_j": -4.656612873077393e-10,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": -1.4551915228366852e-11,
+     "d_cda_hat": 0.02872890090304503
+    },
+    {
+     "nuisance": "rho",
+     "name": "Air density",
+     "arm": "high",
+     "override": {
+      "rho": 1.214267807697701
+     },
+     "feasible": true,
+     "cda_hat": 0.9018457565033637,
+     "cda_set_width": 0.47650764142222535,
+     "identifiability": 0.0,
+     "usable_mean_j": 1912896.7020161133,
+     "usable_particle_width_j": 2990820.7662470667,
+     "deploy_mean_w": 119253.22694227545,
+     "balance": 0.04795641102868247,
+     "d_usable_mean_j": -4.656612873077393e-10,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": -1.4551915228366852e-11,
+     "d_cda_hat": -0.027055372695101054
+    },
+    {
+     "nuisance": "eta",
+     "name": "Drivetrain / ICE efficiency",
+     "arm": "low",
+     "override": {
+      "eta": 0.9
+     },
+     "feasible": true,
+     "cda_hat": 0.87602163956639,
+     "cda_set_width": 0.3850438914007429,
+     "identifiability": 0.12092607303324032,
+     "usable_mean_j": 2320815.985583009,
+     "usable_particle_width_j": 2973196.3681716262,
+     "deploy_mean_w": 121437.91575093678,
+     "balance": 0.031041646470575193,
+     "d_usable_mean_j": 407919.2835668954,
+     "d_usable_width_j": -17624.398075440433,
+     "d_deploy_mean_w": 2184.688808661318,
+     "d_cda_hat": -0.05287948963207478
+    },
+    {
+     "nuisance": "eta",
+     "name": "Drivetrain / ICE efficiency",
+     "arm": "high",
+     "override": {
+      "eta": 0.98
+     },
+     "feasible": true,
+     "cda_hat": 0.9574793693570864,
+     "cda_set_width": 0.5479593509821358,
+     "identifiability": 0.0,
+     "usable_mean_j": 1831306.998606055,
+     "usable_particle_width_j": 2862967.931143913,
+     "deploy_mean_w": 117861.29539921191,
+     "balance": 0.05765054817955223,
+     "d_usable_mean_j": -81589.70341005875,
+     "d_usable_width_j": -127852.83510315372,
+     "d_deploy_mean_w": -1391.931543063547,
+     "d_cda_hat": 0.02857824015862165
+    },
+    {
+     "nuisance": "smooth_m",
+     "name": "Derivative smoothing length",
+     "arm": "low",
+     "override": {
+      "smooth_m": 40.0
+     },
+     "feasible": true,
+     "cda_hat": 0.9004918468578116,
+     "cda_set_width": 0.2960594717368109,
+     "identifiability": 0.34244941190775946,
+     "usable_mean_j": 2094945.0582073024,
+     "usable_particle_width_j": 3007401.5753017217,
+     "deploy_mean_w": 118207.39472944265,
+     "balance": 0.04441921331204937,
+     "d_usable_mean_j": 182048.35619118856,
+     "d_usable_width_j": 16580.809054655023,
+     "d_deploy_mean_w": -1045.8322128328145,
+     "d_cda_hat": -0.028409282340653208
+    },
+    {
+     "nuisance": "smooth_m",
+     "name": "Derivative smoothing length",
+     "arm": "high",
+     "override": {
+      "smooth_m": 100.0
+     },
+     "feasible": true,
+     "cda_hat": 1.0694096922589182,
+     "cda_set_width": 0.3701211576005988,
+     "identifiability": 0.30780287427769526,
+     "usable_mean_j": 2394437.9546368932,
+     "usable_particle_width_j": 2929394.9425331866,
+     "deploy_mean_w": 127439.42486212862,
+     "balance": 0.000675131515227725,
+     "d_usable_mean_j": 481541.25262077944,
+     "d_usable_width_j": -61425.82371388003,
+     "d_deploy_mean_w": 8186.197919853163,
+     "d_cda_hat": 0.14050856306045345
+    },
+    {
+     "nuisance": "reserve_max_frac",
+     "name": "Particle reserve prior",
+     "arm": "low",
+     "override": {
+      "reserve_max_frac": 0.2
+     },
+     "feasible": true,
+     "cda_hat": 0.9289011291984648,
+     "cda_set_width": 0.49080287066489225,
+     "identifiability": 0.0,
+     "usable_mean_j": 2085657.4710926076,
+     "usable_particle_width_j": 3011512.509289099,
+     "deploy_mean_w": 119253.22694227546,
+     "balance": 0.047956411028682415,
+     "d_usable_mean_j": 172760.7690764938,
+     "d_usable_width_j": 20691.743042032234,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "reserve_max_frac",
+     "name": "Particle reserve prior",
+     "arm": "high",
+     "override": {
+      "reserve_max_frac": 0.5
+     },
+     "feasible": true,
+     "cda_hat": 0.9289011291984648,
+     "cda_set_width": 0.49080287066489225,
+     "identifiability": 0.0,
+     "usable_mean_j": 1768228.7581607252,
+     "usable_particle_width_j": 2883325.5692516044,
+     "deploy_mean_w": 119253.22694227546,
+     "balance": 0.047956411028682415,
+     "d_usable_mean_j": -144667.94385538856,
+     "d_usable_width_j": -107495.19699546229,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "RESERVE_SIGMA_REAL",
+     "name": "Cut-out locating sigma",
+     "arm": "low",
+     "override": {
+      "reserve_sigma_j": 250000.0
+     },
+     "feasible": true,
+     "cda_hat": 0.9289011291984648,
+     "cda_set_width": 0.49080287066489225,
+     "identifiability": 0.0,
+     "usable_mean_j": 1912896.7020161138,
+     "usable_particle_width_j": 2990820.7662470667,
+     "deploy_mean_w": 119253.22694227546,
+     "balance": 0.047956411028682415,
+     "d_usable_mean_j": 0.0,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "RESERVE_SIGMA_REAL",
+     "name": "Cut-out locating sigma",
+     "arm": "high",
+     "override": {
+      "reserve_sigma_j": 1000000.0
+     },
+     "feasible": true,
+     "cda_hat": 0.9289011291984648,
+     "cda_set_width": 0.49080287066489225,
+     "identifiability": 0.0,
+     "usable_mean_j": 1912896.7020161138,
+     "usable_particle_width_j": 2990820.7662470667,
+     "deploy_mean_w": 119253.22694227546,
+     "balance": 0.047956411028682415,
+     "d_usable_mean_j": 0.0,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    }
+   ],
+   "driver": "LEC",
+   "race": "2026_r1_R",
+   "secs": 7.9
+  },
+  {
+   "window_id": "2026_r1_R:NOR:4407.357",
+   "cutoff_time_s": 4407.357391143911,
+   "nominal": {
+    "cda_hat": 1.0016488024146266,
+    "cda_set_width": 0.035383748240333524,
+    "identifiability": 0.9293489930701547,
+    "usable_mean_j": 0.2251594453853991,
+    "usable_particle_width_j": 0.0,
+    "deploy_mean_w": 135409.84647054446,
+    "balance": 0.0,
+    "n_binding": 1271,
+    "n_coast": 360
+   },
+   "arms": [
+    {
+     "nuisance": "m",
+     "name": "Vehicle mass",
+     "arm": "low",
+     "override": {
+      "mass_kg": 768.0
+     },
+     "feasible": true,
+     "cda_hat": 0.9851265412334518,
+     "cda_set_width": 0.0952694010393832,
+     "identifiability": 0.8065844395581936,
+     "usable_mean_j": 805.7093271669416,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 132508.52709128414,
+     "balance": 0.0,
+     "d_usable_mean_j": 805.4841677215562,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": -2901.319379260327,
+     "d_cda_hat": -0.016522261181174835
+    },
+    {
+     "nuisance": "m",
+     "name": "Vehicle mass",
+     "arm": "high",
+     "override": {
+      "mass_kg": 838.0
+     },
+     "feasible": true,
+     "cda_hat": 0.3174993927071006,
+     "cda_set_width": 4.238217430804912,
+     "identifiability": 0.0,
+     "usable_mean_j": 14258.49959832264,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 95174.08773845085,
+     "balance": 0.15648025418229178,
+     "d_usable_mean_j": 14258.274438877255,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": -40235.758732093615,
+     "d_cda_hat": -0.684149409707526
+    },
+    {
+     "nuisance": "crr",
+     "name": "Rolling resistance",
+     "arm": "low",
+     "override": {
+      "crr": 0.008
+     },
+     "feasible": true,
+     "cda_hat": 1.0089023705076556,
+     "cda_set_width": 0.035839240511040926,
+     "identifiability": 0.928953996821303,
+     "usable_mean_j": 1557.0964737855716,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 135248.24797431251,
+     "balance": 0.0,
+     "d_usable_mean_j": 1556.8713143401862,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": -161.59849623194896,
+     "d_cda_hat": 0.007253568093029017
+    },
+    {
+     "nuisance": "crr",
+     "name": "Rolling resistance",
+     "arm": "high",
+     "override": {
+      "crr": 0.016
+     },
+     "feasible": true,
+     "cda_hat": 0.9944649417041032,
+     "cda_set_width": 0.035067670734637235,
+     "identifiability": 0.9294742946401998,
+     "usable_mean_j": 75.0098754345173,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 135576.7289701724,
+     "balance": 0.0,
+     "d_usable_mean_j": 74.7847159891319,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 166.88249962794362,
+     "d_cda_hat": -0.00718386071052346
+    },
+    {
+     "nuisance": "rho",
+     "name": "Air density",
+     "arm": "low",
+     "override": {
+      "rho": 1.1435337606473495
+     },
+     "feasible": true,
+     "cda_hat": 1.0326276313552851,
+     "cda_set_width": 0.03647809096941579,
+     "identifiability": 0.9293489930701551,
+     "usable_mean_j": 0.22515944538523613,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 135409.84647054446,
+     "balance": 0.0,
+     "d_usable_mean_j": -1.6295298443935735e-13,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.03097882894065851
+    },
+    {
+     "nuisance": "rho",
+     "name": "Air density",
+     "arm": "high",
+     "override": {
+      "rho": 1.214267807697701
+     },
+     "feasible": true,
+     "cda_hat": 0.9724745654510938,
+     "cda_set_width": 0.034353153631391686,
+     "identifiability": 0.9293489930701548,
+     "usable_mean_j": 0.2251594453853991,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 135409.84647054446,
+     "balance": 0.0,
+     "d_usable_mean_j": 0.0,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": -0.02917423696353283
+    },
+    {
+     "nuisance": "eta",
+     "name": "Drivetrain / ICE efficiency",
+     "arm": "low",
+     "override": {
+      "eta": 0.9
+     },
+     "feasible": true,
+     "cda_hat": 0.2770291576125219,
+     "cda_set_width": 4.074713401290843,
+     "identifiability": 0.0,
+     "usable_mean_j": 13894.515213037537,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 93267.19360296852,
+     "balance": 0.16133449090558474,
+     "d_usable_mean_j": 13894.290053592153,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": -42142.65286757595,
+     "d_cda_hat": -0.7246196448021047
+    },
+    {
+     "nuisance": "eta",
+     "name": "Drivetrain / ICE efficiency",
+     "arm": "high",
+     "override": {
+      "eta": 0.98
+     },
+     "feasible": true,
+     "cda_hat": 1.0257318022554798,
+     "cda_set_width": 0.08354974792203962,
+     "identifiability": 0.8370924100465205,
+     "usable_mean_j": 146.7916503159975,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 133013.00970426554,
+     "balance": 0.0,
+     "d_usable_mean_j": 146.56649087061209,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": -2396.836766278924,
+     "d_cda_hat": 0.02408299984085316
+    },
+    {
+     "nuisance": "smooth_m",
+     "name": "Derivative smoothing length",
+     "arm": "low",
+     "override": {
+      "smooth_m": 40.0
+     },
+     "feasible": true,
+     "cda_hat": 1.2042012660545816,
+     "cda_set_width": 0.625698543921649,
+     "identifiability": 0.0,
+     "usable_mean_j": 2204.048297586821,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 151634.1648661692,
+     "balance": 0.0,
+     "d_usable_mean_j": 2203.8231381414353,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 16224.318395624723,
+     "d_cda_hat": 0.20255246363995494
+    },
+    {
+     "nuisance": "smooth_m",
+     "name": "Derivative smoothing length",
+     "arm": "high",
+     "override": {
+      "smooth_m": 100.0
+     },
+     "feasible": true,
+     "cda_hat": 0.4128971864695198,
+     "cda_set_width": 4.240550384501269,
+     "identifiability": 0.0,
+     "usable_mean_j": 9357.192022056503,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 95411.40852905568,
+     "balance": 0.16257415920770535,
+     "d_usable_mean_j": 9356.966862611118,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": -39998.43794148878,
+     "d_cda_hat": -0.5887516159451068
+    },
+    {
+     "nuisance": "reserve_max_frac",
+     "name": "Particle reserve prior",
+     "arm": "low",
+     "override": {
+      "reserve_max_frac": 0.2
+     },
+     "feasible": true,
+     "cda_hat": 1.0016488024146266,
+     "cda_set_width": 0.035383748240333524,
+     "identifiability": 0.9293489930701547,
+     "usable_mean_j": 142.00209966398137,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 135409.84647054446,
+     "balance": 0.0,
+     "d_usable_mean_j": 141.77694021859597,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "reserve_max_frac",
+     "name": "Particle reserve prior",
+     "arm": "high",
+     "override": {
+      "reserve_max_frac": 0.5
+     },
+     "feasible": true,
+     "cda_hat": 1.0016488024146266,
+     "cda_set_width": 0.035383748240333524,
+     "identifiability": 0.9293489930701547,
+     "usable_mean_j": 282.39675993410987,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 135409.84647054446,
+     "balance": 0.0,
+     "d_usable_mean_j": 282.1716004887245,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "RESERVE_SIGMA_REAL",
+     "name": "Cut-out locating sigma",
+     "arm": "low",
+     "override": {
+      "reserve_sigma_j": 250000.0
+     },
+     "feasible": true,
+     "cda_hat": 1.0016488024146266,
+     "cda_set_width": 0.035383748240333524,
+     "identifiability": 0.9293489930701547,
+     "usable_mean_j": 0.2251594453853991,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 135409.84647054446,
+     "balance": 0.0,
+     "d_usable_mean_j": 0.0,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "RESERVE_SIGMA_REAL",
+     "name": "Cut-out locating sigma",
+     "arm": "high",
+     "override": {
+      "reserve_sigma_j": 1000000.0
+     },
+     "feasible": true,
+     "cda_hat": 1.0016488024146266,
+     "cda_set_width": 0.035383748240333524,
+     "identifiability": 0.9293489930701547,
+     "usable_mean_j": 0.2251594453853991,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 135409.84647054446,
+     "balance": 0.0,
+     "d_usable_mean_j": 0.0,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    }
+   ],
+   "driver": "NOR",
+   "race": "2026_r1_R",
+   "secs": 4.8
+  },
+  {
+   "window_id": "2026_r1_R:NOR:4650.236",
+   "cutoff_time_s": 4650.236465625,
+   "nominal": {
+    "cda_hat": 1.2701894401633405,
+    "cda_set_width": 0.5444474587905633,
+    "identifiability": 0.14273030214996918,
+    "usable_mean_j": 3080.7687776514786,
+    "usable_particle_width_j": 0.0,
+    "deploy_mean_w": 157762.72355346777,
+    "balance": 0.0,
+    "n_binding": 2798,
+    "n_coast": 476
+   },
+   "arms": [
+    {
+     "nuisance": "m",
+     "name": "Vehicle mass",
+     "arm": "low",
+     "override": {
+      "mass_kg": 768.0
+     },
+     "feasible": true,
+     "cda_hat": 1.2292300587190188,
+     "cda_set_width": 0.5804803960083849,
+     "identifiability": 0.05553823404985114,
+     "usable_mean_j": 3501.0234640849867,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 153060.34403806116,
+     "balance": 0.0,
+     "d_usable_mean_j": 420.25468643350814,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": -4702.379515406617,
+     "d_cda_hat": -0.04095938144432165
+    },
+    {
+     "nuisance": "m",
+     "name": "Vehicle mass",
+     "arm": "high",
+     "override": {
+      "mass_kg": 838.0
+     },
+     "feasible": true,
+     "cda_hat": 0.2802837078693088,
+     "cda_set_width": 4.195869702880257,
+     "identifiability": 0.0,
+     "usable_mean_j": 40948.978753378586,
+     "usable_particle_width_j": 47717.34845301625,
+     "deploy_mean_w": 94235.69969194455,
+     "balance": 0.16067131807856963,
+     "d_usable_mean_j": 37868.209975727106,
+     "d_usable_width_j": 47717.34845301625,
+     "d_deploy_mean_w": -63527.02386152322,
+     "d_cda_hat": -0.9899057322940317
+    },
+    {
+     "nuisance": "crr",
+     "name": "Rolling resistance",
+     "arm": "low",
+     "override": {
+      "crr": 0.008
+     },
+     "feasible": true,
+     "cda_hat": 1.277537961657716,
+     "cda_set_width": 0.5448987733623194,
+     "identifiability": 0.14695486206098163,
+     "usable_mean_j": 2468.1388192704353,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 157594.17593625878,
+     "balance": 0.0,
+     "d_usable_mean_j": -612.6299583810433,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": -168.54761720899842,
+     "d_cda_hat": 0.007348521494375593
+    },
+    {
+     "nuisance": "crr",
+     "name": "Rolling resistance",
+     "arm": "high",
+     "override": {
+      "crr": 0.016
+     },
+     "feasible": true,
+     "cda_hat": 1.2628409186689646,
+     "cda_set_width": 0.5439961442188075,
+     "identifiability": 0.1384565764749215,
+     "usable_mean_j": 3636.333352499387,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 157931.42655832245,
+     "balance": 0.0,
+     "d_usable_mean_j": 555.5645748479083,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 168.70300485467305,
+     "d_cda_hat": -0.007348521494375815
+    },
+    {
+     "nuisance": "rho",
+     "name": "Air density",
+     "arm": "low",
+     "override": {
+      "rho": 1.1435337606473495
+     },
+     "feasible": true,
+     "cda_hat": 1.309473649652928,
+     "cda_set_width": 0.561286039990271,
+     "identifiability": 0.14273030214996962,
+     "usable_mean_j": 3080.7687776514713,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 157762.72355346775,
+     "balance": 0.0,
+     "d_usable_mean_j": -7.275957614183426e-12,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": -2.9103830456733704e-11,
+     "d_cda_hat": 0.03928420948958755
+    },
+    {
+     "nuisance": "rho",
+     "name": "Air density",
+     "arm": "high",
+     "override": {
+      "rho": 1.214267807697701
+     },
+     "feasible": true,
+     "cda_hat": 1.233193631226544,
+     "cda_set_width": 0.5285897658160807,
+     "identifiability": 0.1427303021499693,
+     "usable_mean_j": 3080.768777651481,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 157762.72355346775,
+     "balance": 0.0,
+     "d_usable_mean_j": 2.2737367544323206e-12,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": -2.9103830456733704e-11,
+     "d_cda_hat": -0.03699580893679655
+    },
+    {
+     "nuisance": "eta",
+     "name": "Drivetrain / ICE efficiency",
+     "arm": "low",
+     "override": {
+      "eta": 0.9
+     },
+     "feasible": true,
+     "cda_hat": 0.24020665075070524,
+     "cda_set_width": 4.034871655508542,
+     "identifiability": 0.0,
+     "usable_mean_j": 31677.871941340694,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 92136.1092797219,
+     "balance": 0.16592073905987295,
+     "d_usable_mean_j": 28597.103163689215,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": -65626.61427374587,
+     "d_cda_hat": -1.0299827894126352
+    },
+    {
+     "nuisance": "eta",
+     "name": "Drivetrain / ICE efficiency",
+     "arm": "high",
+     "override": {
+      "eta": 0.98
+     },
+     "feasible": true,
+     "cda_hat": 1.2815031064956866,
+     "cda_set_width": 0.5670747914552555,
+     "identifiability": 0.11498491329304594,
+     "usable_mean_j": 500.6578460973581,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 153863.14723517385,
+     "balance": 0.0,
+     "d_usable_mean_j": -2580.1109315541203,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": -3899.5763182939263,
+     "d_cda_hat": 0.011313666332346095
+    },
+    {
+     "nuisance": "smooth_m",
+     "name": "Derivative smoothing length",
+     "arm": "low",
+     "override": {
+      "smooth_m": 40.0
+     },
+     "feasible": true,
+     "cda_hat": 1.2248084061486213,
+     "cda_set_width": 0.7167147093999159,
+     "identifiability": 0.0,
+     "usable_mean_j": 5710.938853686048,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 155309.03263434878,
+     "balance": 0.0,
+     "d_usable_mean_j": 2630.1700760345693,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": -2453.6909191189916,
+     "d_cda_hat": -0.04538103401471916
+    },
+    {
+     "nuisance": "smooth_m",
+     "name": "Derivative smoothing length",
+     "arm": "high",
+     "override": {
+      "smooth_m": 100.0
+     },
+     "feasible": true,
+     "cda_hat": 0.37901312395524356,
+     "cda_set_width": 4.204375071046928,
+     "identifiability": 0.0,
+     "usable_mean_j": 23260.241817136062,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 94934.36906988606,
+     "balance": 0.16577258465182446,
+     "d_usable_mean_j": 20179.473039484583,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": -62828.354483581716,
+     "d_cda_hat": -0.8911763162080969
+    },
+    {
+     "nuisance": "reserve_max_frac",
+     "name": "Particle reserve prior",
+     "arm": "low",
+     "override": {
+      "reserve_max_frac": 0.2
+     },
+     "feasible": true,
+     "cda_hat": 1.2701894401633405,
+     "cda_set_width": 0.5444474587905633,
+     "identifiability": 0.14273030214996918,
+     "usable_mean_j": 2309.2780575871266,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 157762.72355346777,
+     "balance": 0.0,
+     "d_usable_mean_j": -771.490720064352,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "reserve_max_frac",
+     "name": "Particle reserve prior",
+     "arm": "high",
+     "override": {
+      "reserve_max_frac": 0.5
+     },
+     "feasible": true,
+     "cda_hat": 1.2701894401633405,
+     "cda_set_width": 0.5444474587905633,
+     "identifiability": 0.14273030214996918,
+     "usable_mean_j": 7614.1752911352405,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 157762.72355346777,
+     "balance": 0.0,
+     "d_usable_mean_j": 4533.406513483762,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "RESERVE_SIGMA_REAL",
+     "name": "Cut-out locating sigma",
+     "arm": "low",
+     "override": {
+      "reserve_sigma_j": 250000.0
+     },
+     "feasible": true,
+     "cda_hat": 1.2701894401633405,
+     "cda_set_width": 0.5444474587905633,
+     "identifiability": 0.14273030214996918,
+     "usable_mean_j": 3080.7687776514786,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 157762.72355346777,
+     "balance": 0.0,
+     "d_usable_mean_j": 0.0,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "RESERVE_SIGMA_REAL",
+     "name": "Cut-out locating sigma",
+     "arm": "high",
+     "override": {
+      "reserve_sigma_j": 1000000.0
+     },
+     "feasible": true,
+     "cda_hat": 1.2701894401633405,
+     "cda_set_width": 0.5444474587905633,
+     "identifiability": 0.14273030214996918,
+     "usable_mean_j": 3080.7687776514786,
+     "usable_particle_width_j": 0.0,
+     "deploy_mean_w": 157762.72355346777,
+     "balance": 0.0,
+     "d_usable_mean_j": 0.0,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    }
+   ],
+   "driver": "NOR",
+   "race": "2026_r1_R",
+   "secs": 6.3
+  },
+  {
+   "window_id": "2026_r1_R:NOR:4926.742",
+   "cutoff_time_s": 4926.742235393209,
+   "nominal": {
+    "cda_hat": 1.2833242243850433,
+    "cda_set_width": 0.6139919623248428,
+    "identifiability": 0.04312261756133873,
+    "usable_mean_j": 402223.9250021579,
+    "usable_particle_width_j": 629332.6819399178,
+    "deploy_mean_w": 149073.58938512183,
+    "balance": 0.0,
+    "n_binding": 3064,
+    "n_coast": 611
+   },
+   "arms": [
+    {
+     "nuisance": "m",
+     "name": "Vehicle mass",
+     "arm": "low",
+     "override": {
+      "mass_kg": 768.0
+     },
+     "feasible": true,
+     "cda_hat": 1.2472505666001386,
+     "cda_set_width": 0.6431486971621962,
+     "identifiability": 0.0,
+     "usable_mean_j": 431856.05762121186,
+     "usable_particle_width_j": 606399.0259265022,
+     "deploy_mean_w": 144982.17895713734,
+     "balance": 0.0,
+     "d_usable_mean_j": 29632.13261905394,
+     "d_usable_width_j": -22933.65601341566,
+     "d_deploy_mean_w": -4091.4104279844905,
+     "d_cda_hat": -0.03607365778490479
+    },
+    {
+     "nuisance": "m",
+     "name": "Vehicle mass",
+     "arm": "high",
+     "override": {
+      "mass_kg": 838.0
+     },
+     "feasible": true,
+     "cda_hat": 0.32245972420535973,
+     "cda_set_width": 4.875239956074543,
+     "identifiability": 0.0,
+     "usable_mean_j": 449073.51104169537,
+     "usable_particle_width_j": 570733.9701601823,
+     "deploy_mean_w": 92268.50757883146,
+     "balance": 0.17452950692512093,
+     "d_usable_mean_j": 46849.58603953745,
+     "d_usable_width_j": -58598.71177973552,
+     "d_deploy_mean_w": -56805.08180629037,
+     "d_cda_hat": -0.9608645001796836
+    },
+    {
+     "nuisance": "crr",
+     "name": "Rolling resistance",
+     "arm": "low",
+     "override": {
+      "crr": 0.008
+     },
+     "feasible": true,
+     "cda_hat": 1.2911213512075328,
+     "cda_set_width": 0.6129852261151766,
+     "identifiability": 0.05046070914732115,
+     "usable_mean_j": 396426.24199550867,
+     "usable_particle_width_j": 545390.1747102168,
+     "deploy_mean_w": 148921.07767387974,
+     "balance": 0.0,
+     "d_usable_mean_j": -5797.683006649255,
+     "d_usable_width_j": -83942.50722970103,
+     "d_deploy_mean_w": -152.51171124208486,
+     "d_cda_hat": 0.007797126822489453
+    },
+    {
+     "nuisance": "crr",
+     "name": "Rolling resistance",
+     "arm": "high",
+     "override": {
+      "crr": 0.016
+     },
+     "feasible": true,
+     "cda_hat": 1.275527097562554,
+     "cda_set_width": 0.6149986985345087,
+     "identifiability": 0.035694812427380485,
+     "usable_mean_j": 409678.0404321294,
+     "usable_particle_width_j": 593470.790637745,
+     "deploy_mean_w": 149226.13365559297,
+     "balance": 0.0,
+     "d_usable_mean_j": 7454.1154299714835,
+     "d_usable_width_j": -35861.89130217279,
+     "d_deploy_mean_w": 152.54427047114586,
+     "d_cda_hat": -0.007797126822489453
+    },
+    {
+     "nuisance": "rho",
+     "name": "Air density",
+     "arm": "low",
+     "override": {
+      "rho": 1.1435337606473495
+     },
+     "feasible": true,
+     "cda_hat": 1.3230146643144778,
+     "cda_set_width": 0.6329814044586006,
+     "identifiability": 0.04312261756133906,
+     "usable_mean_j": 402223.9250021578,
+     "usable_particle_width_j": 629332.6819399165,
+     "deploy_mean_w": 149073.58938512183,
+     "balance": 0.0,
+     "d_usable_mean_j": -1.1641532182693481e-10,
+     "d_usable_width_j": -1.3969838619232178e-09,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.03969043992943444
+    },
+    {
+     "nuisance": "rho",
+     "name": "Air density",
+     "arm": "high",
+     "override": {
+      "rho": 1.214267807697701
+     },
+     "feasible": true,
+     "cda_hat": 1.245945848917518,
+     "cda_set_width": 0.5961087012862553,
+     "identifiability": 0.043122617561338505,
+     "usable_mean_j": 392076.6477391655,
+     "usable_particle_width_j": 602284.1655612022,
+     "deploy_mean_w": 149073.58938512183,
+     "balance": 0.0,
+     "d_usable_mean_j": -10147.2772629924,
+     "d_usable_width_j": -27048.516378715634,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": -0.037378375467525427
+    },
+    {
+     "nuisance": "eta",
+     "name": "Drivetrain / ICE efficiency",
+     "arm": "low",
+     "override": {
+      "eta": 0.9
+     },
+     "feasible": true,
+     "cda_hat": 1.1440124640628653,
+     "cda_set_width": 0.520365399988921,
+     "identifiability": 0.09028019128238085,
+     "usable_mean_j": 434648.9734170373,
+     "usable_particle_width_j": 605372.0388404875,
+     "deploy_mean_w": 155445.10675086718,
+     "balance": 0.0,
+     "d_usable_mean_j": 32425.048414879362,
+     "d_usable_width_j": -23960.643099430366,
+     "d_deploy_mean_w": 6371.517365745356,
+     "d_cda_hat": -0.13931176032217807
+    },
+    {
+     "nuisance": "eta",
+     "name": "Drivetrain / ICE efficiency",
+     "arm": "high",
+     "override": {
+      "eta": 0.98
+     },
+     "feasible": true,
+     "cda_hat": 1.2962470223271898,
+     "cda_set_width": 0.6398375582091357,
+     "identifiability": 0.012784527658290301,
+     "usable_mean_j": 394271.43242914724,
+     "usable_particle_width_j": 594973.7587358085,
+     "deploy_mean_w": 145460.1706121391,
+     "balance": 0.0,
+     "d_usable_mean_j": -7952.492573010677,
+     "d_usable_width_j": -34358.923204109306,
+     "d_deploy_mean_w": -3613.4187729827245,
+     "d_cda_hat": 0.012922797942146458
+    },
+    {
+     "nuisance": "smooth_m",
+     "name": "Derivative smoothing length",
+     "arm": "low",
+     "override": {
+      "smooth_m": 40.0
+     },
+     "feasible": true,
+     "cda_hat": 1.2441187439524055,
+     "cda_set_width": 0.8015025792158164,
+     "identifiability": 0.0,
+     "usable_mean_j": 425811.0140856415,
+     "usable_particle_width_j": 490369.4675043228,
+     "deploy_mean_w": 147414.1432977589,
+     "balance": 0.0,
+     "d_usable_mean_j": 23587.08908348356,
+     "d_usable_width_j": -138963.21443559503,
+     "d_deploy_mean_w": -1659.446087362914,
+     "d_cda_hat": -0.03920548043263783
+    },
+    {
+     "nuisance": "smooth_m",
+     "name": "Derivative smoothing length",
+     "arm": "high",
+     "override": {
+      "smooth_m": 100.0
+     },
+     "feasible": true,
+     "cda_hat": 0.4115192331105786,
+     "cda_set_width": 4.884553171914383,
+     "identifiability": 0.0,
+     "usable_mean_j": 430277.54852966557,
+     "usable_particle_width_j": 663650.9138765384,
+     "deploy_mean_w": 91784.34232142486,
+     "balance": 0.1797533163061912,
+     "d_usable_mean_j": 28053.623527507647,
+     "d_usable_width_j": 34318.23193662055,
+     "d_deploy_mean_w": -57289.24706369697,
+     "d_cda_hat": -0.8718049912744648
+    },
+    {
+     "nuisance": "reserve_max_frac",
+     "name": "Particle reserve prior",
+     "arm": "low",
+     "override": {
+      "reserve_max_frac": 0.2
+     },
+     "feasible": true,
+     "cda_hat": 1.2833242243850433,
+     "cda_set_width": 0.6139919623248428,
+     "identifiability": 0.04312261756133873,
+     "usable_mean_j": 404432.06115970237,
+     "usable_particle_width_j": 573779.9909994549,
+     "deploy_mean_w": 149073.58938512183,
+     "balance": 0.0,
+     "d_usable_mean_j": 2208.136157544446,
+     "d_usable_width_j": -55552.690940462984,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "reserve_max_frac",
+     "name": "Particle reserve prior",
+     "arm": "high",
+     "override": {
+      "reserve_max_frac": 0.5
+     },
+     "feasible": true,
+     "cda_hat": 1.2833242243850433,
+     "cda_set_width": 0.6139919623248428,
+     "identifiability": 0.04312261756133873,
+     "usable_mean_j": 416895.97097165976,
+     "usable_particle_width_j": 612359.2572949617,
+     "deploy_mean_w": 149073.58938512183,
+     "balance": 0.0,
+     "d_usable_mean_j": 14672.045969501836,
+     "d_usable_width_j": -16973.424644956132,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "RESERVE_SIGMA_REAL",
+     "name": "Cut-out locating sigma",
+     "arm": "low",
+     "override": {
+      "reserve_sigma_j": 250000.0
+     },
+     "feasible": true,
+     "cda_hat": 1.2833242243850433,
+     "cda_set_width": 0.6139919623248428,
+     "identifiability": 0.04312261756133873,
+     "usable_mean_j": 402223.9250021579,
+     "usable_particle_width_j": 629332.6819399178,
+     "deploy_mean_w": 149073.58938512183,
+     "balance": 0.0,
+     "d_usable_mean_j": 0.0,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    },
+    {
+     "nuisance": "RESERVE_SIGMA_REAL",
+     "name": "Cut-out locating sigma",
+     "arm": "high",
+     "override": {
+      "reserve_sigma_j": 1000000.0
+     },
+     "feasible": true,
+     "cda_hat": 1.2833242243850433,
+     "cda_set_width": 0.6139919623248428,
+     "identifiability": 0.04312261756133873,
+     "usable_mean_j": 402223.9250021579,
+     "usable_particle_width_j": 629332.6819399178,
+     "deploy_mean_w": 149073.58938512183,
+     "balance": 0.0,
+     "d_usable_mean_j": 0.0,
+     "d_usable_width_j": 0.0,
+     "d_deploy_mean_w": 0.0,
+     "d_cda_hat": 0.0
+    }
+   ],
+   "driver": "NOR",
+   "race": "2026_r1_R",
+   "secs": 7.9
+  }
+ ],
+ "ranking": [
+  {
+   "nuisance": "m",
+   "name": "Vehicle mass",
+   "mean_abs_d_energy_mj": 0.05374073238087634,
+   "max_abs_d_energy_mj": 0.6627761313562929,
+   "mean_d_low_mj": -0.011444477071124844,
+   "mean_d_high_mj": 0.08169379953127825,
+   "span_mj": 0.0931382766024031,
+   "mean_abs_d_width_mj": 0.0360049995296503,
+   "mean_abs_d_deploy_kw": 11.950104907181347,
+   "infeasible_arms": 0
+  },
+  {
+   "nuisance": "eta",
+   "name": "Drivetrain / ICE efficiency",
+   "mean_abs_d_energy_mj": 0.03412570748853559,
+   "max_abs_d_energy_mj": 0.4079192835668954,
+   "mean_d_low_mj": 0.05552272339869413,
+   "mean_d_high_mj": -0.011087091204672201,
+   "span_mj": 0.06660981460336633,
+   "mean_abs_d_width_mj": 0.022144033553776515,
+   "mean_abs_d_deploy_kw": 8.136708473029987,
+   "infeasible_arms": 0
+  },
+  {
+   "nuisance": "reserve_max_frac",
+   "name": "Particle reserve prior",
+   "mean_abs_d_energy_mj": 0.023134322327167875,
+   "max_abs_d_energy_mj": 0.1727607690764938,
+   "mean_d_low_mj": 0.023259360144560186,
+   "mean_d_high_mj": -0.012303040743032569,
+   "span_mj": 0.03556240088759276,
+   "mean_abs_d_width_mj": 0.025229968579792705,
+   "mean_abs_d_deploy_kw": 0.0,
+   "infeasible_arms": 0
+  },
+  {
+   "nuisance": "crr",
+   "name": "Rolling resistance",
+   "mean_abs_d_energy_mj": 0.012265604136513637,
+   "max_abs_d_energy_mj": 0.09961233648589765,
+   "mean_d_low_mj": -0.012142410393174019,
+   "mean_d_high_mj": 0.010569678026753775,
+   "span_mj": 0.022712088419927792,
+   "mean_abs_d_width_mj": 0.018102233308514827,
+   "mean_abs_d_deploy_kw": 0.1313423757294424,
+   "infeasible_arms": 0
+  },
+  {
+   "nuisance": "smooth_m",
+   "name": "Derivative smoothing length",
+   "mean_abs_d_energy_mj": 0.06117173603667632,
+   "max_abs_d_energy_mj": 0.48154125262077946,
+   "mean_d_low_mj": 0.05598523950093996,
+   "mean_d_high_mj": 0.05452439861295161,
+   "span_mj": 0.0014608408879883572,
+   "mean_abs_d_width_mj": 0.05674932759565517,
+   "mean_abs_d_deploy_kw": 13.118815819551505,
+   "infeasible_arms": 0
+  },
+  {
+   "nuisance": "rho",
+   "name": "Air density",
+   "mean_abs_d_energy_mj": 0.000563737625721869,
+   "max_abs_d_energy_mj": 0.0101472772629924,
+   "mean_d_low_mj": -5.3829875742058184e-17,
+   "mean_d_high_mj": -0.0011274752514436493,
+   "span_mj": 0.0011274752514435955,
+   "mean_abs_d_width_mj": 0.0015026953543731789,
+   "mean_abs_d_deploy_kw": 5.659078144364887e-15,
+   "infeasible_arms": 0
+  },
+  {
+   "nuisance": "RESERVE_SIGMA_REAL",
+   "name": "Cut-out locating sigma",
+   "mean_abs_d_energy_mj": 0.0,
+   "max_abs_d_energy_mj": 0.0,
+   "mean_d_low_mj": 0.0,
+   "mean_d_high_mj": 0.0,
+   "span_mj": 0.0,
+   "mean_abs_d_width_mj": 0.0,
+   "mean_abs_d_deploy_kw": 0.0,
+   "infeasible_arms": 0
+  }
+ ],
+ "windows": [
+  {
+   "inputs_meta": "out/p35/windows/2026_r1_R_ALB_4416p664.inputs.json",
+   "inputs_arrays": "out/p35/windows/2026_r1_R_ALB_4416p664.inputs.npz",
+   "arrays_fingerprint": "a10881d5eac55b599becb197d7365b032988c63ae9d24e04b00e074e15cb23db",
+   "targets": "out/p35/windows/2026_r1_R_ALB_4416p664.targets.npz"
+  },
+  {
+   "inputs_meta": "out/p35/windows/2026_r1_R_ALB_4660p714.inputs.json",
+   "inputs_arrays": "out/p35/windows/2026_r1_R_ALB_4660p714.inputs.npz",
+   "arrays_fingerprint": "5e938a86e0c2936d03a8bf9aa5b1326eba6594a55563e1b15a2dee0ae4cb5fec",
+   "targets": "out/p35/windows/2026_r1_R_ALB_4660p714.targets.npz"
+  },
+  {
+   "inputs_meta": "out/p35/windows/2026_r1_R_ALB_4936p622.inputs.json",
+   "inputs_arrays": "out/p35/windows/2026_r1_R_ALB_4936p622.inputs.npz",
+   "arrays_fingerprint": "d553a691d5792d983fc91bd2762d95e89d17ab0d1edc46b6e41b932b38329f06",
+   "targets": "out/p35/windows/2026_r1_R_ALB_4936p622.targets.npz"
+  },
+  {
+   "inputs_meta": "out/p35/windows/2026_r1_R_LEC_4395p846.inputs.json",
+   "inputs_arrays": "out/p35/windows/2026_r1_R_LEC_4395p846.inputs.npz",
+   "arrays_fingerprint": "7e6c9a5df15a1b5bd0aec7f48e57589f6c76dff4a2da60d44052c1795b6565c6",
+   "targets": "out/p35/windows/2026_r1_R_LEC_4395p846.targets.npz"
+  },
+  {
+   "inputs_meta": "out/p35/windows/2026_r1_R_LEC_4638p359.inputs.json",
+   "inputs_arrays": "out/p35/windows/2026_r1_R_LEC_4638p359.inputs.npz",
+   "arrays_fingerprint": "933bfd6588d6718ddf2be51c626ec449e575e25a86783fafba7023ee0cf4f109",
+   "targets": "out/p35/windows/2026_r1_R_LEC_4638p359.targets.npz"
+  },
+  {
+   "inputs_meta": "out/p35/windows/2026_r1_R_LEC_4895p869.inputs.json",
+   "inputs_arrays": "out/p35/windows/2026_r1_R_LEC_4895p869.inputs.npz",
+   "arrays_fingerprint": "22245a013c73ba35d3e1f7eb7f9d395a9e83e0e5fae598e4b06d234fc07ab442",
+   "targets": "out/p35/windows/2026_r1_R_LEC_4895p869.targets.npz"
+  },
+  {
+   "inputs_meta": "out/p35/windows/2026_r1_R_NOR_4407p357.inputs.json",
+   "inputs_arrays": "out/p35/windows/2026_r1_R_NOR_4407p357.inputs.npz",
+   "arrays_fingerprint": "add266e0a0ea856dac0a00ac593e9d53fca3cbd3475189a7132e12914ca14152",
+   "targets": "out/p35/windows/2026_r1_R_NOR_4407p357.targets.npz"
+  },
+  {
+   "inputs_meta": "out/p35/windows/2026_r1_R_NOR_4650p236.inputs.json",
+   "inputs_arrays": "out/p35/windows/2026_r1_R_NOR_4650p236.inputs.npz",
+   "arrays_fingerprint": "920ccb62334789f8f3024afafe7c22c0c608393d02d4f46a1ff9432011371fd9",
+   "targets": "out/p35/windows/2026_r1_R_NOR_4650p236.targets.npz"
+  },
+  {
+   "inputs_meta": "out/p35/windows/2026_r1_R_NOR_4926p742.inputs.json",
+   "inputs_arrays": "out/p35/windows/2026_r1_R_NOR_4926p742.inputs.npz",
+   "arrays_fingerprint": "b22b8c406775700dcdb7ec25ec2f5dfe17f19497c9f12b53c0dc50b15c1b642a",
+   "targets": "out/p35/windows/2026_r1_R_NOR_4926p742.targets.npz"
+  }
+ ]
+}

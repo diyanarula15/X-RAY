@@ -1,0 +1,289 @@
+﻿=== Round 7 ===
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for Barcelona Grand Prix - Race [v3.8.3]
+At line:6 char:11
++     try { .\.venv\Scripts\python.exe scripts\07.a_feasibility.py --ro ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	No cached data found for session_info. Loading data...
+_api           INFO 	Fetching session info data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for driver_info. Loading data...
+_api           INFO 	Fetching driver list...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for session_status_data. Loading data...
+_api           INFO 	Fetching session status data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for lap_count. Loading data...
+_api           INFO 	Fetching lap count data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for track_status_data. Loading data...
+_api           INFO 	Fetching track status data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for _extended_timing_data. Loading data...
+_api           INFO 	Fetching timing data...
+_api           INFO 	Parsing timing data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for timing_app_data. Loading data...
+_api           INFO 	Fetching timing app data...
+req            INFO 	Data has been written to cache!
+core           INFO 	Processing timing data...
+core        WARNING 	Fixed incorrect tyre stint information for driver '87'
+req            INFO 	No cached data found for car_data. Loading data...
+_api           INFO 	Fetching car data...
+_api           INFO 	Parsing car data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for position_data. Loading data...
+_api           INFO 	Fetching position data...
+_api           INFO 	Parsing position data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for weather_data. Loading data...
+_api           INFO 	Fetching weather data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for race_control_messages. Loading data...
+_api           INFO 	Fetching race control messages...
+req            INFO 	Data has been written to cache!
+core           INFO 	Finished loading data for 22 drivers: ['44', '63', '1', '3', '81', '6', '10', '30', '41', '43', 
+'5', '55', '31', '11', '16', '12', '87', '23', '14', '27', '77', '18']
+{
+ "year": 2026,
+ "round": 7,
+ "session": "R",
+ "event": "Barcelona Grand Prix",
+ "circuit": "Barcelona",
+ "date": "2026-06-14",
+ "load_seconds": 22.0,
+ "n_drivers": 20,
+ "n_laps": 1236,
+ "dt_fastest_lap": {
+  "driver": "HAM",
+  "n_samples": 304,
+  "median_s": 0.23999999999978172,
+  "mean_s": 0.26323432343234393,
+  "p10_s": 0.15999999999985448,
+  "p90_s": 0.4000000000005457,
+  "max_s": 1.1199999999998909,
+  "effective_hz": 4.166666666670456,
+  "histogram": {
+   "0.00-0.10": 0,
+   "0.10-0.20": 105,
+   "0.20-0.25": 71,
+   "0.25-0.30": 42,
+   "0.30-0.35": 29,
+   "0.35-0.40": 23,
+   "0.40-0.50": 31,
+   "0.50-0.75": 0,
+   "0.75-1.00": 0,
+   "1.00-2.00": 2,
+   "2.00-10.00": 0
+  },
+  "median_dx_m": 13.653611111111786
+ },
+ "channels": {
+  "Speed": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 99.0,
+   "max": 327.0
+  },
+  "Throttle": {
+   "present": true,
+   "frac_nonzero": 0.7828947368421053,
+   "min": 0.0,
+   "max": 100.0
+  },
+  "Brake": {
+   "present": true,
+   "frac_nonzero": 0.17763157894736842,
+   "min": 0.0,
+   "max": 1.0
+  },
+  "nGear": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 2.0,
+   "max": 8.0
+  },
+  "RPM": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 7411.0,
+   "max": 12196.0
+  },
+  "DRS": {
+   "present": true,
+   "frac_nonzero": 0.0,
+   "min": 0.0,
+   "max": 0.0
+  }
+ },
+ "position": {
+  "n_samples": 294,
+  "source": "lap",
+  "has_Z": true,
+  "z_range_m": [
+   162.3,
+   192.2
+  ],
+  "z_std_m": 8.276466702819636,
+  "z_frac_zero": 0.0,
+  "xy_range_m": [
+   961.5,
+   1159.2
+  ]
+ },
+ "weather": {
+  "available": true,
+  "air_temp_c": 30.52933333333333,
+  "pressure_mbar": 1000.5366666666666,
+  "wind_speed_ms": 2.5713333333333335
+ },
+ "total_seconds": 30.7
+}
+speed window: {'340': 0.006, '330': 0.0232, '320': 0.0541, '310': 0.0679, '300': 0.0793, '290': 0.0959} vmax 360.0
+wrote out\feasibility\r7.json
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for Barcelona Grand Prix - Race [v3.8.3]
+At line:7 char:11
++     try { .\.venv\Scripts\python.exe scripts\07.b_run_real.py --round ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Fixed incorrect tyre stint information for driver '87'
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['44', '63', '1', '3', '81', '6', '10', '30', '41', '43', 
+'5', '55', '31', '11', '16', '12', '87', '23', '14', '27', '77', '18']
+core           INFO 	Loading data for Barcelona Grand Prix - Race [v3.8.3]
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Fixed incorrect tyre stint information for driver '87'
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['44', '63', '1', '3', '81', '6', '10', '30', '41', '43', 
+'5', '55', '31', '11', '16', '12', '87', '23', '14', '27', '77', '18']
+D:\Projects\XRay Energy F1\X-RAY\xray\realfit.py:650: RuntimeWarning: All-NaN slice encountered
+  shared = np.nanmedian(M, axis=0)          # common mode
+
+Barcelona Grand Prix — Barcelona: 4590 m, elevation yes, 12 corners, zones [('A', 750), ('B', 440), ('C', 350)]
+ingest: 22 cars, 1236 laps, 1236 usable (100%), rho=1.1423 kg/m^3
+
+car      CdA   identified set  ident  binding  coast   wind  resid kW
+PER    0.888 [ 0.884, 0.892]   0.98     5440   1674   +0.0       283
+BOR    0.611 [ 0.537, 0.685]   0.51     3193   1086   +0.0       342
+NOR    0.628 [ 0.258, 0.998]   0.00     3793   1887   +0.0       344
+GAS    0.385 [ 0.101, 0.670]   0.00      998    987   +0.0       384
+ANT    0.755 [ 0.121, 1.390]   0.00     5057   1295   +0.0       346
+ALO    1.024 [ 0.050, 1.999]   0.00     3332    664   +0.0       302
+LEC    0.651 [-0.053, 1.354]   0.00     3083    974   +0.0       343
+STR    0.445 [ 0.116, 0.774]   0.00       58     77   +0.0       345
+ALB    0.513 [ 0.053, 0.972]   0.00      815   1037   +0.0       361
+HUL    0.694 [ 0.044, 1.345]   0.00     1729    484   +0.0       324
+VER    0.660 [ 0.319, 1.001]   0.00     4022   2058   +0.0       343
+LAW    0.845 [ 0.180, 1.510]   0.00     5476   1546   +0.0       329
+OCO    0.484 [-0.020, 0.988]   0.00      548    650   +1.0       361
+LIN    0.725 [ 0.133, 1.317]   0.00     4451   1269   +0.0       338
+COL    0.582 [ 0.264, 0.900]   0.00     3248    995   +0.0       368
+HAM    0.729 [ 0.043, 1.416]   0.00     4212   1142   +0.0       304
+SAI    0.547 [ 0.077, 1.018]   0.00     1341    916   +0.0       368
+HAD    0.660 [ 0.407, 0.912]   0.00     3981   1887   +0.0       351
+RUS    0.601 [ 0.160, 1.043]   0.00     3323   1504   +0.0       366
+BOT    0.830 [ 0.165, 1.495]   0.00     1085    470   +0.0       286
+PIA    0.668 [ 0.315, 1.022]   0.00     4166   1906   +0.0       339
+BEA    0.310 [-0.019, 0.640]   0.00      485    674   +4.0       391
+
+field CdA: median 0.655, spread 0.310-1.024, iqr 0.172
+identifiability: median 0.00  (2/22 cars usable)
+field pooling: unavailable — only 2 identifiable cars
+cross-car common mode: 5 cars, shared rms 330 kW, per-car residual 103 kW, variance explained 89%
+
+NOR deployment: peak 357 kW, mean-when-on 143 kW, per-lap 8.11 MJ deployed / 4.17 MJ recovered (regulation: 4.0 MJ store, 7.0 MJ harvest/lap)
+
+total 41s
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for Barcelona Grand Prix - Race [v3.8.3]
+At line:8 char:11
++     try { .\.venv\Scripts\python.exe scripts\08.b_analyse_race.py --r ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Fixed incorrect tyre stint information for driver '87'
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['44', '63', '1', '3', '81', '6', '10', '30', '41', '43', 
+'5', '55', '31', '11', '16', '12', '87', '23', '14', '27', '77', '18']
+core           INFO 	Loading data for Barcelona Grand Prix - Race [v3.8.3]
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Fixed incorrect tyre stint information for driver '87'
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['44', '63', '1', '3', '81', '6', '10', '30', '41', '43', 
+'5', '55', '31', '11', '16', '12', '87', '23', '14', '27', '77', '18']
+D:\Projects\XRay Energy F1\X-RAY\xray\realfit.py:650: RuntimeWarning: All-NaN slice encountered
+  shared = np.nanmedian(M, axis=0)          # common mode
+  NOR: CdA 0.582 ident 0.00 deploy 4.23 MJ/lap
+  GAS: CdA 0.382 ident 0.00 deploy 4.63 MJ/lap
+  PER: CdA 0.797 ident 0.00 deploy 4.41 MJ/lap
+  ANT: CdA 0.747 ident 0.00 deploy 4.21 MJ/lap
+  ALO: CdA 0.961 ident 0.00 deploy 3.72 MJ/lap
+  LEC: CdA 0.608 ident 0.00 deploy 4.14 MJ/lap
+  STR: CdA 0.440 ident 0.00 deploy 4.38 MJ/lap
+  ALB: CdA 0.484 ident 0.00 deploy 4.34 MJ/lap
+  HUL: CdA 0.694 ident 0.00 deploy 4.48 MJ/lap
+  VER: CdA 0.631 ident 0.00 deploy 3.85 MJ/lap
+  LAW: CdA 0.845 ident 0.00 deploy 4.20 MJ/lap
+  OCO: CdA 0.426 ident 0.00 deploy 4.78 MJ/lap
+  LIN: CdA 0.725 ident 0.00 deploy 4.56 MJ/lap
+  COL: CdA 0.544 ident 0.00 deploy 4.30 MJ/lap
+  HAM: CdA 0.697 ident 0.00 deploy 3.99 MJ/lap
+  BOR: CdA 0.598 ident 0.59 deploy 4.62 MJ/lap
+  SAI: CdA 0.501 ident 0.00 deploy 4.47 MJ/lap
+  HAD: CdA 0.606 ident 0.00 deploy 3.98 MJ/lap
+  RUS: CdA 0.564 ident 0.00 deploy 4.29 MJ/lap
+  BOT: CdA 0.830 ident 0.00 deploy 4.55 MJ/lap
+  PIA: CdA 0.622 ident 0.00 deploy 4.18 MJ/lap
+  BEA: CdA 0.307 ident 0.00 deploy 4.68 MJ/lap
+
+Barcelona Grand Prix: 22 cars analysed, 21 refused
+  telemetry 4.17 Hz, 1236/1236 laps usable
+  pooled CdA: {'available': False, 'reason': 'only 1 identifiable cars'}
+  RDD rows: 1063
+wrote D:\Projects\XRay Energy F1\X-RAY\out\races\2026_r7_R.json (14.6 MB) in 197s

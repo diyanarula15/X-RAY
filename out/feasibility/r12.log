@@ -1,0 +1,141 @@
+core           INFO 	Loading data for Dutch Grand Prix - Race [v3.8.3]
+req            INFO 	No cached data found for session_info. Loading data...
+_api           INFO 	Fetching session info data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for driver_info. Loading data...
+_api           INFO 	Fetching driver list...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for session_status_data. Loading data...
+_api           INFO 	Fetching session status data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for lap_count. Loading data...
+_api           INFO 	Fetching lap count data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for track_status_data. Loading data...
+_api           INFO 	Fetching track status data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for _extended_timing_data. Loading data...
+_api           INFO 	Fetching timing data...
+_api           INFO 	Parsing timing data...
+_api        WARNING 	Driver 41: Encountered 1 timing integrity error(s) near lap(s): [5].
+This might be a bug and should be reported.
+_api        WARNING 	Failed to align laps for drivers: ['87']
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for timing_app_data. Loading data...
+_api           INFO 	Fetching timing app data...
+req            INFO 	Data has been written to cache!
+core           INFO 	Processing timing data...
+core        WARNING 	Driver 41: Lap timing integrity check failed for 1 lap(s)
+core        WARNING 	Driver 1 completed the race distance 00:01.577000 before the recorded end of the session.
+req            INFO 	No cached data found for car_data. Loading data...
+_api           INFO 	Fetching car data...
+_api           INFO 	Parsing car data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for position_data. Loading data...
+_api           INFO 	Fetching position data...
+_api           INFO 	Parsing position data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for weather_data. Loading data...
+_api           INFO 	Fetching weather data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for race_control_messages. Loading data...
+_api           INFO 	Fetching race control messages...
+req            INFO 	Data has been written to cache!
+core           INFO 	Finished loading data for 22 drivers: ['1', '12', '63', '44', '16', '81', '30', '27', '14', '10', '22', '41', '5', '43', '11', '55', '23', '77', '31', '18', '87', '3']
+{
+ "year": 2026,
+ "round": 12,
+ "session": "R",
+ "event": "Dutch Grand Prix",
+ "circuit": "Zandvoort",
+ "date": "2026-08-23",
+ "load_seconds": 33.1,
+ "n_drivers": 20,
+ "n_laps": 1368,
+ "dt_fastest_lap": {
+  "driver": "LEC",
+  "n_samples": 285,
+  "median_s": 0.23999999999978172,
+  "mean_s": 0.2594366197183109,
+  "p10_s": 0.15999999999985448,
+  "p90_s": 0.3600000000005821,
+  "max_s": 0.8400000000001455,
+  "effective_hz": 4.166666666670456,
+  "histogram": {
+   "0.00-0.10": 0,
+   "0.10-0.20": 79,
+   "0.20-0.25": 80,
+   "0.25-0.30": 52,
+   "0.30-0.35": 26,
+   "0.35-0.40": 32,
+   "0.40-0.50": 13,
+   "0.50-0.75": 0,
+   "0.75-1.00": 2,
+   "1.00-2.00": 0,
+   "2.00-10.00": 0
+  },
+  "median_dx_m": 12.972222222222285
+ },
+ "channels": {
+  "Speed": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 87.0,
+   "max": 319.0
+  },
+  "Throttle": {
+   "present": true,
+   "frac_nonzero": 0.9929824561403509,
+   "min": 0.0,
+   "max": 100.0
+  },
+  "Brake": {
+   "present": true,
+   "frac_nonzero": 0.21052631578947367,
+   "min": 0.0,
+   "max": 1.0
+  },
+  "nGear": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 2.0,
+   "max": 8.0
+  },
+  "RPM": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 8010.0,
+   "max": 12112.0
+  },
+  "DRS": {
+   "present": true,
+   "frac_nonzero": 0.0,
+   "min": 0.0,
+   "max": 0.0
+  }
+ },
+ "position": {
+  "n_samples": 275,
+  "source": "lap",
+  "has_Z": true,
+  "z_range_m": [
+   50.9,
+   59.9
+  ],
+  "z_std_m": 1.9812414840654378,
+  "z_frac_zero": 0.0,
+  "xy_range_m": [
+   971.7,
+   830.7
+  ]
+ },
+ "weather": {
+  "available": true,
+  "air_temp_c": 18.515183246073303,
+  "pressure_mbar": 1024.5931937172775,
+  "wind_speed_ms": 1.5251308900523561
+ },
+ "total_seconds": 35.4
+}
+speed window: {'340': 0.0011, '330': 0.0036, '320': 0.0129, '310': 0.0348, '300': 0.051, '290': 0.0667} vmax 353.0
+wrote out/feasibility/r12.json

@@ -1,0 +1,68 @@
+{
+ "window_id": "2026_r1_R:NOR:4650.236",
+ "race_id": "2026_r1_R",
+ "year": 2026,
+ "round": 1,
+ "session": "R",
+ "driver": "NOR",
+ "cutoff_time_s": 4650.236465625,
+ "zones": [
+  {
+   "name": "A",
+   "s_straight_start": 1880.0,
+   "s_straight_end": 3220.0
+  },
+  {
+   "name": "B",
+   "s_straight_start": 3420.0,
+   "s_straight_end": 4040.0
+  },
+  {
+   "name": "C",
+   "s_straight_start": 510.0,
+   "s_straight_end": 1000.0
+  }
+ ],
+ "track_length": 5203.698388860774,
+ "regulation_variant": "pre-Miami-2026",
+ "regulation": {
+  "variant": "pre-Miami-2026",
+  "p_dep_max_zone": 350000.0,
+  "p_dep_max_elsewhere": 350000.0,
+  "p_harv_max": 250000.0,
+  "e_harvest_lap": 7000000.0,
+  "mom_bonus": 500000.0,
+  "mom_gap_s": 1.0
+ },
+ "assumptions": {
+  "crr": 0.012,
+  "eta": 0.95,
+  "smooth_m": 60.0,
+  "mass_kg": 790.0,
+  "rho": 1.1789007841725252,
+  "n_particles": 400,
+  "particle_seed": 0,
+  "reserve_max_frac": 0.35,
+  "robust_q": 0.02,
+  "wind_grid_lo": -4.0,
+  "wind_grid_hi": 4.0,
+  "wind_grid_step": 0.5,
+  "coast_throttle": 8.0,
+  "coast_min_decel": 0.4,
+  "coast_max_decel": 12.0,
+  "brake_decel": -6.0,
+  "reserve_sigma_j": 500000.0,
+  "assumed_race_fuel_start_kg": 100.0
+ },
+ "rho_source": "scalar",
+ "wind_source": "unavailable",
+ "schema_version": "p35-estimator-input-window-v1",
+ "source": "xray.data.ingest.ingest_session",
+ "source_fingerprint": "0e5f9dbf6118476fc5f4b9c8db5210f34a96dbaaddac805bbbe0ad98853ea844",
+ "notes": [
+  "estimator inputs only; every sample has time <= cutoff",
+  "deployment-zone eligibility is NOT stored: zone geometry is, and realfit.deployment_zone_mask recomputes the mask"
+ ],
+ "arrays_file": "2026_r1_R_NOR_4650p236.inputs.npz",
+ "arrays_fingerprint": "920ccb62334789f8f3024afafe7c22c0c608393d02d4f46a1ff9432011371fd9"
+}

@@ -1,0 +1,433 @@
+{
+ "generated_at": "2026-09-12T22:23:58.456453+00:00",
+ "gate_a_recorded": {
+  "old": {
+   "degenerate_frac": 0.226,
+   "mean_width_mj": 0.498,
+   "empty_frac": 0.327
+  },
+  "part2_truncation": {
+   "degenerate_frac": 0.093,
+   "mean_width_mj": 0.796,
+   "empty_frac": 0.169
+  },
+  "final_conditional_candidate": {
+   "degenerate_frac": 0.101,
+   "mean_width_mj": 0.729,
+   "empty_frac": 0.19
+  },
+  "status": "reused_recorded_result_not_rerun"
+ },
+ "gate_b_recorded": {
+  "old": {
+   "mae_mj": 0.186,
+   "bias_mj": -0.046,
+   "containment": 0.453,
+   "width_mj": 0.507,
+   "degenerate_frac": 0.451,
+   "corr": 0.844
+  },
+  "part2_rejected": {
+   "mae_mj": 0.694,
+   "bias_mj": 0.653,
+   "containment": 0.369,
+   "width_mj": 1.313,
+   "degenerate_frac": 0.0,
+   "corr": 0.683
+  },
+  "final_conditional_candidate": {
+   "mae_mj": 0.188,
+   "bias_mj": -0.034,
+   "containment": 0.483,
+   "width_mj": 0.545,
+   "degenerate_frac": 0.391,
+   "corr": 0.839
+  },
+  "status": "reused_recorded_result_not_rerun"
+ },
+ "gate_c_recorded": {
+  "artifact": "out/p35/mismatch_final.json",
+  "final_verdict": "0 of 5 mismatch cases produced larger energy error without a wider band",
+  "status": "reused_recorded_result_not_rerun"
+ },
+ "final_candidate_configuration": {
+  "centre": "evidence",
+  "boundary": "conditional"
+ },
+ "hardened_eval_default": {
+  "boundary": "conditional",
+  "centre": "evidence"
+ },
+ "train_optimal_fixed_e_methodology": "For each leave-one-race-out fold and target, fit one constant energy on training races only. Use at most 1200 examples, balanced across training races with evenly spaced deterministic samples within each race. The subset key excludes held-out rows and estimator outputs.",
+ "train_optimal_fixed_e_artifact": "out/p35/train_optimal_fixed_e__268e851b2789e251.json",
+ "train_optimal_fixed_e_configuration_fingerprint": "268e851b2789e25154727966430ca606308d383f14c1297e13b7c0b12b425cf9",
+ "chosen_fixed_e_per_fold_target": [
+  {
+   "fold": "2026_r10_R",
+   "target": "future_speed_5s",
+   "selected_fixed_energy_j": 0.0,
+   "selected_fixed_energy_mj": 0.0,
+   "training_mae": 23.03341677868508,
+   "training_examples_available": 24279,
+   "training_examples_used": 1200,
+   "race_counts_used": {
+    "2026_r12_R": 300,
+    "2026_r1_R": 300,
+    "2026_r6_R": 300,
+    "2026_r9_R": 300
+   },
+   "subset_fingerprint": "4e03e1ab19994eb5c2b62aa9bd6c3b6ee271050e87af08062cf786e020d38c81"
+  },
+  {
+   "fold": "2026_r10_R",
+   "target": "straight_speed_3s",
+   "selected_fixed_energy_j": 200000.0,
+   "selected_fixed_energy_mj": 0.2,
+   "training_mae": 6.236487301329957,
+   "training_examples_available": 3992,
+   "training_examples_used": 1200,
+   "race_counts_used": {
+    "2026_r12_R": 400,
+    "2026_r1_R": 400,
+    "2026_r9_R": 400
+   },
+   "subset_fingerprint": "754a01e99694c5388a77b31fc3eee88fccf98967ead24fc89ae2dc35d16522cc"
+  },
+  {
+   "fold": "2026_r10_R",
+   "target": "braking_point_speed",
+   "selected_fixed_energy_j": 0.0,
+   "selected_fixed_energy_mj": 0.0,
+   "training_mae": 16.098934010987286,
+   "training_examples_available": 9296,
+   "training_examples_used": 1200,
+   "race_counts_used": {
+    "2026_r12_R": 400,
+    "2026_r1_R": 400,
+    "2026_r9_R": 400
+   },
+   "subset_fingerprint": "171047c7063b28467625192fc9036d1c6f9a5b199b9088914af0586086210728"
+  },
+  {
+   "fold": "2026_r12_R",
+   "target": "future_speed_5s",
+   "selected_fixed_energy_j": 0.0,
+   "selected_fixed_energy_mj": 0.0,
+   "training_mae": 21.6559081424583,
+   "training_examples_available": 24848,
+   "training_examples_used": 1200,
+   "race_counts_used": {
+    "2026_r10_R": 300,
+    "2026_r1_R": 300,
+    "2026_r6_R": 300,
+    "2026_r9_R": 300
+   },
+   "subset_fingerprint": "cfae4469dd29fd443e702360fc5a532597ebaa6baacb05c09db6b2c03fe5e365"
+  },
+  {
+   "fold": "2026_r12_R",
+   "target": "straight_speed_3s",
+   "selected_fixed_energy_j": 0.0,
+   "selected_fixed_energy_mj": 0.0,
+   "training_mae": 5.5706614625908255,
+   "training_examples_available": 5839,
+   "training_examples_used": 1200,
+   "race_counts_used": {
+    "2026_r10_R": 400,
+    "2026_r1_R": 400,
+    "2026_r9_R": 400
+   },
+   "subset_fingerprint": "37cba7cfbd240a1e2a08d775eafda727b87882257d594db54d810aacc4ba28f1"
+  },
+  {
+   "fold": "2026_r12_R",
+   "target": "braking_point_speed",
+   "selected_fixed_energy_j": 0.0,
+   "selected_fixed_energy_mj": 0.0,
+   "training_mae": 15.411562004861668,
+   "training_examples_available": 8727,
+   "training_examples_used": 1200,
+   "race_counts_used": {
+    "2026_r10_R": 400,
+    "2026_r1_R": 400,
+    "2026_r9_R": 400
+   },
+   "subset_fingerprint": "151d16be334c7469e21d5de1ec7f956686464045f8896cc72ec212a4d0acc2a4"
+  },
+  {
+   "fold": "2026_r1_R",
+   "target": "future_speed_5s",
+   "selected_fixed_energy_j": 0.0,
+   "selected_fixed_energy_mj": 0.0,
+   "training_mae": 22.43936251217808,
+   "training_examples_available": 24578,
+   "training_examples_used": 1200,
+   "race_counts_used": {
+    "2026_r10_R": 300,
+    "2026_r12_R": 300,
+    "2026_r6_R": 300,
+    "2026_r9_R": 300
+   },
+   "subset_fingerprint": "fd536ca8f54b1ee5df249ef46dc2ddcc814e29a10217c9b47b67af031fd33ccb"
+  },
+  {
+   "fold": "2026_r1_R",
+   "target": "straight_speed_3s",
+   "selected_fixed_energy_j": 0.0,
+   "selected_fixed_energy_mj": 0.0,
+   "training_mae": 6.604930446144798,
+   "training_examples_available": 4363,
+   "training_examples_used": 1200,
+   "race_counts_used": {
+    "2026_r10_R": 400,
+    "2026_r12_R": 400,
+    "2026_r9_R": 400
+   },
+   "subset_fingerprint": "7818ea5befb2a74a937ed7d0866a25358ffb416ed0febbd3eaaf43c526868759"
+  },
+  {
+   "fold": "2026_r1_R",
+   "target": "braking_point_speed",
+   "selected_fixed_energy_j": 0.0,
+   "selected_fixed_energy_mj": 0.0,
+   "training_mae": 15.735051493933424,
+   "training_examples_available": 8711,
+   "training_examples_used": 1200,
+   "race_counts_used": {
+    "2026_r10_R": 400,
+    "2026_r12_R": 400,
+    "2026_r9_R": 400
+   },
+   "subset_fingerprint": "acbf7451a36f1d7f8752a2b57fc7275b9015bd0f35438be99fa3187e1b3748f8"
+  },
+  {
+   "fold": "2026_r6_R",
+   "target": "future_speed_5s",
+   "selected_fixed_energy_j": 0.0,
+   "selected_fixed_energy_mj": 0.0,
+   "training_mae": 17.219304110892512,
+   "training_examples_available": 24765,
+   "training_examples_used": 1200,
+   "race_counts_used": {
+    "2026_r10_R": 300,
+    "2026_r12_R": 300,
+    "2026_r1_R": 300,
+    "2026_r9_R": 300
+   },
+   "subset_fingerprint": "bd9108ee8f7152a86ed15f38369615a8acef507036595d3309604fb8004e9dcd"
+  },
+  {
+   "fold": "2026_r6_R",
+   "target": "straight_speed_3s",
+   "selected_fixed_energy_j": 200000.0,
+   "selected_fixed_energy_mj": 0.2,
+   "training_mae": 5.859078655156132,
+   "training_examples_available": 6420,
+   "training_examples_used": 1200,
+   "race_counts_used": {
+    "2026_r10_R": 300,
+    "2026_r12_R": 300,
+    "2026_r1_R": 300,
+    "2026_r9_R": 300
+   },
+   "subset_fingerprint": "6cf990120fbf0b080996bb3aa51573eb8374cb5461c07c59aff6c425b283b740"
+  },
+  {
+   "fold": "2026_r6_R",
+   "target": "braking_point_speed",
+   "selected_fixed_energy_j": 0.0,
+   "selected_fixed_energy_mj": 0.0,
+   "training_mae": 14.453590259349093,
+   "training_examples_available": 11854,
+   "training_examples_used": 1200,
+   "race_counts_used": {
+    "2026_r10_R": 300,
+    "2026_r12_R": 300,
+    "2026_r1_R": 300,
+    "2026_r9_R": 300
+   },
+   "subset_fingerprint": "c803711e0595551944914024b235c30f747f34bd4e0dc2166bee5b373ba6dd6a"
+  },
+  {
+   "fold": "2026_r9_R",
+   "target": "future_speed_5s",
+   "selected_fixed_energy_j": 0.0,
+   "selected_fixed_energy_mj": 0.0,
+   "training_mae": 21.50421810553841,
+   "training_examples_available": 24114,
+   "training_examples_used": 1200,
+   "race_counts_used": {
+    "2026_r10_R": 300,
+    "2026_r12_R": 300,
+    "2026_r1_R": 300,
+    "2026_r6_R": 300
+   },
+   "subset_fingerprint": "c603123c15e452d04033784ecb8c786b3cc55e84c1df0ca1e2d894007cbd1b3e"
+  },
+  {
+   "fold": "2026_r9_R",
+   "target": "straight_speed_3s",
+   "selected_fixed_energy_j": 200000.0,
+   "selected_fixed_energy_mj": 0.2,
+   "training_mae": 6.468108937811288,
+   "training_examples_available": 5066,
+   "training_examples_used": 1200,
+   "race_counts_used": {
+    "2026_r10_R": 400,
+    "2026_r12_R": 400,
+    "2026_r1_R": 400
+   },
+   "subset_fingerprint": "ea6c9db004d060567148b2c8e70db407a52437026bf86e33220c50b2afbf90c5"
+  },
+  {
+   "fold": "2026_r9_R",
+   "target": "braking_point_speed",
+   "selected_fixed_energy_j": 0.0,
+   "selected_fixed_energy_mj": 0.0,
+   "training_mae": 14.345908529675514,
+   "training_examples_available": 8828,
+   "training_examples_used": 1200,
+   "race_counts_used": {
+    "2026_r10_R": 400,
+    "2026_r12_R": 400,
+    "2026_r1_R": 400
+   },
+   "subset_fingerprint": "e4a44d17225901f0aea610cccac2e4da29ad347282b70939e2d4a2c95eec6db8"
+  }
+ ],
+ "gate_d_final_artifact": "out/p35/real_final_conditional__6b065fd500d7f952.json",
+ "gate_d_configuration_fingerprint": "6b065fd500d7f952adf5893a9fd7a87056db42930c4ce70b2262cfb210e62aa4",
+ "gate_d_real_metrics": [
+  {
+   "target": "future_speed_5s",
+   "final": {
+    "n": 30646,
+    "mae": 22.578577876030998,
+    "rmse": 28.791461854749794
+   },
+   "old_xray": {
+    "mae": 22.39
+   },
+   "part2_rejected": {
+    "mae": 23.043
+   },
+   "train_optimal_fixed_e": {
+    "mae": 21.051910665560754,
+    "rmse": 27.08539927848394
+   },
+   "neutral_e": {
+    "mae": 21.051910665560754,
+    "rmse": 27.08539927848394
+   }
+  },
+  {
+   "target": "straight_speed_3s",
+   "final": {
+    "n": 6420,
+    "mae": 5.925393836179956,
+    "rmse": 9.549300003004715
+   },
+   "old_xray": {
+    "mae": 5.9
+   },
+   "part2_rejected": {
+    "mae": 6.227
+   },
+   "train_optimal_fixed_e": {
+    "mae": 5.8291605699675415,
+    "rmse": 8.65305463570212
+   },
+   "neutral_e": {
+    "mae": 5.684472804347788,
+    "rmse": 8.312848840743568
+   }
+  },
+  {
+   "target": "braking_point_speed",
+   "final": {
+    "n": 11854,
+    "mae": 16.031464124372192,
+    "rmse": 19.90986620332836
+   },
+   "old_xray": {
+    "mae": 15.78
+   },
+   "part2_rejected": {
+    "mae": 16.313
+   },
+   "train_optimal_fixed_e": {
+    "mae": 15.117602549279304,
+    "rmse": 18.99620647073873
+   },
+   "neutral_e": {
+    "mae": 15.117602549279304,
+    "rmse": 18.99620647073873
+   }
+  }
+ ],
+ "old_metrics_reference": {
+  "values": {
+   "future_speed_5s": 22.39,
+   "straight_speed_3s": 5.9,
+   "braking_point_speed": 15.78
+  },
+  "artifact_reference": "recorded P3 real held-out metrics"
+ },
+ "part2_metrics_reference": {
+  "values": {
+   "future_speed_5s": 23.043,
+   "straight_speed_3s": 6.227,
+   "braking_point_speed": 16.313
+  },
+  "artifact_reference": "out/p35/part2/20260912T215427Z/summary.json"
+ },
+ "neutral_baseline": {
+  "future_speed_5s": {
+   "mae": 21.051910665560754
+  },
+  "straight_speed_3s": {
+   "mae": 5.684472804347788
+  },
+  "braking_point_speed": {
+   "mae": 15.117602549279304
+  }
+ },
+ "activation_decision": "FINAL HARDENED ESTIMATOR \u2014 NOT ACTIVATED",
+ "activation_blocker": "FINAL conditional candidate does not show consistent real held-out MAE improvement over OLD X-RAY across all three targets.",
+ "p2_status": "P2 integration unchanged",
+ "production_estimator_status": "OLD estimator remains production",
+ "files_changed_resumed_session": [
+  "xray/hardened_eval.py",
+  "xray/realfit.py",
+  "tests/test_p35_part3.py",
+  "scripts/15.p35_part3.py"
+ ],
+ "new_tests_resumed_session": [
+  {
+   "command": "python3 -m pytest -q tests/test_p35_part3.py",
+   "result": "8 passed",
+   "runtime_s": 0.08
+  }
+ ],
+ "runtime_new_work_s": {
+  "baseline": 229.88664608299587,
+  "gate_d_final_conditional": 234.74121033300617,
+  "script_total": 466.13800241699937
+ },
+ "data_fingerprint": "2cf9c4c8b8fbee9299e791b882e68b4b8e812d3b0367f5afd56beb27bf29274a",
+ "safe_claims": [
+  "The fixed-E baseline is estimator-independent.",
+  "The fixed-E selector uses training races only for each held-out fold.",
+  "Conditional deployment penalizes only empty support intersections."
+ ],
+ "unsafe_claims": [
+  "True real usable energy is known.",
+  "The reserve level is identified from public telemetry.",
+  "One target alone validates the hardened estimator."
+ ],
+ "remaining_scientific_limitations": [
+  "No real rival usable-energy ground truth.",
+  "Real Gate D is future-observable predictive validation, not direct energy validation."
+ ],
+ "summary_fingerprint": "309da5a58704d135726309722ea35ac7b6b17fcaa67bd7f5338ad96fc1879e3b"
+}

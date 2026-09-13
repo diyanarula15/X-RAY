@@ -1,0 +1,15 @@
+
+arm          passed  ahead at flag   best chance seen   what it knew
+--------------------------------------------------------------------------
+oracle         100%            82%              0.660   the rival's true energy
+xray           100%            82%              0.673   only the rival's speed trace
+blind           90%            75%              0.302   nothing — attacks at the first chance
+passive         90%            75%              0.302   nothing — never attacks deliberately
+
+X-RAY minus blind   : +10 percentage points, 95% CI [+1, +19]  SIGNIFICANT
+
+X-RAY minus passive : +10 percentage points, 95% CI [+1, +19]  SIGNIFICANT
+
+X-RAY called the oracle's exact lap in 50% of races
+Mean error in the rival's deployable energy: 0.39 MJ
+n = 40 closed-loop races at 4.17 Hz (CONSERVATIVE chasing AGGRESSIVE)

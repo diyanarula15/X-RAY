@@ -1,0 +1,132 @@
+{
+  "year": 2026,
+  "round": 9,
+  "session": "R",
+  "event": "British Grand Prix",
+  "circuit": "Silverstone",
+  "date": "2026-07-05",
+  "load_seconds": 37.0,
+  "n_drivers": 20,
+  "n_laps": 1113,
+  "dt_fastest_lap": {
+    "driver": "ANT",
+    "n_samples": 330,
+    "median_s": 0.24000000000069122,
+    "mean_s": 0.2784164133738607,
+    "p10_s": 0.15999999999985448,
+    "p90_s": 0.4000000000005457,
+    "max_s": 1.0,
+    "effective_hz": 4.166666666654667,
+    "histogram": {
+      "0.00-0.10": 0,
+      "0.10-0.20": 93,
+      "0.20-0.25": 77,
+      "0.25-0.30": 50,
+      "0.30-0.35": 28,
+      "0.35-0.40": 45,
+      "0.40-0.50": 30,
+      "0.50-0.75": 2,
+      "0.75-1.00": 3,
+      "1.00-2.00": 1,
+      "2.00-10.00": 0
+    },
+    "median_dx_m": 16.255555555555475
+  },
+  "channels": {
+    "Speed": {
+      "present": true,
+      "frac_nonzero": 1.0,
+      "min": 80.0,
+      "max": 302.0
+    },
+    "Throttle": {
+      "present": true,
+      "frac_nonzero": 0.8575757575757575,
+      "min": 0.0,
+      "max": 100.0
+    },
+    "Brake": {
+      "present": true,
+      "frac_nonzero": 0.1303030303030303,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "nGear": {
+      "present": true,
+      "frac_nonzero": 1.0,
+      "min": 1.0,
+      "max": 7.0
+    },
+    "RPM": {
+      "present": true,
+      "frac_nonzero": 1.0,
+      "min": 8529.0,
+      "max": 12084.0
+    },
+    "DRS": {
+      "present": true,
+      "frac_nonzero": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    }
+  },
+  "position": {
+    "n_samples": 350,
+    "source": "lap",
+    "has_Z": true,
+    "z_range_m": [
+      196.2,
+      207.5
+    ],
+    "z_std_m": 3.175131120544955,
+    "z_frac_zero": 0.0,
+    "xy_range_m": [
+      1010.5,
+      1722.9
+    ]
+  },
+  "speed_window": {
+    "total_samples": 377727,
+    "laps_scanned": 1009,
+    "frac_above": {
+      "340": 9.265951335223588e-05,
+      "330": 0.0005188932747725209,
+      "320": 0.00207822051375729,
+      "310": 0.007981955221628319,
+      "300": 0.04150881456713446,
+      "290": 0.11688071014251034
+    },
+    "vmax_session_kmh": 350.0,
+    "vmax_by_driver": {
+      "NOR": 327.0,
+      "GAS": 344.0,
+      "PER": 328.0,
+      "ANT": 322.0,
+      "ALO": 334.0,
+      "LEC": 320.0,
+      "STR": 311.0,
+      "ALB": 323.0,
+      "HUL": 341.0,
+      "VER": 330.0,
+      "LAW": 320.0,
+      "OCO": 332.0,
+      "LIN": 331.0,
+      "COL": 343.0,
+      "HAM": 350.0,
+      "BOR": 337.0,
+      "SAI": 338.0,
+      "HAD": 333.0,
+      "RUS": 333.0,
+      "BOT": 320.0
+    },
+    "gaps_over_1s": 995,
+    "gaps_per_lap": 0.9861248761149654
+  },
+  "weather": {
+    "available": true,
+    "air_temp_c": 24.758333333333333,
+    "pressure_mbar": 1006.4083333333334,
+    "wind_speed_ms": 1.7506410256410259
+  },
+  "total_seconds": 40.4
+}

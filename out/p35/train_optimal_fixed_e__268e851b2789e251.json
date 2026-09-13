@@ -1,0 +1,420 @@
+{
+ "metrics": {
+  "braking_point_speed": {
+   "n": 11854,
+   "candidate": {
+    "mae": 15.780132671182583,
+    "rmse": 19.656303733802822
+   },
+   "train_optimal_fixed": {
+    "mae": 15.117602549279304,
+    "rmse": 18.99620647073873
+   },
+   "neutral": {
+    "mae": 15.117602549279304,
+    "rmse": 18.99620647073873
+   },
+   "candidate_minus_train_optimal_fixed": 0.6625301219032789,
+   "candidate_minus_neutral": 0.6625301219032789
+  },
+  "future_speed_5s": {
+   "n": 30646,
+   "candidate": {
+    "mae": 22.390798168958423,
+    "rmse": 28.574829297408037
+   },
+   "train_optimal_fixed": {
+    "mae": 21.051910665560754,
+    "rmse": 27.08539927848394
+   },
+   "neutral": {
+    "mae": 21.051910665560754,
+    "rmse": 27.08539927848394
+   },
+   "candidate_minus_train_optimal_fixed": 1.3388875033976682,
+   "candidate_minus_neutral": 1.3388875033976682
+  },
+  "straight_speed_3s": {
+   "n": 6420,
+   "candidate": {
+    "mae": 5.899864291129489,
+    "rmse": 9.2960501249394
+   },
+   "train_optimal_fixed": {
+    "mae": 5.8291605699675415,
+    "rmse": 8.65305463570212
+   },
+   "neutral": {
+    "mae": 5.684472804347788,
+    "rmse": 8.312848840743568
+   },
+   "candidate_minus_train_optimal_fixed": 0.0707037211619479,
+   "candidate_minus_neutral": 0.2153914867817015
+  }
+ },
+ "chosen_fixed_energy_by_fold": {
+  "2026_r10_R": {
+   "future_speed_5s": {
+    "energy_j": 0.0,
+    "train_mae": 23.03341677868508,
+    "n_train": 24279,
+    "n_train_available": 24279,
+    "n_train_used": 1200,
+    "race_counts_available": {
+     "2026_r12_R": 5798,
+     "2026_r1_R": 6068,
+     "2026_r6_R": 5881,
+     "2026_r9_R": 6532
+    },
+    "race_counts_used": {
+     "2026_r12_R": 300,
+     "2026_r1_R": 300,
+     "2026_r6_R": 300,
+     "2026_r9_R": 300
+    },
+    "sampling_rule": "max 1200 examples per target/fold; quota balanced across training races, then midpoint/evenly-spaced deterministic samples within each race sorted by race/driver/target/cutoff/target/lap/s",
+    "subset_fingerprint": "4e03e1ab19994eb5c2b62aa9bd6c3b6ee271050e87af08062cf786e020d38c81"
+   },
+   "straight_speed_3s": {
+    "energy_j": 200000.0,
+    "train_mae": 6.236487301329957,
+    "n_train": 3992,
+    "n_train_available": 3992,
+    "n_train_used": 1200,
+    "race_counts_available": {
+     "2026_r12_R": 581,
+     "2026_r1_R": 2057,
+     "2026_r9_R": 1354
+    },
+    "race_counts_used": {
+     "2026_r12_R": 400,
+     "2026_r1_R": 400,
+     "2026_r9_R": 400
+    },
+    "sampling_rule": "max 1200 examples per target/fold; quota balanced across training races, then midpoint/evenly-spaced deterministic samples within each race sorted by race/driver/target/cutoff/target/lap/s",
+    "subset_fingerprint": "754a01e99694c5388a77b31fc3eee88fccf98967ead24fc89ae2dc35d16522cc"
+   },
+   "braking_point_speed": {
+    "energy_j": 0.0,
+    "train_mae": 16.098934010987286,
+    "n_train": 9296,
+    "n_train_available": 9296,
+    "n_train_used": 1200,
+    "race_counts_available": {
+     "2026_r12_R": 3127,
+     "2026_r1_R": 3143,
+     "2026_r9_R": 3026
+    },
+    "race_counts_used": {
+     "2026_r12_R": 400,
+     "2026_r1_R": 400,
+     "2026_r9_R": 400
+    },
+    "sampling_rule": "max 1200 examples per target/fold; quota balanced across training races, then midpoint/evenly-spaced deterministic samples within each race sorted by race/driver/target/cutoff/target/lap/s",
+    "subset_fingerprint": "171047c7063b28467625192fc9036d1c6f9a5b199b9088914af0586086210728"
+   }
+  },
+  "2026_r12_R": {
+   "future_speed_5s": {
+    "energy_j": 0.0,
+    "train_mae": 21.6559081424583,
+    "n_train": 24848,
+    "n_train_available": 24848,
+    "n_train_used": 1200,
+    "race_counts_available": {
+     "2026_r10_R": 6367,
+     "2026_r1_R": 6068,
+     "2026_r6_R": 5881,
+     "2026_r9_R": 6532
+    },
+    "race_counts_used": {
+     "2026_r10_R": 300,
+     "2026_r1_R": 300,
+     "2026_r6_R": 300,
+     "2026_r9_R": 300
+    },
+    "sampling_rule": "max 1200 examples per target/fold; quota balanced across training races, then midpoint/evenly-spaced deterministic samples within each race sorted by race/driver/target/cutoff/target/lap/s",
+    "subset_fingerprint": "cfae4469dd29fd443e702360fc5a532597ebaa6baacb05c09db6b2c03fe5e365"
+   },
+   "braking_point_speed": {
+    "energy_j": 0.0,
+    "train_mae": 15.411562004861668,
+    "n_train": 8727,
+    "n_train_available": 8727,
+    "n_train_used": 1200,
+    "race_counts_available": {
+     "2026_r10_R": 2558,
+     "2026_r1_R": 3143,
+     "2026_r9_R": 3026
+    },
+    "race_counts_used": {
+     "2026_r10_R": 400,
+     "2026_r1_R": 400,
+     "2026_r9_R": 400
+    },
+    "sampling_rule": "max 1200 examples per target/fold; quota balanced across training races, then midpoint/evenly-spaced deterministic samples within each race sorted by race/driver/target/cutoff/target/lap/s",
+    "subset_fingerprint": "151d16be334c7469e21d5de1ec7f956686464045f8896cc72ec212a4d0acc2a4"
+   },
+   "straight_speed_3s": {
+    "energy_j": 0.0,
+    "train_mae": 5.5706614625908255,
+    "n_train": 5839,
+    "n_train_available": 5839,
+    "n_train_used": 1200,
+    "race_counts_available": {
+     "2026_r10_R": 2428,
+     "2026_r1_R": 2057,
+     "2026_r9_R": 1354
+    },
+    "race_counts_used": {
+     "2026_r10_R": 400,
+     "2026_r1_R": 400,
+     "2026_r9_R": 400
+    },
+    "sampling_rule": "max 1200 examples per target/fold; quota balanced across training races, then midpoint/evenly-spaced deterministic samples within each race sorted by race/driver/target/cutoff/target/lap/s",
+    "subset_fingerprint": "37cba7cfbd240a1e2a08d775eafda727b87882257d594db54d810aacc4ba28f1"
+   }
+  },
+  "2026_r1_R": {
+   "future_speed_5s": {
+    "energy_j": 0.0,
+    "train_mae": 22.43936251217808,
+    "n_train": 24578,
+    "n_train_available": 24578,
+    "n_train_used": 1200,
+    "race_counts_available": {
+     "2026_r10_R": 6367,
+     "2026_r12_R": 5798,
+     "2026_r6_R": 5881,
+     "2026_r9_R": 6532
+    },
+    "race_counts_used": {
+     "2026_r10_R": 300,
+     "2026_r12_R": 300,
+     "2026_r6_R": 300,
+     "2026_r9_R": 300
+    },
+    "sampling_rule": "max 1200 examples per target/fold; quota balanced across training races, then midpoint/evenly-spaced deterministic samples within each race sorted by race/driver/target/cutoff/target/lap/s",
+    "subset_fingerprint": "fd536ca8f54b1ee5df249ef46dc2ddcc814e29a10217c9b47b67af031fd33ccb"
+   },
+   "braking_point_speed": {
+    "energy_j": 0.0,
+    "train_mae": 15.735051493933424,
+    "n_train": 8711,
+    "n_train_available": 8711,
+    "n_train_used": 1200,
+    "race_counts_available": {
+     "2026_r10_R": 2558,
+     "2026_r12_R": 3127,
+     "2026_r9_R": 3026
+    },
+    "race_counts_used": {
+     "2026_r10_R": 400,
+     "2026_r12_R": 400,
+     "2026_r9_R": 400
+    },
+    "sampling_rule": "max 1200 examples per target/fold; quota balanced across training races, then midpoint/evenly-spaced deterministic samples within each race sorted by race/driver/target/cutoff/target/lap/s",
+    "subset_fingerprint": "acbf7451a36f1d7f8752a2b57fc7275b9015bd0f35438be99fa3187e1b3748f8"
+   },
+   "straight_speed_3s": {
+    "energy_j": 0.0,
+    "train_mae": 6.604930446144798,
+    "n_train": 4363,
+    "n_train_available": 4363,
+    "n_train_used": 1200,
+    "race_counts_available": {
+     "2026_r10_R": 2428,
+     "2026_r12_R": 581,
+     "2026_r9_R": 1354
+    },
+    "race_counts_used": {
+     "2026_r10_R": 400,
+     "2026_r12_R": 400,
+     "2026_r9_R": 400
+    },
+    "sampling_rule": "max 1200 examples per target/fold; quota balanced across training races, then midpoint/evenly-spaced deterministic samples within each race sorted by race/driver/target/cutoff/target/lap/s",
+    "subset_fingerprint": "7818ea5befb2a74a937ed7d0866a25358ffb416ed0febbd3eaaf43c526868759"
+   }
+  },
+  "2026_r6_R": {
+   "future_speed_5s": {
+    "energy_j": 0.0,
+    "train_mae": 17.219304110892512,
+    "n_train": 24765,
+    "n_train_available": 24765,
+    "n_train_used": 1200,
+    "race_counts_available": {
+     "2026_r10_R": 6367,
+     "2026_r12_R": 5798,
+     "2026_r1_R": 6068,
+     "2026_r9_R": 6532
+    },
+    "race_counts_used": {
+     "2026_r10_R": 300,
+     "2026_r12_R": 300,
+     "2026_r1_R": 300,
+     "2026_r9_R": 300
+    },
+    "sampling_rule": "max 1200 examples per target/fold; quota balanced across training races, then midpoint/evenly-spaced deterministic samples within each race sorted by race/driver/target/cutoff/target/lap/s",
+    "subset_fingerprint": "bd9108ee8f7152a86ed15f38369615a8acef507036595d3309604fb8004e9dcd"
+   },
+   "braking_point_speed": {
+    "energy_j": 0.0,
+    "train_mae": 14.453590259349093,
+    "n_train": 11854,
+    "n_train_available": 11854,
+    "n_train_used": 1200,
+    "race_counts_available": {
+     "2026_r10_R": 2558,
+     "2026_r12_R": 3127,
+     "2026_r1_R": 3143,
+     "2026_r9_R": 3026
+    },
+    "race_counts_used": {
+     "2026_r10_R": 300,
+     "2026_r12_R": 300,
+     "2026_r1_R": 300,
+     "2026_r9_R": 300
+    },
+    "sampling_rule": "max 1200 examples per target/fold; quota balanced across training races, then midpoint/evenly-spaced deterministic samples within each race sorted by race/driver/target/cutoff/target/lap/s",
+    "subset_fingerprint": "c803711e0595551944914024b235c30f747f34bd4e0dc2166bee5b373ba6dd6a"
+   },
+   "straight_speed_3s": {
+    "energy_j": 200000.0,
+    "train_mae": 5.859078655156132,
+    "n_train": 6420,
+    "n_train_available": 6420,
+    "n_train_used": 1200,
+    "race_counts_available": {
+     "2026_r10_R": 2428,
+     "2026_r12_R": 581,
+     "2026_r1_R": 2057,
+     "2026_r9_R": 1354
+    },
+    "race_counts_used": {
+     "2026_r10_R": 300,
+     "2026_r12_R": 300,
+     "2026_r1_R": 300,
+     "2026_r9_R": 300
+    },
+    "sampling_rule": "max 1200 examples per target/fold; quota balanced across training races, then midpoint/evenly-spaced deterministic samples within each race sorted by race/driver/target/cutoff/target/lap/s",
+    "subset_fingerprint": "6cf990120fbf0b080996bb3aa51573eb8374cb5461c07c59aff6c425b283b740"
+   }
+  },
+  "2026_r9_R": {
+   "future_speed_5s": {
+    "energy_j": 0.0,
+    "train_mae": 21.50421810553841,
+    "n_train": 24114,
+    "n_train_available": 24114,
+    "n_train_used": 1200,
+    "race_counts_available": {
+     "2026_r10_R": 6367,
+     "2026_r12_R": 5798,
+     "2026_r1_R": 6068,
+     "2026_r6_R": 5881
+    },
+    "race_counts_used": {
+     "2026_r10_R": 300,
+     "2026_r12_R": 300,
+     "2026_r1_R": 300,
+     "2026_r6_R": 300
+    },
+    "sampling_rule": "max 1200 examples per target/fold; quota balanced across training races, then midpoint/evenly-spaced deterministic samples within each race sorted by race/driver/target/cutoff/target/lap/s",
+    "subset_fingerprint": "c603123c15e452d04033784ecb8c786b3cc55e84c1df0ca1e2d894007cbd1b3e"
+   },
+   "braking_point_speed": {
+    "energy_j": 0.0,
+    "train_mae": 14.345908529675514,
+    "n_train": 8828,
+    "n_train_available": 8828,
+    "n_train_used": 1200,
+    "race_counts_available": {
+     "2026_r10_R": 2558,
+     "2026_r12_R": 3127,
+     "2026_r1_R": 3143
+    },
+    "race_counts_used": {
+     "2026_r10_R": 400,
+     "2026_r12_R": 400,
+     "2026_r1_R": 400
+    },
+    "sampling_rule": "max 1200 examples per target/fold; quota balanced across training races, then midpoint/evenly-spaced deterministic samples within each race sorted by race/driver/target/cutoff/target/lap/s",
+    "subset_fingerprint": "e4a44d17225901f0aea610cccac2e4da29ad347282b70939e2d4a2c95eec6db8"
+   },
+   "straight_speed_3s": {
+    "energy_j": 200000.0,
+    "train_mae": 6.468108937811288,
+    "n_train": 5066,
+    "n_train_available": 5066,
+    "n_train_used": 1200,
+    "race_counts_available": {
+     "2026_r10_R": 2428,
+     "2026_r12_R": 581,
+     "2026_r1_R": 2057
+    },
+    "race_counts_used": {
+     "2026_r10_R": 400,
+     "2026_r12_R": 400,
+     "2026_r1_R": 400
+    },
+    "sampling_rule": "max 1200 examples per target/fold; quota balanced across training races, then midpoint/evenly-spaced deterministic samples within each race sorted by race/driver/target/cutoff/target/lap/s",
+    "subset_fingerprint": "ea6c9db004d060567148b2c8e70db407a52437026bf86e33220c50b2afbf90c5"
+   }
+  }
+ },
+ "n_rows": 48920,
+ "baseline_note": "train-optimal-fixed-E is selected on training races only and never reads an estimator output",
+ "config": {
+  "baseline": "train-optimal-fixed-E",
+  "grid_j": [
+   0.0,
+   200000.0,
+   400000.0,
+   600000.0,
+   800000.0,
+   1000000.0,
+   1200000.0,
+   1400000.0,
+   1600000.0,
+   1800000.0,
+   2000000.0,
+   2200000.0,
+   2400000.0,
+   2600000.0,
+   2800000.0,
+   3000000.0,
+   3200000.0,
+   3400000.0,
+   3600000.0,
+   3800000.0,
+   4000000.0
+  ],
+  "max_training_examples_per_target_fold": 1200,
+  "targets": [
+   "future_speed_5s",
+   "straight_speed_3s",
+   "braking_point_speed"
+  ],
+  "data_fingerprint": "2cf9c4c8b8fbee9299e791b882e68b4b8e812d3b0367f5afd56beb27bf29274a"
+ },
+ "configuration_fingerprint": "268e851b2789e25154727966430ca606308d383f14c1297e13b7c0b12b425cf9",
+ "data_fingerprint": "2cf9c4c8b8fbee9299e791b882e68b4b8e812d3b0367f5afd56beb27bf29274a",
+ "examples": {
+  "n": 48920,
+  "by_target": {
+   "future_speed_5s": 30646,
+   "straight_speed_3s": 6420,
+   "braking_point_speed": 11854
+  },
+  "audit": {
+   "2026_r10_R": {},
+   "2026_r12_R": {},
+   "2026_r1_R": {},
+   "2026_r6_R": {},
+   "2026_r9_R": {}
+  }
+ },
+ "runtime_s": 229.88664608299587,
+ "methodology": "For each leave-one-race-out fold and target, fit one constant energy on training races only. Use at most 1200 examples, balanced across training races with evenly spaced deterministic samples within each race. The subset key excludes held-out rows and estimator outputs."
+}

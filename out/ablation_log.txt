@@ -1,0 +1,36 @@
+  seed 42 LEADER    100.0 Hz -> MAPE   4.6%  coverage 0.939  |CdA err| 0.21%
+  seed 42 LEADER     50.0 Hz -> MAPE   3.7%  coverage 0.932  |CdA err| 0.11%
+  seed 42 LEADER     20.0 Hz -> MAPE   2.9%  coverage 0.961  |CdA err| 0.95%
+  seed 42 LEADER     10.0 Hz -> MAPE  12.4%  coverage 0.939  |CdA err| 3.15%
+  seed 42 LEADER      5.0 Hz -> MAPE  18.4%  coverage 0.964  |CdA err| 4.35%
+  seed 42 LEADER      3.7 Hz -> MAPE   3.5%  coverage 0.971  |CdA err| 1.77%
+  seed 42 LEADER      2.0 Hz -> MAPE  19.2%  coverage 0.909  |CdA err| 0.69%
+  seed 42 LEADER      1.0 Hz -> MAPE  41.0%  coverage 0.317  |CdA err| 1.07%
+  seed 7 LEADER    100.0 Hz -> MAPE   5.2%  coverage 0.835  |CdA err| 0.26%
+  seed 7 LEADER     50.0 Hz -> MAPE   4.2%  coverage 0.799  |CdA err| 0.14%
+  seed 7 LEADER     20.0 Hz -> MAPE   3.0%  coverage 0.860  |CdA err| 0.41%
+  seed 7 LEADER     10.0 Hz -> MAPE   7.0%  coverage 0.872  |CdA err| 1.96%
+  seed 7 LEADER      5.0 Hz -> MAPE   7.8%  coverage 0.886  |CdA err| 2.00%
+  seed 7 LEADER      3.7 Hz -> MAPE   3.7%  coverage 0.826  |CdA err| 1.27%
+  seed 7 LEADER      2.0 Hz -> MAPE  19.0%  coverage 0.771  |CdA err| 0.60%
+  seed 7 LEADER      1.0 Hz -> MAPE  42.2%  coverage 0.251  |CdA err| 2.30%
+  seed 13 LEADER    100.0 Hz -> MAPE   5.3%  coverage 0.795  |CdA err| 0.22%
+  seed 13 LEADER     50.0 Hz -> MAPE   4.5%  coverage 0.799  |CdA err| 0.08%
+  seed 13 LEADER     20.0 Hz -> MAPE   5.1%  coverage 0.861  |CdA err| 1.79%
+  seed 13 LEADER     10.0 Hz -> MAPE   7.0%  coverage 0.904  |CdA err| 1.94%
+  seed 13 LEADER      5.0 Hz -> MAPE   8.8%  coverage 0.911  |CdA err| 2.12%
+  seed 13 LEADER      3.7 Hz -> MAPE   4.5%  coverage 0.902  |CdA err| 1.60%
+  seed 13 LEADER      2.0 Hz -> MAPE  20.0%  coverage 0.786  |CdA err| 0.71%
+  seed 13 LEADER      1.0 Hz -> MAPE  42.0%  coverage 0.363  |CdA err| 2.43%
+
+ rate Hz | dep MAPE | band coverage | |CdA err|
+   100.0 |     5.0% |        0.856  |    0.23%
+    50.0 |     4.1% |        0.843  |    0.11%
+    20.0 |     3.7% |        0.894  |    1.05%
+    10.0 |     8.8% |        0.905  |    2.35%
+     5.0 |    11.7% |        0.920  |    2.82%
+     3.7 |     3.9% |        0.900  |    1.55%
+     2.0 |    19.4% |        0.822  |    0.67%
+     1.0 |    41.7% |        0.310  |    1.94%
+
+wrote out/ablation_mape_vs_rate.png

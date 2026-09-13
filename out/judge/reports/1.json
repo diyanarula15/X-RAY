@@ -1,0 +1,76 @@
+{
+ "run_id": "1",
+ "stack": "real: FastF1 -> xray/data/ingest.py -> xray/realfit.py -> xray/analysis.py -> xray/decision_service.py",
+ "sample_id": null,
+ "seed": 42,
+ "model_id": null,
+ "prompt_version": "p8a2f9915a731",
+ "judge_version": "judge-v1",
+ "requests_used": 0,
+ "cache_hits": 0,
+ "cache_hit_rate": null,
+ "wall_s": 0.0,
+ "n_sampled": 0,
+ "n_judged": 0,
+ "n_abstained": 0,
+ "n_errored": 0,
+ "regulation_variants": {},
+ "verdict_histogram": {},
+ "axis_distribution": {
+  "bracket_reporting": {
+   "0": 0,
+   "1": 0,
+   "2": 0
+  },
+  "pass_model_honesty": {
+   "0": 0,
+   "1": 0,
+   "2": 0
+  },
+  "gap_provenance": {
+   "0": 0,
+   "1": 0,
+   "2": 0
+  },
+  "affordability_and_value": {
+   "0": 0,
+   "1": 0,
+   "2": 0
+  },
+  "confidence_calibration": {
+   "0": 0,
+   "1": 0,
+   "2": 0
+  },
+  "refusal_discipline": {
+   "0": 0,
+   "1": 0,
+   "2": 0
+  }
+ },
+ "axis_means": {
+  "bracket_reporting": null,
+  "pass_model_honesty": null,
+  "gap_provenance": null,
+  "affordability_and_value": null,
+  "confidence_calibration": null,
+  "refusal_discipline": null
+ },
+ "overclaim_fields": {},
+ "refusals": {
+  "n": 0,
+  "n_correctly_refused": 0,
+  "items": []
+ },
+ "diagnostic_crosstab": {},
+ "unattributed_numeric_claims": {
+  "n": 0,
+  "examples": []
+ },
+ "strata_sampled": {},
+ "strata_judged": {
+  "n_sampled": 0,
+  "n_judged": 0,
+  "n_unjudged": 0
+ }
+}

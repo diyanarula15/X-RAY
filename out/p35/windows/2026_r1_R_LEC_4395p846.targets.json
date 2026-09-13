@@ -1,0 +1,7 @@
+{
+ "window_id": "2026_r1_R:LEC:4395.846",
+ "cutoff_time_s": 4395.8462340845745,
+ "label": "EVALUATION ONLY \u2014 NEVER AN ESTIMATOR INPUT",
+ "arrays_file": "2026_r1_R_LEC_4395p846.targets.npz",
+ "n_samples": 29
+}

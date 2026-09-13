@@ -1,0 +1,61 @@
+core           INFO 	Loading data for Dutch Grand Prix - Race [v3.8.3]
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Driver 41: Lap timing integrity check failed for 1 lap(s)
+core        WARNING 	Driver 1 completed the race distance 00:01.577000 before the recorded end of the session.
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['1', '12', '63', '44', '16', '81', '30', '27', '14', '10', '22', '41', '5', '43', '11', '55', '23', '77', '31', '18', '87', '3']
+core           INFO 	Loading data for Dutch Grand Prix - Race [v3.8.3]
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Driver 41: Lap timing integrity check failed for 1 lap(s)
+core        WARNING 	Driver 1 completed the race distance 00:01.577000 before the recorded end of the session.
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['1', '12', '63', '44', '16', '81', '30', '27', '14', '10', '22', '41', '5', '43', '11', '55', '23', '77', '31', '18', '87', '3']
+/Users/apple/Desktop/x-ray/xray/realfit.py:417: RuntimeWarning: All-NaN slice encountered
+  shared = np.nanmedian(M, axis=0)          # common mode
+  NOR: CdA 0.940 ident 0.00 deploy 3.77 MJ/lap
+  GAS: CdA 0.940 ident 0.00 deploy 4.20 MJ/lap
+  PER: CdA 0.940 ident 0.00 deploy 3.72 MJ/lap
+  ANT: CdA 0.940 ident 0.00 deploy 3.85 MJ/lap
+  ALO: CdA 0.940 ident 0.11 deploy 3.32 MJ/lap
+  LEC: CdA 0.940 ident 0.00 deploy 3.83 MJ/lap
+  STR: CdA 0.940 ident 0.07 deploy 3.99 MJ/lap
+  TSU: CdA 0.940 ident 0.00 deploy 3.88 MJ/lap
+  ALB: CdA 0.940 ident 0.00 deploy 4.11 MJ/lap
+  HUL: CdA 0.867 ident 0.26 deploy 3.74 MJ/lap
+  LAW: CdA 0.946 ident 0.59 deploy 3.85 MJ/lap
+  OCO: CdA 0.940 ident 0.00 deploy 4.06 MJ/lap
+  LIN: CdA 0.940 ident 0.97 deploy 4.14 MJ/lap
+  COL: CdA 0.940 ident 0.00 deploy 4.28 MJ/lap
+  HAM: CdA 0.940 ident 0.00 deploy 3.75 MJ/lap
+  BOR: CdA 0.891 ident 0.61 deploy 3.93 MJ/lap
+  SAI: CdA 0.940 ident 0.00 deploy 4.71 MJ/lap
+  RUS: CdA 0.940 ident 0.00 deploy 3.75 MJ/lap
+  BOT: CdA 0.940 ident 0.00 deploy 3.89 MJ/lap
+  PIA: CdA 0.940 ident 0.00 deploy 3.90 MJ/lap
+  BEA: CdA 0.940 ident 0.00 deploy 4.37 MJ/lap
+
+Dutch Grand Prix: 21 cars analysed, 18 refused
+  telemetry 4.17 Hz, 1365/1368 laps usable
+  pooled CdA: {'available': True, 'n_cars_pooled': 4, 'cda_pooled': 0.9400285371484527, 'cda_lo': 0.9332459574939326, 'cda_hi': 0.9468111168029729, 'per_car_deviation_pct': {'NOR': -23.117674346351908, 'GAS': -73.2131392858538, 'PER': -18.36321778399283, 'ANT': -32.32636718348525, 'ALO': -26.744394964308558, 'LEC': -56.580738441030725, 'STR': -2.1918052277523494, 'TSU': -20.015952331228753, 'ALB': -50.40783211870347, 'HUL': -7.7834239704947015, 'LAW': 0.6073623277236757, 'OCO': -67.53966779022568, 'LIN': 0.0, 'COL': -50.44289776652902, 'HAM': -45.83162522093054, 'BOR': -5.207838530815274, 'SAI': -65.97107136609323, 'RUS': -28.832756672123793, 'BOT': -17.04021299856961, 'PIA': -33.17276558717178, 'BEA': -113.62039920155705}, 'field_identifiability': 0.971138835103475}
+  RDD rows: 1227
+wrote /Users/apple/Desktop/x-ray/out/races/2026_r12_R.json (12.5 MB) in 87s

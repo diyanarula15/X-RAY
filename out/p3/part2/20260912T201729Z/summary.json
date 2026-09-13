@@ -1,0 +1,839 @@
+{
+  "corpus_fingerprint": "108f9a4c2fccbe2a5151247764d07fc5779f1d7d17ac903a307d530592420aed",
+  "corpus_manifest": "/Users/apple/Desktop/x-ray/out/p3/corpus/20260912T200657Z/manifest.json",
+  "energy_ablation": {
+    "models": {
+      "energy_neutral": "zero stored deployable energy",
+      "fixed_energy": "mean inferred energy by target over training races only",
+      "xray": "canonical realfit-derived usable energy at cutoff"
+    },
+    "paired_metrics": {
+      "braking_point_speed": {
+        "xray_minus_fixed_mae": -0.32526069925987305,
+        "xray_minus_neutral_mae": 0.6625301219032821
+      },
+      "future_speed_5s": {
+        "xray_minus_fixed_mae": 0.4374319194669095,
+        "xray_minus_neutral_mae": 1.3388875033976666
+      },
+      "straight_speed_3s": {
+        "xray_minus_fixed_mae": 0.2792019523952872,
+        "xray_minus_neutral_mae": 0.21539148678170156
+      }
+    }
+  },
+  "generated_at": "2026-09-12T20:17:29.575976+00:00",
+  "nuisance_sensitivity": {
+    "downstream_prediction_at_fixed_energy": [
+      {
+        "cutoff_t": 3357.65,
+        "driver": "ALB",
+        "predicted_speed_mps": {
+          "cda_high": 77.5830580891728,
+          "cda_low": 78.60444866811785,
+          "mass_768kg": 78.0893858691751,
+          "mass_821kg": 76.44635658455945,
+          "nominal": 78.0893858691751
+        },
+        "race_id": "2026_r10_R",
+        "range_mps": 2.158092083558401,
+        "target": "future_speed_5s",
+        "xray_energy_mj": 1.2435
+      },
+      {
+        "cutoff_t": 7303.37,
+        "driver": "GAS",
+        "predicted_speed_mps": {
+          "cda_high": 52.77777777777778,
+          "cda_low": 52.77777777777778,
+          "mass_768kg": 52.77777777777778,
+          "mass_821kg": 52.62502770927439,
+          "nominal": 52.77777777777778
+        },
+        "race_id": "2026_r10_R",
+        "range_mps": 0.15275006850338713,
+        "target": "future_speed_5s",
+        "xray_energy_mj": 0.0293
+      },
+      {
+        "cutoff_t": 5464.73,
+        "driver": "OCO",
+        "predicted_speed_mps": {
+          "cda_high": 31.45268335076898,
+          "cda_low": 29.79809085359596,
+          "mass_768kg": 28.604763199071304,
+          "mass_821kg": 28.506497737013312,
+          "nominal": 28.604763199071304
+        },
+        "race_id": "2026_r10_R",
+        "range_mps": 2.9461856137556666,
+        "target": "straight_speed_3s",
+        "xray_energy_mj": 0.0
+      },
+      {
+        "cutoff_t": 9916.16,
+        "driver": "ALO",
+        "predicted_speed_mps": {
+          "cda_high": 57.06537614018299,
+          "cda_low": 57.445186556263884,
+          "mass_768kg": 57.235163783340965,
+          "mass_821kg": 57.42457104390155,
+          "nominal": 57.235163783340965
+        },
+        "race_id": "2026_r12_R",
+        "range_mps": 0.3798104160808933,
+        "target": "braking_point_speed",
+        "xray_energy_mj": 0.0863
+      },
+      {
+        "cutoff_t": 6812.55,
+        "driver": "LEC",
+        "predicted_speed_mps": {
+          "cda_high": 76.89994052599418,
+          "cda_low": 77.08080318503832,
+          "mass_768kg": 76.99022242792631,
+          "mass_821kg": 76.27085416510899,
+          "nominal": 76.99022242792631
+        },
+        "race_id": "2026_r12_R",
+        "range_mps": 0.8099490199293342,
+        "target": "future_speed_5s",
+        "xray_energy_mj": 0.0353
+      },
+      {
+        "cutoff_t": 8788.25,
+        "driver": "STR",
+        "predicted_speed_mps": {
+          "cda_high": 88.8353661299633,
+          "cda_low": 89.04121486195308,
+          "mass_768kg": 88.93814958362344,
+          "mass_821kg": 88.93202251633366,
+          "nominal": 88.93814958362344
+        },
+        "race_id": "2026_r12_R",
+        "range_mps": 0.20584873198977505,
+        "target": "straight_speed_3s",
+        "xray_energy_mj": 0.1264
+      },
+      {
+        "cutoff_t": 5923.65,
+        "driver": "COL",
+        "predicted_speed_mps": {
+          "cda_high": 19.04308260553812,
+          "cda_low": 19.444444444444443,
+          "mass_768kg": 19.444444444444443,
+          "mass_821kg": 19.444444444444443,
+          "nominal": 19.444444444444443
+        },
+        "race_id": "2026_r1_R",
+        "range_mps": 0.4013618389063218,
+        "target": "future_speed_5s",
+        "xray_energy_mj": 0.0
+      },
+      {
+        "cutoff_t": 5750.53,
+        "driver": "NOR",
+        "predicted_speed_mps": {
+          "cda_high": 71.76115356673803,
+          "cda_low": 73.14621853595014,
+          "mass_768kg": 72.44472663568533,
+          "mass_821kg": 71.92514530854453,
+          "nominal": 72.44472663568533
+        },
+        "race_id": "2026_r1_R",
+        "range_mps": 1.3850649692121095,
+        "target": "straight_speed_3s",
+        "xray_energy_mj": 0.0674
+      },
+      {
+        "cutoff_t": 8499.91,
+        "driver": "ALO",
+        "predicted_speed_mps": {
+          "cda_high": 72.01865412723211,
+          "mass_768kg": 82.9241431162006,
+          "mass_821kg": 81.55262839879694,
+          "nominal": 82.9241431162006
+        },
+        "race_id": "2026_r6_R",
+        "range_mps": 10.905488988968486,
+        "target": "future_speed_5s",
+        "xray_energy_mj": 0.3869
+      },
+      {
+        "cutoff_t": 3775.21,
+        "driver": "PER",
+        "predicted_speed_mps": {
+          "cda_high": 66.33938268847267,
+          "cda_low": 73.29804027947985,
+          "mass_768kg": 69.5740897655728,
+          "mass_821kg": 68.42612786663912,
+          "nominal": 69.5740897655728
+        },
+        "race_id": "2026_r6_R",
+        "range_mps": 6.9586575910071815,
+        "target": "future_speed_5s",
+        "xray_energy_mj": 0.088
+      },
+      {
+        "cutoff_t": 6751.06,
+        "driver": "BOT",
+        "predicted_speed_mps": {
+          "cda_high": 74.54278614559472,
+          "cda_low": 67.03029639379555,
+          "mass_768kg": 76.7902909117449,
+          "mass_821kg": 78.87532345300468,
+          "nominal": 76.7902909117449
+        },
+        "race_id": "2026_r9_R",
+        "range_mps": 11.84502705920913,
+        "target": "braking_point_speed",
+        "xray_energy_mj": 0.003
+      },
+      {
+        "cutoff_t": 7216.21,
+        "driver": "LIN",
+        "predicted_speed_mps": {
+          "cda_high": 79.96506651676476,
+          "cda_low": 86.89286859870359,
+          "mass_768kg": 83.23919269525652,
+          "mass_821kg": 83.24862694716307,
+          "nominal": 83.23919269525652
+        },
+        "race_id": "2026_r9_R",
+        "range_mps": 6.927802081938822,
+        "target": "future_speed_5s",
+        "xray_energy_mj": 0.0485
+      }
+    ],
+    "inferred_energy_rerun": {
+      "reason": "existing analysed payloads persist inferred traces but not the raw canonical gridded FastF1 frames/throttle/brake inputs needed to rerun realfit under alternate nuisance assumptions",
+      "status": "not_measured_from_current_corpus"
+    }
+  },
+  "pass_dataset_audit": {
+    "available_features": [
+      "gap_s",
+      "position_delta",
+      "attacker_tyre_life",
+      "defender_tyre_life",
+      "tyre_life_delta",
+      "attacker_compound",
+      "defender_compound"
+    ],
+    "blocking_reasons": [
+      "no safety-car/VSC channel: label contamination from non-racing position changes cannot be bounded, so a fitted probability would not be a probability of overtaking",
+      "no decision-time delta_v feature: the physics feature that the whole model is meant to condition on is not reconstructible from these payloads"
+    ],
+    "circuits": [
+      "Melbourne",
+      "Monte Carlo",
+      "Silverstone",
+      "Spa-Francorchamps",
+      "Zandvoort"
+    ],
+    "contamination": {
+      "can_remove": [
+        "compound changes",
+        "TyreLife resets/decreases",
+        "missing confirmation-window position data"
+      ],
+      "cannot_remove": [
+        "SC/VSC/yellow effects because track status is unavailable",
+        "same-compound pit cycles with stale/missing TyreLife",
+        "pit timing because pit data is unavailable in current payloads"
+      ]
+    },
+    "dataset_fingerprint": "a225af03789b0c52",
+    "excluded_opportunities": 1019,
+    "exclusions": {
+      "attacker pit cycle in the window": 526,
+      "confirmation window runs past the end of the race": 122,
+      "defender pit cycle in the window": 302,
+      "missing position data in the confirmation window": 69
+    },
+    "feature_schema": "p2-pass-features-v1",
+    "fit_refusal": "dataset audit blocks fitting:\n  - no safety-car/VSC channel: label contamination from non-racing position changes cannot be bounded, so a fitted probability would not be a probability of overtaking\n  - no decision-time delta_v feature: the physics feature that the whole model is meant to condition on is not reconstructible from these payloads\n`xray.overtake.p_pass` remains SYNTHETIC.",
+    "missing_signals": [
+      "weather_trace (causal rho/wetness per sample)",
+      "pit_in_time_s (pit in/out timing)",
+      "stint (stint index)",
+      "fresh_tyre (fresh-tyre flag)",
+      "track status / safety car / VSC / yellow -- no channel in the payload, so SC-period position changes cannot be excluded",
+      "physics delta_v at the decision point -- needs per-driver estimator belief plus a wear surface per opportunity, not present in these payloads"
+    ],
+    "pass_model_result": "SYNTHETIC \u2014 EMPIRICAL FIT REFUSED",
+    "positive_passes": 148,
+    "positive_rate": 0.035551285130915204,
+    "race_count": 5,
+    "races": [
+      "2026_r10_R",
+      "2026_r12_R",
+      "2026_r1_R",
+      "2026_r6_R",
+      "2026_r9_R"
+    ],
+    "raw_opportunities": 5182,
+    "usable_opportunities": 4163
+  },
+  "pass_model_result": "SYNTHETIC \u2014 EMPIRICAL FIT REFUSED",
+  "physical_calibration_status": {
+    "cda": {
+      "reason": "Part 1 synthetic canonical path is CdA-unidentifiable",
+      "result": "identified sets retained; not relabelled calibrated"
+    },
+    "cla": {
+      "reason": "held-out corner/braking improvement was not established in Part 2",
+      "result": "ClA remains disabled"
+    },
+    "rival_pit": {
+      "reason": "pit data unavailable in the current corpus",
+      "result": "RIVAL PIT = UNKNOWN; DATA CURRENTLY INSUFFICIENT"
+    },
+    "tyres": {
+      "reason": "compound and TyreLife are present, but stint and FreshTyre are unavailable; TyreLife is age, not physical wear, so the five-race corpus cannot isolate a reduced wear subset",
+      "result": "TYRES REMAIN SYNTHETIC"
+    },
+    "wake": {
+      "reason": "following-gap examples lack enough clean status/pit context to separate tow and dirty air",
+      "result": "wake remains synthetic/assumed"
+    },
+    "wetness_wind": {
+      "reason": "weather trace and verified circuit orientation are unavailable",
+      "result": "not calibrated"
+    }
+  },
+  "real_prediction": {
+    "dataset": {
+      "by_target": {
+        "braking_point_speed": 11854,
+        "future_speed_5s": 30646,
+        "straight_speed_3s": 6420
+      },
+      "exclusions": {},
+      "limitations": [
+        "track status unavailable; SC/VSC/yellow contamination cannot be removed",
+        "weather trace unavailable; only session summary rho is present",
+        "pit data unavailable in the corpus manifest",
+        "no real battery ground truth; validation is future-observable only"
+      ],
+      "n_examples": 48920,
+      "n_races": 5
+    },
+    "metrics": {
+      "braking_point_speed": {
+        "aggregate": {
+          "energy_neutral": {
+            "mae": 15.117602549279304,
+            "n": 11854,
+            "rmse": 18.99620647073873
+          },
+          "fixed_energy": {
+            "mae": 16.105393370442457,
+            "n": 11854,
+            "rmse": 20.146490726630255
+          },
+          "xray": {
+            "mae": 15.780132671182583,
+            "n": 11854,
+            "rmse": 19.656303733802822
+          }
+        },
+        "paired": {
+          "xray_minus_fixed_mae": -0.32526069925987305,
+          "xray_minus_neutral_mae": 0.6625301219032821
+        },
+        "per_race": {
+          "2026_r10_R": {
+            "energy_neutral": {
+              "mae": 13.403460581551705,
+              "n": 2558,
+              "rmse": 16.33586220754042
+            },
+            "fixed_energy": {
+              "mae": 14.124868938929174,
+              "n": 2558,
+              "rmse": 17.034728852327852
+            },
+            "xray": {
+              "mae": 14.059287598872988,
+              "n": 2558,
+              "rmse": 16.855344198261765
+            }
+          },
+          "2026_r12_R": {
+            "energy_neutral": {
+              "mae": 14.88863589650049,
+              "n": 3127,
+              "rmse": 17.68877008151436
+            },
+            "fixed_energy": {
+              "mae": 15.410774355220132,
+              "n": 3127,
+              "rmse": 18.175663053039347
+            },
+            "xray": {
+              "mae": 15.426322039585333,
+              "n": 3127,
+              "rmse": 18.221095825296405
+            }
+          },
+          "2026_r1_R": {
+            "energy_neutral": {
+              "mae": 14.200984023873465,
+              "n": 3143,
+              "rmse": 18.961527896234642
+            },
+            "fixed_energy": {
+              "mae": 15.064082967371746,
+              "n": 3143,
+              "rmse": 20.238827636440604
+            },
+            "xray": {
+              "mae": 14.148040590603733,
+              "n": 3143,
+              "rmse": 19.014837023645565
+            }
+          },
+          "2026_r9_R": {
+            "energy_neutral": {
+              "mae": 17.755304433627312,
+              "n": 3026,
+              "rmse": 22.164056525730818
+            },
+            "fixed_energy": {
+              "mae": 19.57898681170565,
+              "n": 3026,
+              "rmse": 24.038723069259934
+            },
+            "xray": {
+              "mae": 19.295649177868597,
+              "n": 3026,
+              "rmse": 23.553408114556692
+            }
+          }
+        }
+      },
+      "future_speed_5s": {
+        "aggregate": {
+          "energy_neutral": {
+            "mae": 21.051910665560754,
+            "n": 30646,
+            "rmse": 27.08539927848394
+          },
+          "fixed_energy": {
+            "mae": 21.953366249491513,
+            "n": 30646,
+            "rmse": 28.143528346756323
+          },
+          "xray": {
+            "mae": 22.390798168958423,
+            "n": 30646,
+            "rmse": 28.574829297408037
+          }
+        },
+        "paired": {
+          "xray_minus_fixed_mae": 0.4374319194669095,
+          "xray_minus_neutral_mae": 1.3388875033976666
+        },
+        "per_race": {
+          "2026_r10_R": {
+            "energy_neutral": {
+              "mae": 15.680259398341247,
+              "n": 6367,
+              "rmse": 21.0183575027848
+            },
+            "fixed_energy": {
+              "mae": 16.582291281697636,
+              "n": 6367,
+              "rmse": 22.02321246576419
+            },
+            "xray": {
+              "mae": 16.790172495674934,
+              "n": 6367,
+              "rmse": 22.303498192756322
+            }
+          },
+          "2026_r12_R": {
+            "energy_neutral": {
+              "mae": 18.38654528451895,
+              "n": 5798,
+              "rmse": 22.67998608849821
+            },
+            "fixed_energy": {
+              "mae": 19.283348619724,
+              "n": 5798,
+              "rmse": 23.72772062652969
+            },
+            "xray": {
+              "mae": 19.725948329227194,
+              "n": 5798,
+              "rmse": 24.20624882277589
+            }
+          },
+          "2026_r1_R": {
+            "energy_neutral": {
+              "mae": 16.393021778492315,
+              "n": 6068,
+              "rmse": 21.947636364032352
+            },
+            "fixed_energy": {
+              "mae": 16.802951674069547,
+              "n": 6068,
+              "rmse": 22.56158272335984
+            },
+            "xray": {
+              "mae": 17.12585531237885,
+              "n": 6068,
+              "rmse": 22.801833778222317
+            }
+          },
+          "2026_r6_R": {
+            "energy_neutral": {
+              "mae": 35.47261573414913,
+              "n": 5881,
+              "rmse": 39.95023109243229
+            },
+            "fixed_energy": {
+              "mae": 37.22429712344347,
+              "n": 5881,
+              "rmse": 41.598685763632524
+            },
+            "xray": {
+              "mae": 38.2334648351195,
+              "n": 5881,
+              "rmse": 42.30075330776525
+            }
+          },
+          "2026_r9_R": {
+            "energy_neutral": {
+              "mae": 19.998184908676198,
+              "n": 6532,
+              "rmse": 25.889540102987883
+            },
+            "fixed_energy": {
+              "mae": 20.59432885072922,
+              "n": 6532,
+              "rmse": 26.696668106003557
+            },
+            "xray": {
+              "mae": 20.84256387970386,
+              "n": 6532,
+              "rmse": 27.052825700600643
+            }
+          }
+        }
+      },
+      "straight_speed_3s": {
+        "aggregate": {
+          "energy_neutral": {
+            "mae": 5.684472804347788,
+            "n": 6420,
+            "rmse": 8.312848840743568
+          },
+          "fixed_energy": {
+            "mae": 5.620662338734203,
+            "n": 6420,
+            "rmse": 8.525612317685589
+          },
+          "xray": {
+            "mae": 5.899864291129489,
+            "n": 6420,
+            "rmse": 9.2960501249394
+          }
+        },
+        "paired": {
+          "xray_minus_fixed_mae": 0.2792019523952872,
+          "xray_minus_neutral_mae": 0.21539148678170156
+        },
+        "per_race": {
+          "2026_r10_R": {
+            "energy_neutral": {
+              "mae": 5.705930746317271,
+              "n": 2428,
+              "rmse": 7.7095295968163855
+            },
+            "fixed_energy": {
+              "mae": 5.841124774041589,
+              "n": 2428,
+              "rmse": 7.971833709726716
+            },
+            "xray": {
+              "mae": 6.055578278982192,
+              "n": 2428,
+              "rmse": 8.93075328805582
+            }
+          },
+          "2026_r12_R": {
+            "energy_neutral": {
+              "mae": 8.349413130184479,
+              "n": 581,
+              "rmse": 11.109649174343255
+            },
+            "fixed_energy": {
+              "mae": 8.257379481337717,
+              "n": 581,
+              "rmse": 11.202932749483043
+            },
+            "xray": {
+              "mae": 8.455698379399955,
+              "n": 581,
+              "rmse": 12.093857517360028
+            }
+          },
+          "2026_r1_R": {
+            "energy_neutral": {
+              "mae": 5.33220861131344,
+              "n": 2057,
+              "rmse": 8.17073077600606
+            },
+            "fixed_energy": {
+              "mae": 4.988685277293293,
+              "n": 2057,
+              "rmse": 8.26857840586032
+            },
+            "xray": {
+              "mae": 5.505692095320912,
+              "n": 2057,
+              "rmse": 9.04634424475787
+            }
+          },
+          "2026_r9_R": {
+            "energy_neutral": {
+              "mae": 5.037631764952389,
+              "n": 1354,
+              "rmse": 8.166244928206265
+            },
+            "fixed_energy": {
+              "mae": 5.054016373154419,
+              "n": 1354,
+              "rmse": 8.541763409553363
+            },
+            "xray": {
+              "mae": 5.122758706924722,
+              "n": 1354,
+              "rmse": 8.923841817305659
+            }
+          }
+        }
+      }
+    },
+    "nuisance_sensitivity": {
+      "downstream_prediction_at_fixed_energy": [
+        {
+          "cutoff_t": 3357.65,
+          "driver": "ALB",
+          "predicted_speed_mps": {
+            "cda_high": 77.5830580891728,
+            "cda_low": 78.60444866811785,
+            "mass_768kg": 78.0893858691751,
+            "mass_821kg": 76.44635658455945,
+            "nominal": 78.0893858691751
+          },
+          "race_id": "2026_r10_R",
+          "range_mps": 2.158092083558401,
+          "target": "future_speed_5s",
+          "xray_energy_mj": 1.2435
+        },
+        {
+          "cutoff_t": 7303.37,
+          "driver": "GAS",
+          "predicted_speed_mps": {
+            "cda_high": 52.77777777777778,
+            "cda_low": 52.77777777777778,
+            "mass_768kg": 52.77777777777778,
+            "mass_821kg": 52.62502770927439,
+            "nominal": 52.77777777777778
+          },
+          "race_id": "2026_r10_R",
+          "range_mps": 0.15275006850338713,
+          "target": "future_speed_5s",
+          "xray_energy_mj": 0.0293
+        },
+        {
+          "cutoff_t": 5464.73,
+          "driver": "OCO",
+          "predicted_speed_mps": {
+            "cda_high": 31.45268335076898,
+            "cda_low": 29.79809085359596,
+            "mass_768kg": 28.604763199071304,
+            "mass_821kg": 28.506497737013312,
+            "nominal": 28.604763199071304
+          },
+          "race_id": "2026_r10_R",
+          "range_mps": 2.9461856137556666,
+          "target": "straight_speed_3s",
+          "xray_energy_mj": 0.0
+        },
+        {
+          "cutoff_t": 9916.16,
+          "driver": "ALO",
+          "predicted_speed_mps": {
+            "cda_high": 57.06537614018299,
+            "cda_low": 57.445186556263884,
+            "mass_768kg": 57.235163783340965,
+            "mass_821kg": 57.42457104390155,
+            "nominal": 57.235163783340965
+          },
+          "race_id": "2026_r12_R",
+          "range_mps": 0.3798104160808933,
+          "target": "braking_point_speed",
+          "xray_energy_mj": 0.0863
+        },
+        {
+          "cutoff_t": 6812.55,
+          "driver": "LEC",
+          "predicted_speed_mps": {
+            "cda_high": 76.89994052599418,
+            "cda_low": 77.08080318503832,
+            "mass_768kg": 76.99022242792631,
+            "mass_821kg": 76.27085416510899,
+            "nominal": 76.99022242792631
+          },
+          "race_id": "2026_r12_R",
+          "range_mps": 0.8099490199293342,
+          "target": "future_speed_5s",
+          "xray_energy_mj": 0.0353
+        },
+        {
+          "cutoff_t": 8788.25,
+          "driver": "STR",
+          "predicted_speed_mps": {
+            "cda_high": 88.8353661299633,
+            "cda_low": 89.04121486195308,
+            "mass_768kg": 88.93814958362344,
+            "mass_821kg": 88.93202251633366,
+            "nominal": 88.93814958362344
+          },
+          "race_id": "2026_r12_R",
+          "range_mps": 0.20584873198977505,
+          "target": "straight_speed_3s",
+          "xray_energy_mj": 0.1264
+        },
+        {
+          "cutoff_t": 5923.65,
+          "driver": "COL",
+          "predicted_speed_mps": {
+            "cda_high": 19.04308260553812,
+            "cda_low": 19.444444444444443,
+            "mass_768kg": 19.444444444444443,
+            "mass_821kg": 19.444444444444443,
+            "nominal": 19.444444444444443
+          },
+          "race_id": "2026_r1_R",
+          "range_mps": 0.4013618389063218,
+          "target": "future_speed_5s",
+          "xray_energy_mj": 0.0
+        },
+        {
+          "cutoff_t": 5750.53,
+          "driver": "NOR",
+          "predicted_speed_mps": {
+            "cda_high": 71.76115356673803,
+            "cda_low": 73.14621853595014,
+            "mass_768kg": 72.44472663568533,
+            "mass_821kg": 71.92514530854453,
+            "nominal": 72.44472663568533
+          },
+          "race_id": "2026_r1_R",
+          "range_mps": 1.3850649692121095,
+          "target": "straight_speed_3s",
+          "xray_energy_mj": 0.0674
+        },
+        {
+          "cutoff_t": 8499.91,
+          "driver": "ALO",
+          "predicted_speed_mps": {
+            "cda_high": 72.01865412723211,
+            "mass_768kg": 82.9241431162006,
+            "mass_821kg": 81.55262839879694,
+            "nominal": 82.9241431162006
+          },
+          "race_id": "2026_r6_R",
+          "range_mps": 10.905488988968486,
+          "target": "future_speed_5s",
+          "xray_energy_mj": 0.3869
+        },
+        {
+          "cutoff_t": 3775.21,
+          "driver": "PER",
+          "predicted_speed_mps": {
+            "cda_high": 66.33938268847267,
+            "cda_low": 73.29804027947985,
+            "mass_768kg": 69.5740897655728,
+            "mass_821kg": 68.42612786663912,
+            "nominal": 69.5740897655728
+          },
+          "race_id": "2026_r6_R",
+          "range_mps": 6.9586575910071815,
+          "target": "future_speed_5s",
+          "xray_energy_mj": 0.088
+        },
+        {
+          "cutoff_t": 6751.06,
+          "driver": "BOT",
+          "predicted_speed_mps": {
+            "cda_high": 74.54278614559472,
+            "cda_low": 67.03029639379555,
+            "mass_768kg": 76.7902909117449,
+            "mass_821kg": 78.87532345300468,
+            "nominal": 76.7902909117449
+          },
+          "race_id": "2026_r9_R",
+          "range_mps": 11.84502705920913,
+          "target": "braking_point_speed",
+          "xray_energy_mj": 0.003
+        },
+        {
+          "cutoff_t": 7216.21,
+          "driver": "LIN",
+          "predicted_speed_mps": {
+            "cda_high": 79.96506651676476,
+            "cda_low": 86.89286859870359,
+            "mass_768kg": 83.23919269525652,
+            "mass_821kg": 83.24862694716307,
+            "nominal": 83.23919269525652
+          },
+          "race_id": "2026_r9_R",
+          "range_mps": 6.927802081938822,
+          "target": "future_speed_5s",
+          "xray_energy_mj": 0.0485
+        }
+      ],
+      "inferred_energy_rerun": {
+        "reason": "existing analysed payloads persist inferred traces but not the raw canonical gridded FastF1 frames/throttle/brake inputs needed to rerun realfit under alternate nuisance assumptions",
+        "status": "not_measured_from_current_corpus"
+      }
+    },
+    "rows_fingerprint": "fef408ed5396719dbf946049e5b40b8d9b56b0da82290ef02a4198d44b6fcec7",
+    "snapshot_schema_version": "p3-real-validation-v1",
+    "split": {
+      "fixed_energy": "mean inferred energy by target over training races only",
+      "method": "leave-one-race-out",
+      "race_groups": [
+        "2026_r10_R",
+        "2026_r12_R",
+        "2026_r1_R",
+        "2026_r6_R",
+        "2026_r9_R"
+      ]
+    },
+    "targets": [
+      "future_speed_5s",
+      "straight_speed_3s",
+      "braking_point_speed"
+    ]
+  },
+  "snapshot_schema_version": "p3-real-validation-v1",
+  "split_definition": {
+    "fixed_energy": "mean inferred energy by target over training races only",
+    "method": "leave-one-race-out",
+    "race_groups": [
+      "2026_r10_R",
+      "2026_r12_R",
+      "2026_r1_R",
+      "2026_r6_R",
+      "2026_r9_R"
+    ]
+  },
+  "summary_fingerprint": "6cdec912ce7a11cb6c3a804f31a2a88711651962ea71fbaf42cdf39c01984a06"
+}

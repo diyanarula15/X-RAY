@@ -1,0 +1,58 @@
+core           INFO 	Loading data for British Grand Prix - Race [v3.8.3]
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['16', '63', '44', '1', '6', '30', '41', '5', '43', '10', '81', '87', '31', '11', '12', '77', '55', '14', '18', '3', '23', '27']
+core           INFO 	Loading data for British Grand Prix - Race [v3.8.3]
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['16', '63', '44', '1', '6', '30', '41', '5', '43', '10', '81', '87', '31', '11', '12', '77', '55', '14', '18', '3', '23', '27']
+/Users/apple/Desktop/x-ray/xray/realfit.py:417: RuntimeWarning: All-NaN slice encountered
+  shared = np.nanmedian(M, axis=0)          # common mode
+  NOR: CdA 0.877 ident 0.00 deploy 3.45 MJ/lap
+  GAS: CdA 0.691 ident 0.00 deploy 3.78 MJ/lap
+  PER: CdA 0.910 ident 0.00 deploy 3.56 MJ/lap
+  ANT: CdA 0.814 ident 0.00 deploy 3.59 MJ/lap
+  ALO: CdA 0.932 ident 0.00 deploy 3.34 MJ/lap
+  LEC: CdA 0.703 ident 0.00 deploy 3.59 MJ/lap
+  STR: CdA 1.049 ident 0.00 deploy 3.20 MJ/lap
+  ALB: CdA 0.742 ident 0.00 deploy 3.47 MJ/lap
+  HUL: CdA 0.873 ident 0.00 deploy 3.44 MJ/lap
+  VER: CdA 0.871 ident 0.00 deploy 3.04 MJ/lap
+  LAW: CdA 1.148 ident 0.44 deploy 5.08 MJ/lap
+  OCO: CdA 0.816 ident 0.00 deploy 3.71 MJ/lap
+  LIN: CdA 1.096 ident 0.25 deploy 4.80 MJ/lap
+  COL: CdA 0.684 ident 0.00 deploy 3.96 MJ/lap
+  HAM: CdA 0.647 ident 0.00 deploy 3.87 MJ/lap
+  BOR: CdA 0.786 ident 0.00 deploy 3.70 MJ/lap
+  SAI: CdA 0.760 ident 0.00 deploy 4.02 MJ/lap
+  HAD: CdA 0.936 ident 0.00 deploy 3.38 MJ/lap
+  RUS: CdA 0.819 ident 0.00 deploy 3.38 MJ/lap
+  BOT: CdA 0.942 ident 0.00 deploy 3.66 MJ/lap
+  PIA: CdA 0.843 ident 0.00 deploy 3.20 MJ/lap
+  BEA: CdA 0.779 ident 0.00 deploy 3.69 MJ/lap
+
+British Grand Prix: 22 cars analysed, 20 refused
+  telemetry 4.17 Hz, 1112/1113 laps usable
+  pooled CdA: {'available': False, 'reason': 'only 2 identifiable cars'}
+  RDD rows: 959
+wrote /Users/apple/Desktop/x-ray/out/races/2026_r9_R.json (13.5 MB) in 90s

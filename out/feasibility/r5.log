@@ -1,0 +1,137 @@
+core           INFO 	Loading data for Canadian Grand Prix - Race [v3.8.3]
+req            INFO 	No cached data found for session_info. Loading data...
+_api           INFO 	Fetching session info data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for driver_info. Loading data...
+_api           INFO 	Fetching driver list...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for session_status_data. Loading data...
+_api           INFO 	Fetching session status data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for lap_count. Loading data...
+_api           INFO 	Fetching lap count data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for track_status_data. Loading data...
+_api           INFO 	Fetching track status data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for _extended_timing_data. Loading data...
+_api           INFO 	Fetching timing data...
+_api           INFO 	Parsing timing data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for timing_app_data. Loading data...
+_api           INFO 	Fetching timing app data...
+req            INFO 	Data has been written to cache!
+core           INFO 	Processing timing data...
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 41)
+req            INFO 	No cached data found for car_data. Loading data...
+_api           INFO 	Fetching car data...
+_api           INFO 	Parsing car data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for position_data. Loading data...
+_api           INFO 	Fetching position data...
+_api           INFO 	Parsing position data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for weather_data. Loading data...
+_api           INFO 	Fetching weather data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for race_control_messages. Loading data...
+_api           INFO 	Fetching race control messages...
+req            INFO 	Data has been written to cache!
+core           INFO 	Finished loading data for 22 drivers: ['12', '44', '3', '16', '6', '43', '30', '10', '55', '87', '81', '27', '5', '31', '18', '77', '11', '1', '63', '14', '23', '41']
+{
+ "year": 2026,
+ "round": 5,
+ "session": "R",
+ "event": "Canadian Grand Prix",
+ "circuit": "Montr\u00e9al",
+ "date": "2026-05-24",
+ "load_seconds": 30.1,
+ "n_drivers": 20,
+ "n_laps": 1211,
+ "dt_fastest_lap": {
+  "driver": "ANT",
+  "n_samples": 279,
+  "median_s": 0.23999999999978172,
+  "mean_s": 0.2661906474820151,
+  "p10_s": 0.15999999999985448,
+  "p90_s": 0.3999999999996362,
+  "max_s": 1.0399999999990541,
+  "effective_hz": 4.166666666670456,
+  "histogram": {
+   "0.00-0.10": 0,
+   "0.10-0.20": 68,
+   "0.20-0.25": 93,
+   "0.25-0.30": 26,
+   "0.30-0.35": 35,
+   "0.35-0.40": 35,
+   "0.40-0.50": 20,
+   "0.50-0.75": 0,
+   "0.75-1.00": 0,
+   "1.00-2.00": 1,
+   "2.00-10.00": 0
+  },
+  "median_dx_m": 14.400000000000546
+ },
+ "channels": {
+  "Speed": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 61.0,
+   "max": 327.0
+  },
+  "Throttle": {
+   "present": true,
+   "frac_nonzero": 0.8315412186379928,
+   "min": 0.0,
+   "max": 100.0
+  },
+  "Brake": {
+   "present": true,
+   "frac_nonzero": 0.1863799283154122,
+   "min": 0.0,
+   "max": 1.0
+  },
+  "nGear": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 1.0,
+   "max": 8.0
+  },
+  "RPM": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 6785.0,
+   "max": 12197.0
+  },
+  "DRS": {
+   "present": true,
+   "frac_nonzero": 0.0,
+   "min": 0.0,
+   "max": 0.0
+  }
+ },
+ "position": {
+  "n_samples": 293,
+  "source": "lap",
+  "has_Z": true,
+  "z_range_m": [
+   12.6,
+   17.8
+  ],
+  "z_std_m": 1.6091533797583275,
+  "z_frac_zero": 0.0,
+  "xy_range_m": [
+   633.6,
+   1903.3
+  ]
+ },
+ "weather": {
+  "available": true,
+  "air_temp_c": 12.84875,
+  "pressure_mbar": 1024.204375,
+  "wind_speed_ms": 3.015625
+ },
+ "total_seconds": 32.0
+}
+speed window: {'340': 0.0004, '330': 0.0022, '320': 0.0104, '310': 0.0389, '300': 0.0776, '290': 0.0997} vmax 350.0
+wrote out/feasibility/r5.json
