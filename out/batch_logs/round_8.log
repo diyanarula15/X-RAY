@@ -1,0 +1,290 @@
+﻿=== Round 8 ===
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for Austrian Grand Prix - Race [v3.8.3]
+At line:6 char:11
++     try { .\.venv\Scripts\python.exe scripts\07.a_feasibility.py --ro ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	No cached data found for session_info. Loading data...
+_api           INFO 	Fetching session info data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for driver_info. Loading data...
+_api           INFO 	Fetching driver list...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for session_status_data. Loading data...
+_api           INFO 	Fetching session status data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for lap_count. Loading data...
+_api           INFO 	Fetching lap count data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for track_status_data. Loading data...
+_api           INFO 	Fetching track status data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for _extended_timing_data. Loading data...
+_api           INFO 	Fetching timing data...
+_api           INFO 	Parsing timing data...
+_api        WARNING 	Failed to align laps for drivers: ['77']
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for timing_app_data. Loading data...
+_api           INFO 	Fetching timing app data...
+req            INFO 	Data has been written to cache!
+core           INFO 	Processing timing data...
+core        WARNING 	Driver 63 completed the race distance 00:00.530000 before the recorded end of the session.
+req            INFO 	No cached data found for car_data. Loading data...
+_api           INFO 	Fetching car data...
+_api           INFO 	Parsing car data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for position_data. Loading data...
+_api           INFO 	Fetching position data...
+_api           INFO 	Parsing position data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for weather_data. Loading data...
+_api           INFO 	Fetching weather data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for race_control_messages. Loading data...
+_api           INFO 	Fetching race control messages...
+req            INFO 	Data has been written to cache!
+core           INFO 	Finished loading data for 22 drivers: ['63', '3', '12', '81', '44', '6', '1', '16', '30', '41', 
+'5', '27', '10', '87', '43', '31', '23', '14', '18', '55', '11', '77']
+{
+ "year": 2026,
+ "round": 8,
+ "session": "R",
+ "event": "Austrian Grand Prix",
+ "circuit": "Spielberg",
+ "date": "2026-06-28",
+ "load_seconds": 52.3,
+ "n_drivers": 20,
+ "n_laps": 1339,
+ "dt_fastest_lap": {
+  "driver": "ANT",
+  "n_samples": 269,
+  "median_s": 0.23999999999978172,
+  "mean_s": 0.2620932835820895,
+  "p10_s": 0.15999999999985448,
+  "p90_s": 0.3999999999996362,
+  "max_s": 0.9200000000000728,
+  "effective_hz": 4.166666666670456,
+  "histogram": {
+   "0.00-0.10": 0,
+   "0.10-0.20": 91,
+   "0.20-0.25": 68,
+   "0.25-0.30": 37,
+   "0.30-0.35": 26,
+   "0.35-0.40": 22,
+   "0.40-0.50": 21,
+   "0.50-0.75": 1,
+   "0.75-1.00": 2,
+   "1.00-2.00": 0,
+   "2.00-10.00": 0
+  },
+  "median_dx_m": 14.599999999999909
+ },
+ "channels": {
+  "Speed": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 64.0,
+   "max": 321.0
+  },
+  "Throttle": {
+   "present": true,
+   "frac_nonzero": 0.7769516728624535,
+   "min": 0.0,
+   "max": 100.0
+  },
+  "Brake": {
+   "present": true,
+   "frac_nonzero": 0.1970260223048327,
+   "min": 0.0,
+   "max": 1.0
+  },
+  "nGear": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 1.0,
+   "max": 8.0
+  },
+  "RPM": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 7476.0,
+   "max": 12080.0
+  },
+  "DRS": {
+   "present": true,
+   "frac_nonzero": 0.0,
+   "min": 0.0,
+   "max": 0.0
+  }
+ },
+ "position": {
+  "n_samples": 262,
+  "source": "lap",
+  "has_Z": true,
+  "z_range_m": [
+   721.4,
+   784.8
+  ],
+  "z_std_m": 17.70771920094665,
+  "z_frac_zero": 0.0,
+  "xy_range_m": [
+   1247.9,
+   792.1
+  ]
+ },
+ "weather": {
+  "available": true,
+  "air_temp_c": 34.46711409395974,
+  "pressure_mbar": 941.3550335570471,
+  "wind_speed_ms": 1.522818791946309
+ },
+ "total_seconds": 64.1
+}
+speed window: {'340': 0.0, '330': 0.0005, '320': 0.0053, '310': 0.037, '300': 0.0929, '290': 0.1614} vmax 347.0
+wrote out\feasibility\r8.json
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for Austrian Grand Prix - Race [v3.8.3]
+At line:7 char:11
++     try { .\.venv\Scripts\python.exe scripts\07.b_run_real.py --round ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Driver 63 completed the race distance 00:00.530000 before the recorded end of the session.
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['63', '3', '12', '81', '44', '6', '1', '16', '30', '41', 
+'5', '27', '10', '87', '43', '31', '23', '14', '18', '55', '11', '77']
+core           INFO 	Loading data for Austrian Grand Prix - Race [v3.8.3]
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Driver 63 completed the race distance 00:00.530000 before the recorded end of the session.
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['63', '3', '12', '81', '44', '6', '1', '16', '30', '41', 
+'5', '27', '10', '87', '43', '31', '23', '14', '18', '55', '11', '77']
+D:\Projects\XRay Energy F1\X-RAY\xray\realfit.py:650: RuntimeWarning: All-NaN slice encountered
+  shared = np.nanmedian(M, axis=0)          # common mode
+
+Austrian Grand Prix — Spielberg: 4260 m, elevation yes, 8 corners, zones [('A', 830), ('B', 700), ('C', 450)]
+ingest: 22 cars, 1339 laps, 1339 usable (100%), rho=1.0591 kg/m^3
+
+car      CdA   identified set  ident  binding  coast   wind  resid kW
+LEC    1.084 [ 1.054, 1.114]   0.89     9917    744   +0.0       331
+BEA    1.071 [ 1.040, 1.103]   0.88    10203    800   +0.0       327
+ALO    1.202 [ 1.154, 1.250]   0.84     8477   1227   +0.0       271
+HUL    1.069 [ 0.982, 1.155]   0.68     9412   1328   +0.0       328
+STR    1.117 [ 0.939, 1.295]   0.36     4494   1094   +0.0       279
+PER    0.726 [ 0.564, 0.887]   0.11      277    109   +0.0       311
+COL    0.827 [ 0.643, 1.012]   0.11     6406   1057   +0.0       355
+NOR    0.603 [ 0.106, 1.099]   0.00     1332   1342   +0.0       390
+GAS    0.474 [-0.066, 1.014]   0.00      386    744   +0.0       399
+ANT    0.602 [ 0.226, 0.977]   0.00     1967    983   +0.0       391
+ALB    0.713 [ 0.267, 1.160]   0.00     2636   1204   +0.0       360
+VER    0.779 [ 0.498, 1.060]   0.00     5115   1584   +0.0       369
+LAW    0.885 [ 0.393, 1.376]   0.00     7921   1683   +0.0       338
+OCO    0.757 [ 0.371, 1.143]   0.00     3551    413   +0.0       365
+LIN    0.897 [ 0.547, 1.248]   0.00     8014   1456   +0.0       332
+HAM    1.135 [ 0.058, 2.211]   0.00    11178    591   +0.0       327
+BOR    0.982 [ 0.321, 1.644]   0.00     7415    795   +0.0       318
+SAI    0.418 [-0.252, 1.088]   0.00       31    195   +0.0       403
+HAD    0.917 [ 0.218, 1.615]   0.00     9146   1460   +0.0       356
+RUS    0.724 [ 0.359, 1.088]   0.00     3678   1044   +0.0       382
+BOT    1.032 [ 0.311, 1.754]   0.00      208     87   +0.0       276
+PIA    0.807 [ 0.540, 1.074]   0.00     6188   1284   +0.0       364
+
+field CdA: median 0.856, spread 0.418-1.202, iqr 0.335
+identifiability: median 0.00  (5/22 cars usable)
+field pooling: 5 identifiable cars -> CdA 1.094 [1.071, 1.117], field identifiability 0.92
+cross-car common mode: 8 cars, shared rms 350 kW, per-car residual 117 kW, variance explained 87%
+
+NOR deployment: peak 360 kW, mean-when-on 165 kW, per-lap 7.97 MJ deployed / 4.07 MJ recovered (regulation: 4.0 MJ store, 7.0 MJ harvest/lap)
+
+total 36s
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for Austrian Grand Prix - Race [v3.8.3]
+At line:8 char:11
++     try { .\.venv\Scripts\python.exe scripts\08.b_analyse_race.py --r ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Driver 63 completed the race distance 00:00.530000 before the recorded end of the session.
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['63', '3', '12', '81', '44', '6', '1', '16', '30', '41', 
+'5', '27', '10', '87', '43', '31', '23', '14', '18', '55', '11', '77']
+core           INFO 	Loading data for Austrian Grand Prix - Race [v3.8.3]
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Driver 63 completed the race distance 00:00.530000 before the recorded end of the session.
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['63', '3', '12', '81', '44', '6', '1', '16', '30', '41', 
+'5', '27', '10', '87', '43', '31', '23', '14', '18', '55', '11', '77']
+D:\Projects\XRay Energy F1\X-RAY\xray\realfit.py:650: RuntimeWarning: All-NaN slice encountered
+  shared = np.nanmedian(M, axis=0)          # common mode
+  NOR: CdA 0.856 ident 0.00 deploy 3.97 MJ/lap
+  GAS: CdA 0.856 ident 0.00 deploy 4.44 MJ/lap
+  PER: CdA 0.658 ident 0.43 deploy 5.12 MJ/lap
+  ANT: CdA 0.856 ident 0.00 deploy 3.91 MJ/lap
+  ALO: CdA 0.856 ident 0.00 deploy 3.85 MJ/lap
+  LEC: CdA 0.856 ident 0.00 deploy 3.83 MJ/lap
+  STR: CdA 1.024 ident 0.67 deploy 3.98 MJ/lap
+  ALB: CdA 0.856 ident 0.00 deploy 4.32 MJ/lap
+  HUL: CdA 0.987 ident 0.98 deploy 3.80 MJ/lap
+  VER: CdA 0.856 ident 0.00 deploy 3.76 MJ/lap
+  LAW: CdA 0.856 ident 0.00 deploy 4.41 MJ/lap
+  OCO: CdA 0.856 ident 0.00 deploy 4.30 MJ/lap
+  LIN: CdA 0.856 ident 0.13 deploy 4.40 MJ/lap
+  COL: CdA 0.734 ident 0.50 deploy 4.39 MJ/lap
+  HAM: CdA 0.856 ident 0.00 deploy 4.12 MJ/lap
+  BOR: CdA 0.856 ident 0.00 deploy 4.12 MJ/lap
+  SAI: CdA 0.856 ident 0.00 deploy 4.45 MJ/lap
+  HAD: CdA 0.856 ident 0.00 deploy 4.02 MJ/lap
+  RUS: CdA 0.856 ident 0.00 deploy 3.89 MJ/lap
+  BOT: CdA 0.856 ident 0.00 deploy 4.42 MJ/lap
+  PIA: CdA 0.856 ident 0.06 deploy 4.07 MJ/lap
+  BEA: CdA 0.856 ident 0.00 deploy 4.27 MJ/lap
+
+Austrian Grand Prix: 22 cars analysed, 18 refused
+  telemetry 4.17 Hz, 1339/1339 laps usable
+  pooled CdA: {'available': True, 'n_cars_pooled': 4, 'cda_pooled': 0.8557350882022697, 'cda_lo': 0.7151141619367791, 'cda_hi': 0.9963560144677603, 'per_car_deviation_pct': {'NOR': -41.58013707464255, 'GAS': -53.83593190341033, 'PER': -23.112268009983968, 'ANT': -39.49016013794863, 'ALO': 22.660726540906413, 'LEC': 22.40290311223779, 'STR': 19.719170082202105, 'ALB': -29.897176695236, 'HUL': 15.337295112106267, 'VER': -18.45681878836961, 'LAW': -2.466514650182186, 'OCO': -23.816562950142483, 'LIN': -18.307227217262202, 'COL': -14.206262469512309, 'HAM': 26.251410497396442, 'BOR': 5.166113997664966, 'SAI': -57.99827621993031, 'HAD': -4.054760029905469, 'RUS': -27.065863269251402, 'BOT': 17.288694950148916, 'PIA': -17.535495121553343, 'BEA': -45.49015383136529}, 'field_identifiability': 0.3426894458147912}
+  RDD rows: 1208
+wrote D:\Projects\XRay Energy F1\X-RAY\out\races\2026_r8_R.json (13.5 MB) in 214s

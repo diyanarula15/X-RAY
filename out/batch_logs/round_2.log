@@ -1,0 +1,304 @@
+﻿=== Round 2 ===
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for Chinese Grand Prix - Race [v3.8.3]
+At line:6 char:11
++     try { .\.venv\Scripts\python.exe scripts\07.a_feasibility.py --ro ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	No cached data found for session_info. Loading data...
+_api           INFO 	Fetching session info data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for driver_info. Loading data...
+_api           INFO 	Fetching driver list...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for session_status_data. Loading data...
+_api           INFO 	Fetching session status data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for lap_count. Loading data...
+_api           INFO 	Fetching lap count data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for track_status_data. Loading data...
+_api           INFO 	Fetching track status data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for _extended_timing_data. Loading data...
+_api           INFO 	Fetching timing data...
+_api           INFO 	Parsing timing data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for timing_app_data. Loading data...
+_api           INFO 	Fetching timing app data...
+req            INFO 	Data has been written to cache!
+core           INFO 	Processing timing data...
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 81)
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 1)
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 5)
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 23)
+core        WARNING 	Driver 12 completed the race distance 00:00.022000 before the recorded end of the session.
+req            INFO 	No cached data found for car_data. Loading data...
+_api           INFO 	Fetching car data...
+_api           INFO 	Parsing car data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for position_data. Loading data...
+_api           INFO 	Fetching position data...
+_api           INFO 	Parsing position data...
+_api        WARNING 	Driver 241: Position data is incomplete!
+_api        WARNING 	Driver 242: Position data is incomplete!
+_api        WARNING 	Driver 243: Position data is incomplete!
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for weather_data. Loading data...
+_api           INFO 	Fetching weather data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for race_control_messages. Loading data...
+_api           INFO 	Fetching race control messages...
+req            INFO 	Data has been written to cache!
+core           INFO 	Finished loading data for 22 drivers: ['12', '63', '44', '16', '87', '10', '30', '6', '55', '43', 
+'27', '41', '77', '31', '11', '3', '14', '18', '81', '1', '5', '23']
+{
+ "year": 2026,
+ "round": 2,
+ "session": "R",
+ "event": "Chinese Grand Prix",
+ "circuit": "Shanghai",
+ "date": "2026-03-15",
+ "load_seconds": 21.5,
+ "n_drivers": 18,
+ "n_laps": 920,
+ "dt_fastest_lap": {
+  "driver": "ANT",
+  "n_samples": 357,
+  "median_s": 0.23999999999978172,
+  "mean_s": 0.2670786516853931,
+  "p10_s": 0.15999999999985448,
+  "p90_s": 0.36049999999977445,
+  "max_s": 1.0400000000008731,
+  "effective_hz": 4.166666666670456,
+  "histogram": {
+   "0.00-0.10": 0,
+   "0.10-0.20": 90,
+   "0.20-0.25": 99,
+   "0.25-0.30": 55,
+   "0.30-0.35": 41,
+   "0.35-0.40": 48,
+   "0.40-0.50": 20,
+   "0.50-0.75": 1,
+   "0.75-1.00": 0,
+   "1.00-2.00": 2,
+   "2.00-10.00": 0
+  },
+  "median_dx_m": 13.772222222221899
+ },
+ "channels": {
+  "Speed": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 65.0,
+   "max": 321.0
+  },
+  "Throttle": {
+   "present": true,
+   "frac_nonzero": 0.7983193277310925,
+   "min": 0.0,
+   "max": 104.0
+  },
+  "Brake": {
+   "present": true,
+   "frac_nonzero": 0.21008403361344538,
+   "min": 0.0,
+   "max": 1.0
+  },
+  "nGear": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 1.0,
+   "max": 8.0
+  },
+  "RPM": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 6735.0,
+   "max": 12065.0
+  },
+  "DRS": {
+   "present": true,
+   "frac_nonzero": 0.0,
+   "min": 0.0,
+   "max": 0.0
+  }
+ },
+ "position": {
+  "n_samples": 358,
+  "source": "lap",
+  "has_Z": true,
+  "z_range_m": [
+   13.9,
+   21.0
+  ],
+  "z_std_m": 1.4879835569310151,
+  "z_frac_zero": 0.0,
+  "xy_range_m": [
+   1219.8,
+   1084.3
+  ]
+ },
+ "weather": {
+  "available": true,
+  "air_temp_c": 15.572368421052632,
+  "pressure_mbar": 1024.4815789473682,
+  "wind_speed_ms": 2.193421052631579
+ },
+ "total_seconds": 30.9
+}
+speed window: {'340': 0.0044, '330': 0.0131, '320': 0.04, '310': 0.0769, '300': 0.1114, '290': 0.1448} vmax 352.0
+wrote out\feasibility\r2.json
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for Chinese Grand Prix - Race [v3.8.3]
+At line:7 char:11
++     try { .\.venv\Scripts\python.exe scripts\07.b_run_real.py --round ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 81)
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 1)
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 5)
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 23)
+core        WARNING 	Driver 12 completed the race distance 00:00.022000 before the recorded end of the session.
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['12', '63', '44', '16', '87', '10', '30', '6', '55', '43', 
+'27', '41', '77', '31', '11', '3', '14', '18', '81', '1', '5', '23']
+core           INFO 	Loading data for Chinese Grand Prix - Race [v3.8.3]
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 81)
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 1)
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 5)
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 23)
+core        WARNING 	Driver 12 completed the race distance 00:00.022000 before the recorded end of the session.
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['12', '63', '44', '16', '87', '10', '30', '6', '55', '43', 
+'27', '41', '77', '31', '11', '3', '14', '18', '81', '1', '5', '23']
+D:\Projects\XRay Energy F1\X-RAY\xray\realfit.py:650: RuntimeWarning: All-NaN slice encountered
+  shared = np.nanmedian(M, axis=0)          # common mode
+
+Chinese Grand Prix — Shanghai: 5422 m, elevation yes, 8 corners, zones [('A', 1180), ('B', 510), ('C', 470)]
+ingest: 18 cars, 920 laps, 919 usable (100%), rho=1.2317 kg/m^3
+
+car      CdA   identified set  ident  binding  coast   wind  resid kW
+ALO    0.535 [ 0.523, 0.548]   0.90      837    597   +0.0       400
+GAS    1.287 [ 0.009, 2.565]   0.00    14881    804   +0.0       422
+PER    0.592 [ 0.394, 0.790]   0.00     2828   1205   +0.0       319
+ANT    0.685 [ 0.471, 0.898]   0.00     4555    779   +0.0       357
+LEC    0.559 [ 0.322, 0.796]   0.00     2224    586   +0.0       353
+STR    0.472 [ 0.104, 0.840]   0.00      123    267   +0.0       365
+HUL    0.444 [-0.265, 1.152]   0.00      674    852   +0.0       392
+VER    0.807 [ 0.056, 1.559]   0.00     6246   1927   +0.0       306
+LAW    0.738 [ 0.277, 1.198]   0.00     6859   1819   +0.0       356
+OCO    0.638 [ 0.387, 0.889]   0.00     3894    569   +0.5       401
+LIN    0.119 [-0.277, 0.515]   0.00      307    943   +4.0       461
+COL    0.611 [ 0.408, 0.814]   0.00     3813   1126   +0.0       341
+HAM    0.581 [ 0.239, 0.924]   0.00     2041    545   +0.0       327
+SAI    0.234 [-0.128, 0.596]   0.00      334    846   +4.0       495
+HAD    0.755 [ 0.064, 1.445]   0.00     7376   1876   +0.0       343
+RUS    0.463 [ 0.273, 0.653]   0.00     1440    928   +1.0       448
+BOT    0.475 [ 0.123, 0.827]   0.00      834   1385   +0.0       434
+BEA    0.138 [-0.249, 0.526]   0.00      243    898   +4.0       481
+
+field CdA: median 0.570, spread 0.119-1.287, iqr 0.208
+identifiability: median 0.00  (1/18 cars usable)
+field pooling: unavailable — only 1 identifiable cars
+cross-car common mode: 8 cars, shared rms 263 kW, per-car residual 292 kW, variance explained 32%
+
+GAS deployment: peak 410 kW, mean-when-on 190 kW, per-lap 7.65 MJ deployed / 2.96 MJ recovered (regulation: 4.0 MJ store, 7.0 MJ harvest/lap)
+
+total 35s
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for Chinese Grand Prix - Race [v3.8.3]
+At line:8 char:11
++     try { .\.venv\Scripts\python.exe scripts\08.b_analyse_race.py --r ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 81)
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 1)
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 5)
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 23)
+core        WARNING 	Driver 12 completed the race distance 00:00.022000 before the recorded end of the session.
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['12', '63', '44', '16', '87', '10', '30', '6', '55', '43', 
+'27', '41', '77', '31', '11', '3', '14', '18', '81', '1', '5', '23']
+core           INFO 	Loading data for Chinese Grand Prix - Race [v3.8.3]
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 81)
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 1)
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 5)
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 23)
+core        WARNING 	Driver 12 completed the race distance 00:00.022000 before the recorded end of the session.
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['12', '63', '44', '16', '87', '10', '30', '6', '55', '43', 
+'27', '41', '77', '31', '11', '3', '14', '18', '81', '1', '5', '23']
+D:\Projects\XRay Energy F1\X-RAY\xray\realfit.py:650: RuntimeWarning: All-NaN slice encountered
+  shared = np.nanmedian(M, axis=0)          # common mode
+  GAS: CdA 0.659 ident 0.00 deploy 2.30 MJ/lap
+  PER: CdA 0.744 ident 0.75 deploy 3.68 MJ/lap
+  ANT: CdA 0.659 ident 0.00 deploy 3.59 MJ/lap
+  ALO: CdA 0.659 ident 0.00 deploy 3.61 MJ/lap
+  LEC: CdA 0.659 ident 0.00 deploy 3.75 MJ/lap
+  STR: CdA 0.659 ident 0.00 deploy 3.07 MJ/lap
+  HUL: CdA 0.659 ident 0.00 deploy 3.84 MJ/lap
+  VER: CdA 0.659 ident 0.00 deploy 3.66 MJ/lap
+  LAW: CdA 0.707 ident 0.77 deploy 3.39 MJ/lap
+  OCO: CdA 0.659 ident 0.00 deploy 3.85 MJ/lap
+  LIN: CdA 0.489 ident 0.42 deploy 3.13 MJ/lap
+  COL: CdA 0.659 ident 0.00 deploy 3.85 MJ/lap
+  HAM: CdA 0.874 ident 0.77 deploy 3.94 MJ/lap
+  SAI: CdA 0.575 ident 0.46 deploy 3.65 MJ/lap
+  HAD: CdA 0.659 ident 0.00 deploy 3.55 MJ/lap
+  RUS: CdA 0.659 ident 0.00 deploy 3.49 MJ/lap
+  BOT: CdA 0.659 ident 0.00 deploy 3.82 MJ/lap
+  BEA: CdA 0.659 ident 0.00 deploy 3.61 MJ/lap
+
+Chinese Grand Prix: 18 cars analysed, 13 refused
+  telemetry 4.17 Hz, 919/920 laps usable
+  pooled CdA: {'available': True, 'n_cars_pooled': 5, 'cda_pooled': 0.6590929464378521, 'cda_lo': 0.5746048181296026, 'cda_hi': 0.7435810747461016, 'per_car_deviation_pct': {'GAS': 156.94367138607998, 'PER': 12.818848808028646, 'ANT': 83.08872487967881, 'ALO': -43.91110641914325, 'LEC': 121.32082414972521, 'STR': 0.4316519959858962, 'HUL': -24.884741150038707, 'VER': 54.61322195845434, 'LAW': 7.205077188361272, 'OCO': 90.11976913931099, 'LIN': -25.800628212208917, 'COL': 55.37186371404252, 'HAM': 32.578210737915754, 'SAI': -12.818848808028646, 'HAD': 47.2606611169304, 'RUS': 26.00559659997906, 'BOT': 169.33478467555406, 'BEA': -34.581125524981445}, 'field_identifiability': 0.48724604767885427}
+  RDD rows: 844
+wrote D:\Projects\XRay Energy F1\X-RAY\out\races\2026_r2_R.json (11.6 MB) in 86s

@@ -1,0 +1,292 @@
+﻿=== Round 4 ===
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for Miami Grand Prix - Race [v3.8.3]
+At line:6 char:11
++     try { .\.venv\Scripts\python.exe scripts\07.a_feasibility.py --ro ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	No cached data found for session_info. Loading data...
+_api           INFO 	Fetching session info data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for driver_info. Loading data...
+_api           INFO 	Fetching driver list...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for session_status_data. Loading data...
+_api           INFO 	Fetching session status data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for lap_count. Loading data...
+_api           INFO 	Fetching lap count data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for track_status_data. Loading data...
+_api           INFO 	Fetching track status data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for _extended_timing_data. Loading data...
+_api           INFO 	Fetching timing data...
+_api           INFO 	Parsing timing data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for timing_app_data. Loading data...
+_api           INFO 	Fetching timing app data...
+req            INFO 	Data has been written to cache!
+core           INFO 	Processing timing data...
+core        WARNING 	Driver 12 completed the race distance 00:00.027000 before the recorded end of the session.
+req            INFO 	No cached data found for car_data. Loading data...
+_api           INFO 	Fetching car data...
+_api           INFO 	Parsing car data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for position_data. Loading data...
+_api           INFO 	Fetching position data...
+_api           INFO 	Parsing position data...
+_api        WARNING 	Driver 241: Position data is incomplete!
+_api        WARNING 	Driver 242: Position data is incomplete!
+_api        WARNING 	Driver 243: Position data is incomplete!
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for weather_data. Loading data...
+_api           INFO 	Fetching weather data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for race_control_messages. Loading data...
+_api           INFO 	Fetching race control messages...
+req            INFO 	Data has been written to cache!
+core           INFO 	Finished loading data for 22 drivers: ['12', '1', '81', '63', '3', '44', '43', '16', '55', '23', 
+'87', '5', '31', '41', '14', '11', '18', '77', '27', '30', '10', '6']
+{
+ "year": 2026,
+ "round": 4,
+ "session": "R",
+ "event": "Miami Grand Prix",
+ "circuit": "Miami Gardens",
+ "date": "2026-05-03",
+ "load_seconds": 40.6,
+ "n_drivers": 20,
+ "n_laps": 1040,
+ "dt_fastest_lap": {
+  "driver": "NOR",
+  "n_samples": 339,
+  "median_s": 0.24000000000069122,
+  "mean_s": 0.2706508875739632,
+  "p10_s": 0.15999999999985448,
+  "p90_s": 0.3999999999996362,
+  "max_s": 0.9200000000000728,
+  "effective_hz": 4.166666666654667,
+  "histogram": {
+   "0.00-0.10": 0,
+   "0.10-0.20": 112,
+   "0.20-0.25": 63,
+   "0.25-0.30": 50,
+   "0.30-0.35": 41,
+   "0.35-0.40": 40,
+   "0.40-0.50": 27,
+   "0.50-0.75": 3,
+   "0.75-1.00": 2,
+   "1.00-2.00": 0,
+   "2.00-10.00": 0
+  },
+  "median_dx_m": 13.899999999999977
+ },
+ "channels": {
+  "Speed": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 64.0,
+   "max": 331.0
+  },
+  "Throttle": {
+   "present": true,
+   "frac_nonzero": 0.7492625368731564,
+   "min": 0.0,
+   "max": 100.0
+  },
+  "Brake": {
+   "present": true,
+   "frac_nonzero": 0.17699115044247787,
+   "min": 0.0,
+   "max": 1.0
+  },
+  "nGear": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 1.0,
+   "max": 8.0
+  },
+  "RPM": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 6731.0,
+   "max": 12352.0
+  },
+  "DRS": {
+   "present": true,
+   "frac_nonzero": 0.0,
+   "min": 0.0,
+   "max": 0.0
+  }
+ },
+ "position": {
+  "n_samples": 352,
+  "source": "lap",
+  "has_Z": true,
+  "z_range_m": [
+   23.7,
+   27.4
+  ],
+  "z_std_m": 0.5836125533898098,
+  "z_frac_zero": 0.0,
+  "xy_range_m": [
+   1498.5,
+   587.1
+  ]
+ },
+ "weather": {
+  "available": true,
+  "air_temp_c": 27.12559523809524,
+  "pressure_mbar": 1015.647619047619,
+  "wind_speed_ms": 1.1517857142857142
+ },
+ "total_seconds": 50.5
+}
+speed window: {'340': 0.0018, '330': 0.0103, '320': 0.0492, '310': 0.1172, '300': 0.1593, '290': 0.1886} vmax 350.0
+wrote out\feasibility\r4.json
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for Miami Grand Prix - Race [v3.8.3]
+At line:7 char:11
++     try { .\.venv\Scripts\python.exe scripts\07.b_run_real.py --round ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Driver 12 completed the race distance 00:00.027000 before the recorded end of the session.
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['12', '1', '81', '63', '3', '44', '43', '16', '55', '23', 
+'87', '5', '31', '41', '14', '11', '18', '77', '27', '30', '10', '6']
+core           INFO 	Loading data for Miami Grand Prix - Race [v3.8.3]
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Driver 12 completed the race distance 00:00.027000 before the recorded end of the session.
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['12', '1', '81', '63', '3', '44', '43', '16', '55', '23', 
+'87', '5', '31', '41', '14', '11', '18', '77', '27', '30', '10', '6']
+D:\Projects\XRay Energy F1\X-RAY\xray\realfit.py:650: RuntimeWarning: All-NaN slice encountered
+  shared = np.nanmedian(M, axis=0)          # common mode
+
+Miami Grand Prix — Miami Gardens: 5322 m, elevation NO, 12 corners, zones [('A', 1350), ('B', 1210), ('C', 420)]
+ingest: 22 cars, 1040 laps, 1040 usable (100%), rho=1.1672 kg/m^3
+
+car      CdA   identified set  ident  binding  coast   wind  resid kW
+LIN    0.983 [ 0.944, 1.023]   0.84    10588   1372   +0.0       288
+PER    0.980 [ 0.923, 1.037]   0.77     9898   1819   +0.0       254
+LAW    0.938 [ 0.874, 1.002]   0.73      987    173   +0.0       253
+BOT    1.020 [ 0.946, 1.094]   0.71    10235   1730   +0.0       254
+ALO    0.914 [ 0.807, 1.021]   0.53     6858   1646   +0.0       284
+NOR    0.545 [ 0.196, 0.894]   0.00     2275   1727   +0.0       348
+GAS    0.215 [-0.121, 0.552]   0.00       13     63   +0.0       455
+ANT    0.510 [ 0.072, 0.949]   0.00     1167    844   +0.0       360
+LEC    0.582 [ 0.250, 0.914]   0.00     2071    455   +0.0       343
+STR    0.855 [ 0.540, 1.171]   0.00     4563   1473   +0.0       287
+ALB    0.564 [ 0.152, 0.975]   0.00     2121   1077   +0.0       345
+HUL    0.563 [ 0.101, 1.025]   0.00      117    239   +0.0       290
+VER    0.786 [ 0.589, 0.983]   0.00     7848   2222   +0.0       317
+OCO    0.178 [-0.498, 0.854]   0.00       14    485   +3.5       388
+COL    0.637 [ 0.289, 0.985]   0.00     4249    987   +0.0       334
+HAM    0.728 [ 0.488, 0.968]   0.00     6190    724   +0.0       325
+BOR    0.844 [-0.055, 1.742]   0.00     7798    880   +0.0       286
+SAI    0.400 [-0.047, 0.847]   0.00      449    681   +3.5       364
+HAD    0.817 [-0.011, 1.645]   0.00      952    139   +0.0       308
+RUS    0.424 [ 0.116, 0.732]   0.00     1027   1236   +0.0       394
+PIA    0.565 [ 0.180, 0.950]   0.00     2101   1517   +0.0       343
+BEA    0.493 [ 0.133, 0.854]   0.00     1287    700   +0.5       360
+
+field CdA: median 0.610, spread 0.178-1.020, iqr 0.333
+identifiability: median 0.00  (5/22 cars usable)
+field pooling: 5 identifiable cars -> CdA 0.974 [0.946, 1.002], field identifiability 0.89
+cross-car common mode: 10 cars, shared rms 331 kW, per-car residual 107 kW, variance explained 88%
+
+NOR deployment: peak 359 kW, mean-when-on 130 kW, per-lap 8.44 MJ deployed / 3.40 MJ recovered (regulation: 4.0 MJ store, 7.0 MJ harvest/lap)
+
+total 36s
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for Miami Grand Prix - Race [v3.8.3]
+At line:8 char:11
++     try { .\.venv\Scripts\python.exe scripts\08.b_analyse_race.py --r ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Driver 12 completed the race distance 00:00.027000 before the recorded end of the session.
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['12', '1', '81', '63', '3', '44', '43', '16', '55', '23', 
+'87', '5', '31', '41', '14', '11', '18', '77', '27', '30', '10', '6']
+core           INFO 	Loading data for Miami Grand Prix - Race [v3.8.3]
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Driver 12 completed the race distance 00:00.027000 before the recorded end of the session.
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['12', '1', '81', '63', '3', '44', '43', '16', '55', '23', 
+'87', '5', '31', '41', '14', '11', '18', '77', '27', '30', '10', '6']
+D:\Projects\XRay Energy F1\X-RAY\xray\realfit.py:650: RuntimeWarning: All-NaN slice encountered
+  shared = np.nanmedian(M, axis=0)          # common mode
+  NOR: CdA 0.966 ident 0.00 deploy 4.51 MJ/lap
+  GAS: CdA 0.966 ident 0.00 deploy 4.48 MJ/lap
+  PER: CdA 0.954 ident 0.87 deploy 3.74 MJ/lap
+  ANT: CdA 0.966 ident 0.00 deploy 4.30 MJ/lap
+  ALO: CdA 0.908 ident 0.56 deploy 3.58 MJ/lap
+  LEC: CdA 0.966 ident 0.00 deploy 3.91 MJ/lap
+  STR: CdA 0.966 ident 0.00 deploy 3.42 MJ/lap
+  ALB: CdA 0.966 ident 0.00 deploy 4.21 MJ/lap
+  HUL: CdA 0.966 ident 0.00 deploy 3.93 MJ/lap
+  VER: CdA 0.966 ident 0.07 deploy 4.09 MJ/lap
+  LAW: CdA 0.935 ident 0.74 deploy 3.89 MJ/lap
+  OCO: CdA 0.966 ident 0.00 deploy 4.06 MJ/lap
+  LIN: CdA 0.966 ident 0.91 deploy 3.92 MJ/lap
+  COL: CdA 0.966 ident 0.00 deploy 4.38 MJ/lap
+  HAM: CdA 0.966 ident 0.00 deploy 3.97 MJ/lap
+  BOR: CdA 0.966 ident 0.00 deploy 3.72 MJ/lap
+  SAI: CdA 0.966 ident 0.00 deploy 4.45 MJ/lap
+  HAD: CdA 0.966 ident 0.00 deploy 4.81 MJ/lap
+  RUS: CdA 0.966 ident 0.00 deploy 4.44 MJ/lap
+  BOT: CdA 1.000 ident 0.78 deploy 3.77 MJ/lap
+  PIA: CdA 0.966 ident 0.00 deploy 4.31 MJ/lap
+  BEA: CdA 0.966 ident 0.00 deploy 4.55 MJ/lap
+
+Miami Grand Prix: 22 cars analysed, 17 refused
+  telemetry 4.17 Hz, 1040/1040 laps usable
+  pooled CdA: {'available': True, 'n_cars_pooled': 5, 'cda_pooled': 0.9659589595078386, 'cda_lo': 0.946064909056177, 'cda_hi': 0.9858530099595002, 'per_car_deviation_pct': {'NOR': -45.42467458269795, 'GAS': -77.74049274179595, 'PER': -1.204461756450975, 'ANT': -48.85336509030949, 'ALO': -6.050214403549733, 'LEC': -41.459077770905104, 'STR': -13.32178105917354, 'ALB': -43.32416922974339, 'HUL': -42.891830900418775, 'VER': -20.46437656556012, 'LAW': -3.239320939012225, 'OCO': -82.0756973132359, 'LIN': 0.010381207157765967, 'COL': -35.625246712338146, 'HAM': -26.14958423788163, 'BOR': -17.284581407766463, 'SAI': -58.052006473205836, 'HAD': -21.630288861777924, 'RUS': -56.903518764254414, 'BOT': 3.5587182289723396, 'PIA': -43.696778522506634, 'BEA': -49.965872620862285}, 'field_identifiability': 0.9176194795613357}
+  RDD rows: 931
+wrote D:\Projects\XRay Energy F1\X-RAY\out\races\2026_r4_R.json (13.4 MB) in 58s

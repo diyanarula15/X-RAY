@@ -1,14 +1,9 @@
-out/
 __pycache__/
 *.pyc
 .venv/
 .pytest_cache/
 *.mp4
 xray/data/cache/
-out/feasibility/*.json
 app/node_modules/
 app/dist/
 node_modules/
-out/shots/
-out/sessions/
-out/races/*.json

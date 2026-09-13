@@ -1,0 +1,265 @@
+﻿=== Round 1 ===
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for Australian Grand Prix - Race [v3.8.3]
+At line:6 char:11
++     try { .\.venv\Scripts\python.exe scripts\07.a_feasibility.py --ro ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 81)
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 27)
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['63', '12', '16', '44', '1', '3', '87', '41', '5', '10', 
+'31', '23', '30', '43', '55', '11', '18', '14', '77', '6', '81', '27']
+{
+ "year": 2026,
+ "round": 1,
+ "session": "R",
+ "event": "Australian Grand Prix",
+ "circuit": "Melbourne",
+ "date": "2026-03-08",
+ "load_seconds": 2.8,
+ "n_drivers": 20,
+ "n_laps": 1006,
+ "dt_fastest_lap": {
+  "driver": "VER",
+  "n_samples": 313,
+  "median_s": 0.23999999999978172,
+  "mean_s": 0.26230769230768985,
+  "p10_s": 0.15999999999985448,
+  "p90_s": 0.36000000000049115,
+  "max_s": 1.1190000000005966,
+  "effective_hz": 4.166666666670456,
+  "histogram": {
+   "0.00-0.10": 0,
+   "0.10-0.20": 96,
+   "0.20-0.25": 82,
+   "0.25-0.30": 44,
+   "0.30-0.35": 36,
+   "0.35-0.40": 36,
+   "0.40-0.50": 16,
+   "0.50-0.75": 0,
+   "0.75-1.00": 1,
+   "1.00-2.00": 1,
+   "2.00-10.00": 0
+  },
+  "median_dx_m": 15.420833333333462
+ },
+ "channels": {
+  "Speed": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 83.0,
+   "max": 323.0
+  },
+  "Throttle": {
+   "present": true,
+   "frac_nonzero": 0.792332268370607,
+   "min": 0.0,
+   "max": 100.0
+  },
+  "Brake": {
+   "present": true,
+   "frac_nonzero": 0.134185303514377,
+   "min": 0.0,
+   "max": 1.0
+  },
+  "nGear": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 2.0,
+   "max": 8.0
+  },
+  "RPM": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 7658.0,
+   "max": 12129.0
+  },
+  "DRS": {
+   "present": true,
+   "frac_nonzero": 0.0,
+   "min": 0.0,
+   "max": 0.0
+  }
+ },
+ "position": {
+  "n_samples": 307,
+  "source": "lap",
+  "has_Z": true,
+  "z_range_m": [
+   7.5,
+   10.0
+  ],
+  "z_std_m": 0.49843285903274276,
+  "z_frac_zero": 0.0,
+  "xy_range_m": [
+   1471.3,
+   1741.6
+  ]
+ },
+ "weather": {
+  "available": true,
+  "air_temp_c": 24.23445945945946,
+  "pressure_mbar": 1012.5608108108108,
+  "wind_speed_ms": 2.5614864864864866
+ },
+ "total_seconds": 5.6
+}
+speed window: {'340': 0.0, '330': 0.0014, '320': 0.0153, '310': 0.0578, '300': 0.1023, '290': 0.1484} vmax 343.0
+wrote out\feasibility\r1.json
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for Australian Grand Prix - Race [v3.8.3]
+At line:7 char:11
++     try { .\.venv\Scripts\python.exe scripts\07.b_run_real.py --round ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 81)
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 27)
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['63', '12', '16', '44', '1', '3', '87', '41', '5', '10', 
+'31', '23', '30', '43', '55', '11', '18', '14', '77', '6', '81', '27']
+core           INFO 	Loading data for Australian Grand Prix - Race [v3.8.3]
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 81)
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 27)
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['63', '12', '16', '44', '1', '3', '87', '41', '5', '10', 
+'31', '23', '30', '43', '55', '11', '18', '14', '77', '6', '81', '27']
+D:\Projects\XRay Energy F1\X-RAY\xray\realfit.py:650: RuntimeWarning: All-NaN slice encountered
+  shared = np.nanmedian(M, axis=0)          # common mode
+
+Australian Grand Prix — Melbourne: 5204 m, elevation NO, 12 corners, zones [('A', 1340), ('B', 620), ('C', 490)]
+ingest: 20 cars, 1006 laps, 1006 usable (100%), rho=1.1789 kg/m^3
+
+car      CdA   identified set  ident  binding  coast   wind  resid kW
+BEA    1.034 [ 1.025, 1.043]   0.97     8837    888   +0.0       249
+SAI    1.137 [ 1.095, 1.179]   0.85    12440    947   +0.0       279
+ANT    1.105 [ 1.026, 1.184]   0.72    13251   1098   +0.0       271
+NOR    1.116 [ 1.024, 1.208]   0.67    13038   2322   +0.0       255
+ALB    1.218 [ 1.107, 1.330]   0.63    13701   1204   +0.0       253
+RUS    0.871 [ 0.758, 0.984]   0.48     6718   1130   +0.0       306
+HAD    1.212 [ 0.986, 1.439]   0.25     2331    324   +0.0       255
+BOT    0.943 [ 0.740, 1.146]   0.14     1517    513   +0.0       282
+GAS    0.775 [-0.032, 1.581]   0.00     4558    926   +0.0       332
+PER    0.906 [ 0.601, 1.210]   0.00     5046    837   +0.0       271
+ALO    1.034 [ 0.688, 1.379]   0.00     1881    436   +0.0       255
+LEC    0.822 [ 0.232, 1.413]   0.00     4532   1225   +0.0       264
+STR    0.959 [ 0.372, 1.547]   0.00     2151    915   +0.0       259
+VER    0.901 [ 0.289, 1.513]   0.00     7955   1738   +0.0       286
+LAW    0.884 [ 0.336, 1.431]   0.00     5563   1452   +0.0       271
+OCO    0.888 [ 0.470, 1.306]   0.00     6148   1179   +0.0       269
+LIN    0.887 [ 0.266, 1.508]   0.00     6174   1127   +0.0       282
+COL    0.895 [ 0.437, 1.352]   0.00     5531    998   +0.0       289
+HAM    0.873 [ 0.027, 1.718]   0.00     6229    748   +0.0       279
+BOR    0.874 [ 0.037, 1.711]   0.00     4571    440   +0.0       272
+
+field CdA: median 0.904, spread 0.775-1.218, iqr 0.171
+identifiability: median 0.00  (7/20 cars usable)
+field pooling: 7 identifiable cars -> CdA 1.122 [1.070, 1.175], field identifiability 0.81
+cross-car common mode: 6 cars, shared rms 248 kW, per-car residual 123 kW, variance explained 77%
+
+NOR deployment: peak 377 kW, mean-when-on 181 kW, per-lap 11.31 MJ deployed / 3.03 MJ recovered (regulation: 4.0 MJ store, 7.0 MJ harvest/lap)
+
+total 10s
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for Australian Grand Prix - Race [v3.8.3]
+At line:8 char:11
++     try { .\.venv\Scripts\python.exe scripts\08.b_analyse_race.py --r ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 81)
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 27)
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['63', '12', '16', '44', '1', '3', '87', '41', '5', '10', 
+'31', '23', '30', '43', '55', '11', '18', '14', '77', '6', '81', '27']
+core           INFO 	Loading data for Australian Grand Prix - Race [v3.8.3]
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 81)
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 27)
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['63', '12', '16', '44', '1', '3', '87', '41', '5', '10', 
+'31', '23', '30', '43', '55', '11', '18', '14', '77', '6', '81', '27']
+D:\Projects\XRay Energy F1\X-RAY\xray\realfit.py:650: RuntimeWarning: All-NaN slice encountered
+  shared = np.nanmedian(M, axis=0)          # common mode
+  NOR: CdA 1.070 ident 0.00 deploy 3.76 MJ/lap
+  GAS: CdA 1.070 ident 0.00 deploy 4.03 MJ/lap
+  PER: CdA 1.154 ident 0.81 deploy 3.84 MJ/lap
+  ANT: CdA 1.070 ident 0.00 deploy 3.98 MJ/lap
+  ALO: CdA 1.267 ident 0.64 deploy 3.37 MJ/lap
+  LEC: CdA 1.070 ident 0.00 deploy 3.56 MJ/lap
+  STR: CdA 1.070 ident 0.00 deploy 2.75 MJ/lap
+  ALB: CdA 1.070 ident 0.00 deploy 3.59 MJ/lap
+  VER: CdA 1.070 ident 0.15 deploy 4.19 MJ/lap
+  LAW: CdA 1.070 ident 0.07 deploy 3.77 MJ/lap
+  OCO: CdA 0.934 ident 0.82 deploy 2.91 MJ/lap
+  LIN: CdA 1.070 ident 0.00 deploy 4.00 MJ/lap
+  COL: CdA 0.966 ident 0.48 deploy 2.91 MJ/lap
+  HAM: CdA 1.070 ident 0.00 deploy 3.71 MJ/lap
+  BOR: CdA 1.070 ident 0.00 deploy 3.30 MJ/lap
+  SAI: CdA 1.070 ident 0.00 deploy 3.99 MJ/lap
+  HAD: CdA 1.070 ident 0.00 deploy 2.97 MJ/lap
+  RUS: CdA 1.070 ident 0.00 deploy 4.00 MJ/lap
+  BOT: CdA 1.070 ident 0.00 deploy 3.06 MJ/lap
+  BEA: CdA 1.070 ident 0.00 deploy 3.64 MJ/lap
+
+Australian Grand Prix: 20 cars analysed, 16 refused
+  telemetry 4.17 Hz, 1006/1006 laps usable
+  pooled CdA: {'available': True, 'n_cars_pooled': 4, 'cda_pooled': 1.070374478446765, 'cda_lo': 0.9582961171333617, 'cda_hi': 1.1824528397601681, 'per_car_deviation_pct': {'NOR': 18.59240089858536, 'GAS': -8.597274252845434, 'PER': 7.848055897348239, 'ANT': -25.423166504996445, 'ALO': 18.33962665104973, 'LEC': -15.486987530567491, 'STR': 12.54464170229207, 'ALB': -19.236654214782376, 'VER': -17.358110624411655, 'LAW': -13.18059326200703, 'OCO': -12.732866964654667, 'LIN': -17.53082274795556, 'COL': -9.716975792813281, 'HAM': 0.595260576525961, 'BOR': -24.56246471752128, 'SAI': -33.66584580020453, 'HAD': 24.10474814455422, 'RUS': -5.51053653347418, 'BOT': 21.360215236938977, 'BEA': -38.26964585578288}, 'field_identifiability': 0.5811620565690556}
+  RDD rows: 835
+wrote D:\Projects\XRay Energy F1\X-RAY\out\races\2026_r1_R.json (12.8 MB) in 40s

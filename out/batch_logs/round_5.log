@@ -1,0 +1,287 @@
+﻿=== Round 5 ===
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for Canadian Grand Prix - Race [v3.8.3]
+At line:6 char:11
++     try { .\.venv\Scripts\python.exe scripts\07.a_feasibility.py --ro ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	No cached data found for session_info. Loading data...
+_api           INFO 	Fetching session info data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for driver_info. Loading data...
+_api           INFO 	Fetching driver list...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for session_status_data. Loading data...
+_api           INFO 	Fetching session status data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for lap_count. Loading data...
+_api           INFO 	Fetching lap count data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for track_status_data. Loading data...
+_api           INFO 	Fetching track status data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for _extended_timing_data. Loading data...
+_api           INFO 	Fetching timing data...
+_api           INFO 	Parsing timing data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for timing_app_data. Loading data...
+_api           INFO 	Fetching timing app data...
+req            INFO 	Data has been written to cache!
+core           INFO 	Processing timing data...
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 41)
+req            INFO 	No cached data found for car_data. Loading data...
+_api           INFO 	Fetching car data...
+_api           INFO 	Parsing car data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for position_data. Loading data...
+_api           INFO 	Fetching position data...
+_api           INFO 	Parsing position data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for weather_data. Loading data...
+_api           INFO 	Fetching weather data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for race_control_messages. Loading data...
+_api           INFO 	Fetching race control messages...
+req            INFO 	Data has been written to cache!
+core           INFO 	Finished loading data for 22 drivers: ['12', '44', '3', '16', '6', '43', '30', '10', '55', '87', 
+'81', '27', '5', '31', '18', '77', '11', '1', '63', '14', '23', '41']
+{
+ "year": 2026,
+ "round": 5,
+ "session": "R",
+ "event": "Canadian Grand Prix",
+ "circuit": "Montr\u00e9al",
+ "date": "2026-05-24",
+ "load_seconds": 22.6,
+ "n_drivers": 20,
+ "n_laps": 1211,
+ "dt_fastest_lap": {
+  "driver": "ANT",
+  "n_samples": 279,
+  "median_s": 0.23999999999978172,
+  "mean_s": 0.2661906474820151,
+  "p10_s": 0.15999999999985448,
+  "p90_s": 0.3999999999996362,
+  "max_s": 1.0399999999990541,
+  "effective_hz": 4.166666666670456,
+  "histogram": {
+   "0.00-0.10": 0,
+   "0.10-0.20": 68,
+   "0.20-0.25": 93,
+   "0.25-0.30": 26,
+   "0.30-0.35": 35,
+   "0.35-0.40": 35,
+   "0.40-0.50": 20,
+   "0.50-0.75": 0,
+   "0.75-1.00": 0,
+   "1.00-2.00": 1,
+   "2.00-10.00": 0
+  },
+  "median_dx_m": 14.400000000000546
+ },
+ "channels": {
+  "Speed": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 61.0,
+   "max": 327.0
+  },
+  "Throttle": {
+   "present": true,
+   "frac_nonzero": 0.8315412186379928,
+   "min": 0.0,
+   "max": 100.0
+  },
+  "Brake": {
+   "present": true,
+   "frac_nonzero": 0.1863799283154122,
+   "min": 0.0,
+   "max": 1.0
+  },
+  "nGear": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 1.0,
+   "max": 8.0
+  },
+  "RPM": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 6785.0,
+   "max": 12197.0
+  },
+  "DRS": {
+   "present": true,
+   "frac_nonzero": 0.0,
+   "min": 0.0,
+   "max": 0.0
+  }
+ },
+ "position": {
+  "n_samples": 293,
+  "source": "lap",
+  "has_Z": true,
+  "z_range_m": [
+   12.6,
+   17.8
+  ],
+  "z_std_m": 1.6091533797583275,
+  "z_frac_zero": 0.0,
+  "xy_range_m": [
+   633.6,
+   1903.3
+  ]
+ },
+ "weather": {
+  "available": true,
+  "air_temp_c": 12.84875,
+  "pressure_mbar": 1024.204375,
+  "wind_speed_ms": 3.015625
+ },
+ "total_seconds": 25.9
+}
+speed window: {'340': 0.0004, '330': 0.0022, '320': 0.0104, '310': 0.0389, '300': 0.0776, '290': 0.0997} vmax 350.0
+wrote out\feasibility\r5.json
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for Canadian Grand Prix - Race [v3.8.3]
+At line:7 char:11
++     try { .\.venv\Scripts\python.exe scripts\07.b_run_real.py --round ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 41)
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['12', '44', '3', '16', '6', '43', '30', '10', '55', '87', 
+'81', '27', '5', '31', '18', '77', '11', '1', '63', '14', '23', '41']
+core           INFO 	Loading data for Canadian Grand Prix - Race [v3.8.3]
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 41)
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['12', '44', '3', '16', '6', '43', '30', '10', '55', '87', 
+'81', '27', '5', '31', '18', '77', '11', '1', '63', '14', '23', '41']
+D:\Projects\XRay Energy F1\X-RAY\xray\realfit.py:650: RuntimeWarning: All-NaN slice encountered
+  shared = np.nanmedian(M, axis=0)          # common mode
+
+Canadian Grand Prix — Montréal: 4297 m, elevation yes, 11 corners, zones [('A', 1080), ('B', 550), ('C', 510)]
+ingest: 21 cars, 1211 laps, 1211 usable (100%), rho=1.2426 kg/m^3
+
+car      CdA   identified set  ident  binding  coast   wind  resid kW
+NOR    1.031 [ 1.021, 1.042]   0.96     5896    471   +0.0       312
+STR    0.977 [ 0.897, 1.057]   0.67     4732    732   +0.0       308
+RUS    0.774 [ 0.616, 0.932]   0.18     2218    156   +0.0       377
+GAS    1.094 [ 0.329, 1.860]   0.00    10943    691   +0.0       341
+PER    0.806 [ 0.559, 1.053]   0.00     2305    447   +0.0       326
+ANT    0.601 [ 0.377, 0.824]   0.00     2600    636   +0.0       379
+ALO    0.478 [ 0.155, 0.801]   0.00      288    342   +0.0       356
+LEC    0.769 [ 0.524, 1.014]   0.00     4301    312   +0.0       360
+ALB    0.367 [-0.148, 0.881]   0.00       49     98   +0.0       397
+HUL    0.664 [ 0.203, 1.124]   0.00     2049    680   +0.0       369
+VER    0.772 [ 0.454, 1.091]   0.00     4102    845   +0.0       358
+LAW    1.033 [ 0.367, 1.698]   0.00     9838    834   +0.0       314
+OCO    0.796 [ 0.523, 1.068]   0.00     3813    204   +0.0       333
+COL    1.106 [ 0.521, 1.691]   0.00    11256   1028   +0.0       324
+HAM    0.564 [ 0.198, 0.931]   0.00     1559    377   +0.0       396
+BOR    0.651 [ 0.179, 1.123]   0.00     1687    490   +0.0       357
+SAI    0.728 [ 0.340, 1.116]   0.00     2661    301   +0.0       367
+HAD    0.661 [ 0.273, 1.049]   0.00     3002    867   +0.0       383
+BOT    0.806 [ 0.349, 1.264]   0.00     2752    951   +0.0       316
+PIA    0.707 [ 0.342, 1.073]   0.00     3210    947   +0.0       356
+BEA    0.462 [-0.213, 1.138]   0.00      100    421   +0.0       399
+
+field CdA: median 0.769, spread 0.367-1.106, iqr 0.155
+identifiability: median 0.00  (2/21 cars usable)
+field pooling: 3 identifiable cars -> CdA 0.940 [0.875, 1.004], field identifiability 0.73
+cross-car common mode: 18 cars, shared rms 328 kW, per-car residual 114 kW, variance explained 86%
+
+NOR deployment: peak 355 kW, mean-when-on 192 kW, per-lap 10.22 MJ deployed / 4.39 MJ recovered (regulation: 4.0 MJ store, 7.0 MJ harvest/lap)
+
+total 34s
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for Canadian Grand Prix - Race [v3.8.3]
+At line:8 char:11
++     try { .\.venv\Scripts\python.exe scripts\08.b_analyse_race.py --r ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 41)
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['12', '44', '3', '16', '6', '43', '30', '10', '55', '87', 
+'81', '27', '5', '31', '18', '77', '11', '1', '63', '14', '23', '41']
+core           INFO 	Loading data for Canadian Grand Prix - Race [v3.8.3]
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+core        WARNING 	Failed to perform lap accuracy check - all laps marked as inaccurate (driver 41)
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['12', '44', '3', '16', '6', '43', '30', '10', '55', '87', 
+'81', '27', '5', '31', '18', '77', '11', '1', '63', '14', '23', '41']
+D:\Projects\XRay Energy F1\X-RAY\xray\realfit.py:650: RuntimeWarning: All-NaN slice encountered
+  shared = np.nanmedian(M, axis=0)          # common mode
+  NOR: CdA 0.904 ident 0.00 deploy 4.70 MJ/lap
+  GAS: CdA 1.094 ident 0.00 deploy 4.81 MJ/lap
+  PER: CdA 0.784 ident 0.00 deploy 4.63 MJ/lap
+  ANT: CdA 0.582 ident 0.00 deploy 4.42 MJ/lap
+  ALO: CdA 0.475 ident 0.00 deploy 4.77 MJ/lap
+  LEC: CdA 0.727 ident 0.00 deploy 4.55 MJ/lap
+  STR: CdA 0.970 ident 0.70 deploy 4.60 MJ/lap
+  ALB: CdA 0.364 ident 0.00 deploy 5.08 MJ/lap
+  HUL: CdA 0.640 ident 0.00 deploy 4.26 MJ/lap
+  VER: CdA 0.715 ident 0.00 deploy 4.08 MJ/lap
+  LAW: CdA 1.024 ident 0.00 deploy 4.46 MJ/lap
+  OCO: CdA 0.779 ident 0.00 deploy 4.79 MJ/lap
+  COL: CdA 1.100 ident 0.00 deploy 4.79 MJ/lap
+  HAM: CdA 0.548 ident 0.00 deploy 4.28 MJ/lap
+  BOR: CdA 0.636 ident 0.00 deploy 4.66 MJ/lap
+  SAI: CdA 0.693 ident 0.00 deploy 4.54 MJ/lap
+  HAD: CdA 0.628 ident 0.00 deploy 4.35 MJ/lap
+  RUS: CdA 0.761 ident 0.24 deploy 3.99 MJ/lap
+  BOT: CdA 0.774 ident 0.00 deploy 4.49 MJ/lap
+  PIA: CdA 0.670 ident 0.00 deploy 4.49 MJ/lap
+  BEA: CdA 0.433 ident 0.00 deploy 4.65 MJ/lap
+
+Canadian Grand Prix: 21 cars analysed, 19 refused
+  telemetry 4.17 Hz, 1211/1211 laps usable
+  pooled CdA: {'available': False, 'reason': 'only 2 identifiable cars'}
+  RDD rows: 988
+wrote D:\Projects\XRay Energy F1\X-RAY\out\races\2026_r5_R.json (13.8 MB) in 98s

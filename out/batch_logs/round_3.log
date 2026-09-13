@@ -1,0 +1,287 @@
+﻿=== Round 3 ===
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for Japanese Grand Prix - Race [v3.8.3]
+At line:6 char:11
++     try { .\.venv\Scripts\python.exe scripts\07.a_feasibility.py --ro ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	No cached data found for session_info. Loading data...
+_api           INFO 	Fetching session info data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for driver_info. Loading data...
+_api           INFO 	Fetching driver list...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for session_status_data. Loading data...
+_api           INFO 	Fetching session status data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for lap_count. Loading data...
+_api           INFO 	Fetching lap count data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for track_status_data. Loading data...
+_api           INFO 	Fetching track status data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for _extended_timing_data. Loading data...
+_api           INFO 	Fetching timing data...
+_api           INFO 	Parsing timing data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for timing_app_data. Loading data...
+_api           INFO 	Fetching timing app data...
+req            INFO 	Data has been written to cache!
+core           INFO 	Processing timing data...
+req            INFO 	No cached data found for car_data. Loading data...
+_api           INFO 	Fetching car data...
+_api           INFO 	Parsing car data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for position_data. Loading data...
+_api           INFO 	Fetching position data...
+_api           INFO 	Parsing position data...
+_api        WARNING 	Driver 241: Position data is incomplete!
+_api        WARNING 	Driver 242: Position data is incomplete!
+_api        WARNING 	Driver 243: Position data is incomplete!
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for weather_data. Loading data...
+_api           INFO 	Fetching weather data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for race_control_messages. Loading data...
+_api           INFO 	Fetching race control messages...
+req            INFO 	Data has been written to cache!
+core           INFO 	Finished loading data for 22 drivers: ['12', '81', '16', '63', '1', '44', '10', '3', '30', '31', 
+'27', '6', '5', '41', '55', '43', '11', '14', '77', '23', '18', '87']
+{
+ "year": 2026,
+ "round": 3,
+ "session": "R",
+ "event": "Japanese Grand Prix",
+ "circuit": "Suzuka",
+ "date": "2026-03-29",
+ "load_seconds": 21.7,
+ "n_drivers": 20,
+ "n_laps": 1107,
+ "dt_fastest_lap": {
+  "driver": "ANT",
+  "n_samples": 350,
+  "median_s": 0.23999999999978172,
+  "mean_s": 0.26372779369627297,
+  "p10_s": 0.15999999999985448,
+  "p90_s": 0.3989999999997963,
+  "max_s": 1.0390000000006694,
+  "effective_hz": 4.166666666670456,
+  "histogram": {
+   "0.00-0.10": 0,
+   "0.10-0.20": 89,
+   "0.20-0.25": 105,
+   "0.25-0.30": 63,
+   "0.30-0.35": 34,
+   "0.35-0.40": 39,
+   "0.40-0.50": 16,
+   "0.50-0.75": 0,
+   "0.75-1.00": 2,
+   "1.00-2.00": 1,
+   "2.00-10.00": 0
+  },
+  "median_dx_m": 15.322222222222308
+ },
+ "channels": {
+  "Speed": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 71.0,
+   "max": 322.0
+  },
+  "Throttle": {
+   "present": true,
+   "frac_nonzero": 0.8485714285714285,
+   "min": 0.0,
+   "max": 100.0
+  },
+  "Brake": {
+   "present": true,
+   "frac_nonzero": 0.15714285714285714,
+   "min": 0.0,
+   "max": 1.0
+  },
+  "nGear": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 1.0,
+   "max": 8.0
+  },
+  "RPM": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 8056.0,
+   "max": 12181.0
+  },
+  "DRS": {
+   "present": true,
+   "frac_nonzero": 0.0,
+   "min": 0.0,
+   "max": 0.0
+  }
+ },
+ "position": {
+  "n_samples": 357,
+  "source": "lap",
+  "has_Z": true,
+  "z_range_m": [
+   54.2,
+   94.5
+  ],
+  "z_std_m": 11.72590912540015,
+  "z_frac_zero": 0.0,
+  "xy_range_m": [
+   1975.7,
+   1014.2
+  ]
+ },
+ "weather": {
+  "available": true,
+  "air_temp_c": 18.556410256410256,
+  "pressure_mbar": 1011.798717948718,
+  "wind_speed_ms": 1.9506410256410258
+ },
+ "total_seconds": 25.0
+}
+speed window: {'340': 0.0004, '330': 0.0047, '320': 0.0234, '310': 0.064, '300': 0.1005, '290': 0.1286} vmax 349.0
+wrote out\feasibility\r3.json
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for Japanese Grand Prix - Race [v3.8.3]
+At line:7 char:11
++     try { .\.venv\Scripts\python.exe scripts\07.b_run_real.py --round ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['12', '81', '16', '63', '1', '44', '10', '3', '30', '31', 
+'27', '6', '5', '41', '55', '43', '11', '14', '77', '23', '18', '87']
+core           INFO 	Loading data for Japanese Grand Prix - Race [v3.8.3]
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['12', '81', '16', '63', '1', '44', '10', '3', '30', '31', 
+'27', '6', '5', '41', '55', '43', '11', '14', '77', '23', '18', '87']
+D:\Projects\XRay Energy F1\X-RAY\xray\realfit.py:650: RuntimeWarning: All-NaN slice encountered
+  shared = np.nanmedian(M, axis=0)          # common mode
+
+Japanese Grand Prix — Suzuka: 5754 m, elevation yes, 16 corners, zones [('A', 860), ('B', 630), ('C', 530)]
+ingest: 22 cars, 1107 laps, 1107 usable (100%), rho=1.2032 kg/m^3
+
+car      CdA   identified set  ident  binding  coast   wind  resid kW
+HUL    0.749 [ 0.739, 0.758]   0.95     5183   1426   +0.0       278
+HAD    0.777 [ 0.764, 0.790]   0.93     5146   2400   +0.0       245
+VER    0.772 [ 0.745, 0.799]   0.86     5183   2196   +0.0       243
+PIA    0.550 [ 0.523, 0.577]   0.81     1549   1422   +0.0       310
+LAW    0.818 [ 0.762, 0.873]   0.73     5860   1636   +0.0       270
+SAI    0.766 [ 0.704, 0.828]   0.68     5536    962   +0.0       271
+PER    0.896 [ 0.753, 1.040]   0.36     5230   1125   +0.0       230
+ALB    0.731 [ 0.606, 0.856]   0.32     4373   1099   +0.0       270
+LEC    0.795 [ 0.659, 0.931]   0.31     5484    508   +0.0       235
+RUS    0.580 [ 0.447, 0.713]   0.08     2828   1305   +0.0       307
+NOR    0.625 [ 0.371, 0.880]   0.00     2888   1934   +0.0       268
+GAS    0.737 [ 0.476, 0.997]   0.00     4748    717   +0.0       253
+ANT    0.707 [ 0.500, 0.914]   0.00     4375    838   +0.0       253
+ALO    0.793 [ 0.474, 1.112]   0.00     3074   2492   +0.0       234
+STR    0.814 [ 0.415, 1.214]   0.00     1810   1034   +0.0       218
+OCO    0.504 [ 0.125, 0.883]   0.00     1129    496   +0.0       287
+LIN    1.130 [ 0.610, 1.651]   0.00     8727    972   +0.0       398
+COL    0.983 [-0.008, 1.973]   0.00     7875    952   +0.0       257
+HAM    0.739 [ 0.518, 0.960]   0.00     4543    648   +0.0       250
+BOR    0.758 [ 0.209, 1.307]   0.00     5136   1341   +0.0       264
+BOT    0.784 [ 0.565, 1.003]   0.00     3938   1677   +0.0       251
+BEA    1.018 [ 0.151, 1.884]   0.00     3876     95   +0.0       431
+
+field CdA: median 0.769, spread 0.504-1.130, iqr 0.077
+identifiability: median 0.00  (9/22 cars usable)
+field pooling: 9 identifiable cars -> CdA 0.772 [0.749, 0.795], field identifiability 0.88
+cross-car common mode: 17 cars, shared rms 203 kW, per-car residual 182 kW, variance explained 41%
+
+NOR deployment: peak 386 kW, mean-when-on 131 kW, per-lap 8.51 MJ deployed / 3.66 MJ recovered (regulation: 4.0 MJ store, 7.0 MJ harvest/lap)
+
+total 12s
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for Japanese Grand Prix - Race [v3.8.3]
+At line:8 char:11
++     try { .\.venv\Scripts\python.exe scripts\08.b_analyse_race.py --r ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['12', '81', '16', '63', '1', '44', '10', '3', '30', '31', 
+'27', '6', '5', '41', '55', '43', '11', '14', '77', '23', '18', '87']
+core           INFO 	Loading data for Japanese Grand Prix - Race [v3.8.3]
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['12', '81', '16', '63', '1', '44', '10', '3', '30', '31', 
+'27', '6', '5', '41', '55', '43', '11', '14', '77', '23', '18', '87']
+D:\Projects\XRay Energy F1\X-RAY\xray\realfit.py:650: RuntimeWarning: All-NaN slice encountered
+  shared = np.nanmedian(M, axis=0)          # common mode
+  NOR: CdA 0.833 ident 0.78 deploy 3.03 MJ/lap
+  GAS: CdA 0.919 ident 0.66 deploy 3.40 MJ/lap
+  PER: CdA 0.952 ident 0.00 deploy 3.27 MJ/lap
+  ANT: CdA 0.873 ident 0.81 deploy 3.25 MJ/lap
+  ALO: CdA 1.000 ident 0.55 deploy 2.87 MJ/lap
+  LEC: CdA 0.952 ident 0.00 deploy 3.53 MJ/lap
+  STR: CdA 1.016 ident 0.22 deploy 3.33 MJ/lap
+  ALB: CdA 0.952 ident 0.00 deploy 3.30 MJ/lap
+  HUL: CdA 0.952 ident 0.00 deploy 3.69 MJ/lap
+  VER: CdA 0.952 ident 0.00 deploy 3.50 MJ/lap
+  LAW: CdA 0.952 ident 0.00 deploy 3.44 MJ/lap
+  OCO: CdA 0.952 ident 0.04 deploy 3.67 MJ/lap
+  LIN: CdA 1.476 ident 0.53 deploy 4.54 MJ/lap
+  COL: CdA 0.952 ident 0.00 deploy 3.97 MJ/lap
+  HAM: CdA 0.952 ident 0.00 deploy 3.58 MJ/lap
+  BOR: CdA 0.952 ident 0.00 deploy 3.36 MJ/lap
+  SAI: CdA 0.952 ident 0.00 deploy 3.27 MJ/lap
+  HAD: CdA 0.952 ident 0.00 deploy 3.67 MJ/lap
+  RUS: CdA 0.952 ident 0.00 deploy 3.32 MJ/lap
+  BOT: CdA 0.978 ident 0.90 deploy 3.22 MJ/lap
+  PIA: CdA 0.952 ident 0.00 deploy 3.15 MJ/lap
+  BEA: CdA 0.952 ident 0.00 deploy 1.80 MJ/lap
+
+Japanese Grand Prix: 22 cars analysed, 15 refused
+  telemetry 4.17 Hz, 1107/1107 laps usable
+  pooled CdA: {'available': True, 'n_cars_pooled': 7, 'cda_pooled': 0.9519669412648024, 'cda_lo': 0.896154260005188, 'cda_hi': 1.0077796225244169, 'per_car_deviation_pct': {'NOR': -12.46252430715281, 'GAS': -3.432623698430355, 'PER': 19.48653485080138, 'ANT': -8.293136690992519, 'ALO': 5.003212025476712, 'LEC': -17.620118624612772, 'STR': 6.722548363946186, 'ALB': 6.226007698448714, 'HUL': -3.546128350709772, 'VER': 4.73735850249493, 'LAW': 6.540272554411269, 'OCO': -25.168486717923, 'LIN': 55.09792013849806, 'COL': 22.09307879537803, 'HAM': 24.503107885049623, 'BOR': -2.8795457939395894, 'SAI': 5.381277832498255, 'HAD': -0.17226801536600533, 'RUS': 10.946083343457268, 'BOT': 2.71970447575935, 'PIA': 6.704620200487278, 'BEA': 46.77448582091335}, 'field_identifiability': 0.7654847922115423}
+  RDD rows: 1022
+wrote D:\Projects\XRay Energy F1\X-RAY\out\races\2026_r3_R.json (14.0 MB) in 51s

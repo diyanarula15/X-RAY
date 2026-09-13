@@ -1,0 +1,132 @@
+{
+  "year": 2026,
+  "round": 4,
+  "session": "R",
+  "event": "Miami Grand Prix",
+  "circuit": "Miami Gardens",
+  "date": "2026-05-03",
+  "load_seconds": 40.6,
+  "n_drivers": 20,
+  "n_laps": 1040,
+  "dt_fastest_lap": {
+    "driver": "NOR",
+    "n_samples": 339,
+    "median_s": 0.24000000000069122,
+    "mean_s": 0.2706508875739632,
+    "p10_s": 0.15999999999985448,
+    "p90_s": 0.3999999999996362,
+    "max_s": 0.9200000000000728,
+    "effective_hz": 4.166666666654667,
+    "histogram": {
+      "0.00-0.10": 0,
+      "0.10-0.20": 112,
+      "0.20-0.25": 63,
+      "0.25-0.30": 50,
+      "0.30-0.35": 41,
+      "0.35-0.40": 40,
+      "0.40-0.50": 27,
+      "0.50-0.75": 3,
+      "0.75-1.00": 2,
+      "1.00-2.00": 0,
+      "2.00-10.00": 0
+    },
+    "median_dx_m": 13.899999999999977
+  },
+  "channels": {
+    "Speed": {
+      "present": true,
+      "frac_nonzero": 1.0,
+      "min": 64.0,
+      "max": 331.0
+    },
+    "Throttle": {
+      "present": true,
+      "frac_nonzero": 0.7492625368731564,
+      "min": 0.0,
+      "max": 100.0
+    },
+    "Brake": {
+      "present": true,
+      "frac_nonzero": 0.17699115044247787,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "nGear": {
+      "present": true,
+      "frac_nonzero": 1.0,
+      "min": 1.0,
+      "max": 8.0
+    },
+    "RPM": {
+      "present": true,
+      "frac_nonzero": 1.0,
+      "min": 6731.0,
+      "max": 12352.0
+    },
+    "DRS": {
+      "present": true,
+      "frac_nonzero": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    }
+  },
+  "position": {
+    "n_samples": 352,
+    "source": "lap",
+    "has_Z": true,
+    "z_range_m": [
+      23.7,
+      27.4
+    ],
+    "z_std_m": 0.5836125533898098,
+    "z_frac_zero": 0.0,
+    "xy_range_m": [
+      1498.5,
+      587.1
+    ]
+  },
+  "speed_window": {
+    "total_samples": 343952,
+    "laps_scanned": 927,
+    "frac_above": {
+      "340": 0.0017705958971019212,
+      "330": 0.010271782109131506,
+      "320": 0.049213262315671955,
+      "310": 0.11720240033493046,
+      "300": 0.15927513141368563,
+      "290": 0.18858154626226917
+    },
+    "vmax_session_kmh": 350.0,
+    "vmax_by_driver": {
+      "NOR": 348.0,
+      "GAS": 349.0,
+      "PER": 343.0,
+      "ANT": 349.0,
+      "ALO": 345.0,
+      "LEC": 345.0,
+      "STR": 342.0,
+      "ALB": 344.0,
+      "HUL": 336.0,
+      "VER": 349.0,
+      "LAW": 338.0,
+      "OCO": 350.0,
+      "LIN": 346.0,
+      "COL": 346.0,
+      "HAM": 341.0,
+      "BOR": 346.0,
+      "SAI": 349.0,
+      "HAD": 348.0,
+      "RUS": 350.0,
+      "BOT": 337.0
+    },
+    "gaps_over_1s": 1031,
+    "gaps_per_lap": 1.1121898597626754
+  },
+  "weather": {
+    "available": true,
+    "air_temp_c": 27.12559523809524,
+    "pressure_mbar": 1015.647619047619,
+    "wind_speed_ms": 1.1517857142857142
+  },
+  "total_seconds": 50.5
+}

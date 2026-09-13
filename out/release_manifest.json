@@ -1,0 +1,43 @@
+{
+  "commit": "143083531e04634fd9724b6d029ee1af6936a6e8",
+  "dirty_worktree": true,
+  "estimator_status": {
+    "component": "energy_inference",
+    "status": "INFERRED",
+    "headline": "INFERRED \u2014 REAL HELD-OUT PREDICTIVE VALIDATION: NOT DEMONSTRATED",
+    "synthetic_validation": {
+      "available": false,
+      "direct_truth": true,
+      "result": "NOT_ATTEMPTED",
+      "metrics": {},
+      "fingerprint": null,
+      "notes": [
+        "no Part 1 artifact on disk"
+      ]
+    },
+    "real_validation": {
+      "available": false,
+      "type": "indirect_predictive",
+      "result": "NOT_ATTEMPTED",
+      "metrics": {},
+      "fingerprint": null,
+      "provenance": null,
+      "notes": [
+        "no Part 2 artifact on disk"
+      ]
+    },
+    "identifiability": {
+      "status": "LIMITED",
+      "reason": "CdA identifiability 0.0 on the canonical synthetic path; exact real re-inference sensitivity is not measurable from the persisted payloads"
+    },
+    "real_ground_truth": {
+      "available": false,
+      "reason": "no public battery channel exists"
+    },
+    "registry_version": "p3-model-registry-v1"
+  },
+  "frontend_build_present": true,
+  "api_version": "2.0",
+  "model_fingerprint": "e34250f80e81e77b5bb5bf4de8934b49c827167f8c63886569c7acf5feecbbdd",
+  "registry_version": "p3-model-registry-v1"
+}

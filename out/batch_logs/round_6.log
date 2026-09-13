@@ -1,0 +1,282 @@
+﻿=== Round 6 ===
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for Monaco Grand Prix - Race [v3.8.3]
+At line:6 char:11
++     try { .\.venv\Scripts\python.exe scripts\07.a_feasibility.py --ro ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	No cached data found for session_info. Loading data...
+_api           INFO 	Fetching session info data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for driver_info. Loading data...
+_api           INFO 	Fetching driver list...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for session_status_data. Loading data...
+_api           INFO 	Fetching session status data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for lap_count. Loading data...
+_api           INFO 	Fetching lap count data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for track_status_data. Loading data...
+_api           INFO 	Fetching track status data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for _extended_timing_data. Loading data...
+_api           INFO 	Fetching timing data...
+_api           INFO 	Parsing timing data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for timing_app_data. Loading data...
+_api           INFO 	Fetching timing app data...
+req            INFO 	Data has been written to cache!
+core           INFO 	Processing timing data...
+req            INFO 	No cached data found for car_data. Loading data...
+_api           INFO 	Fetching car data...
+_api           INFO 	Parsing car data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for position_data. Loading data...
+_api           INFO 	Fetching position data...
+_api           INFO 	Parsing position data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for weather_data. Loading data...
+_api           INFO 	Fetching weather data...
+req            INFO 	Data has been written to cache!
+req            INFO 	No cached data found for race_control_messages. Loading data...
+_api           INFO 	Fetching race control messages...
+req            INFO 	Data has been written to cache!
+core           INFO 	Finished loading data for 22 drivers: ['12', '44', '6', '81', '30', '41', '10', '23', '31', '14', 
+'5', '63', '27', '43', '11', '55', '16', '18', '1', '87', '77', '3']
+{
+ "year": 2026,
+ "round": 6,
+ "session": "R",
+ "event": "Monaco Grand Prix",
+ "circuit": "Monte Carlo",
+ "date": "2026-06-07",
+ "load_seconds": 41.3,
+ "n_drivers": 20,
+ "n_laps": 1452,
+ "dt_fastest_lap": {
+  "driver": "ANT",
+  "n_samples": 274,
+  "median_s": 0.23999999999978172,
+  "mean_s": 0.26798534798534746,
+  "p10_s": 0.15999999999985448,
+  "p90_s": 0.3999999999996362,
+  "max_s": 1.1599999999998545,
+  "effective_hz": 4.166666666670456,
+  "histogram": {
+   "0.00-0.10": 0,
+   "0.10-0.20": 68,
+   "0.20-0.25": 79,
+   "0.25-0.30": 45,
+   "0.30-0.35": 33,
+   "0.35-0.40": 29,
+   "0.40-0.50": 17,
+   "0.50-0.75": 0,
+   "0.75-1.00": 1,
+   "1.00-2.00": 1,
+   "2.00-10.00": 0
+  },
+  "median_dx_m": 10.533333333333303
+ },
+ "channels": {
+  "Speed": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 46.0,
+   "max": 278.0
+  },
+  "Throttle": {
+   "present": true,
+   "frac_nonzero": 0.6861313868613139,
+   "min": 0.0,
+   "max": 100.0
+  },
+  "Brake": {
+   "present": true,
+   "frac_nonzero": 0.28832116788321166,
+   "min": 0.0,
+   "max": 1.0
+  },
+  "nGear": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 1.0,
+   "max": 7.0
+  },
+  "RPM": {
+   "present": true,
+   "frac_nonzero": 1.0,
+   "min": 4714.0,
+   "max": 12442.0
+  },
+  "DRS": {
+   "present": true,
+   "frac_nonzero": 0.0,
+   "min": 0.0,
+   "max": 0.0
+  }
+ },
+ "position": {
+  "n_samples": 8087,
+  "source": "session",
+  "has_Z": true,
+  "z_range_m": [
+   0.0,
+   89.6
+  ],
+  "z_std_m": 27.94213324973677,
+  "z_frac_zero": 0.39903548905651043,
+  "xy_range_m": [
+   768.1,
+   977.3
+  ]
+ },
+ "weather": {
+  "available": true,
+  "air_temp_c": 23.677403846153847,
+  "pressure_mbar": 1021.4403846153845,
+  "wind_speed_ms": 0.8418269230769231
+ },
+ "total_seconds": 51.6
+}
+speed window: {'340': 0.0, '330': 0.0, '320': 0.0, '310': 0.0, '300': 0.0, '290': 0.0} vmax 292.0
+wrote out\feasibility\r6.json
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for Monaco Grand Prix - Race [v3.8.3]
+At line:7 char:11
++     try { .\.venv\Scripts\python.exe scripts\07.b_run_real.py --round ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['12', '44', '6', '81', '30', '41', '10', '23', '31', '14', 
+'5', '63', '27', '43', '11', '55', '16', '18', '1', '87', '77', '3']
+core           INFO 	Loading data for Monaco Grand Prix - Race [v3.8.3]
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['12', '44', '6', '81', '30', '41', '10', '23', '31', '14', 
+'5', '63', '27', '43', '11', '55', '16', '18', '1', '87', '77', '3']
+D:\Projects\XRay Energy F1\X-RAY\xray\realfit.py:650: RuntimeWarning: All-NaN slice encountered
+  shared = np.nanmedian(M, axis=0)          # common mode
+
+Monaco Grand Prix — Monte Carlo: 26607 m, elevation yes, 102 corners, zones [('A', 470), ('B', 460), ('C', 460)]
+ingest: 22 cars, 1452 laps, 1451 usable (100%), rho=1.1907 kg/m^3
+
+car      CdA   identified set  ident  binding  coast   wind  resid kW
+HAM    1.249 [ 1.199, 1.298]   0.84     4682   1130   +0.0       230
+BOT    1.272 [ 1.183, 1.361]   0.72      853    411   +0.0       204
+LEC    1.053 [ 0.806, 1.301]   0.06     3432    671   +0.0       264
+HAD    1.104 [ 0.839, 1.368]   0.04     4012   1882   +0.0       243
+NOR    0.849 [ 0.545, 1.152]   0.00     2180    833   +0.0       264
+GAS    0.339 [-0.622, 1.300]   0.00        0   1320   -1.5       316
+PER    0.914 [ 0.522, 1.306]   0.00     3481   1238   +0.0       236
+ANT    0.413 [-0.411, 1.238]   0.00        0   1206   +0.0       313
+ALO    0.560 [-0.248, 1.368]   0.00       33    968   +0.0       300
+STR    0.583 [-0.218, 1.383]   0.00       16    666   +0.0       316
+ALB    0.316 [-0.803, 1.434]   0.00        0    999   -4.0       312
+HUL    0.522 [-0.164, 1.207]   0.00       24   1520   -3.0       311
+LAW    1.227 [ 0.067, 2.386]   0.00     4545   1325   +0.0       238
+OCO    0.244 [-0.843, 1.331]   0.00        0    483   -4.0       312
+LIN    1.080 [-0.083, 2.244]   0.00     3809   1373   +0.0       238
+COL    0.945 [ 0.668, 1.221]   0.00     3362   1269   +0.0       260
+BOR    0.238 [-0.790, 1.267]   0.00        1   1315   -2.5       317
+SAI    0.336 [-0.616, 1.287]   0.00        0    522   -1.0       311
+RUS    0.282 [-0.723, 1.287]   0.00        0    944   -3.5       328
+PIA    0.620 [-0.015, 1.255]   0.00      420   1505   +0.0       277
+BEA    0.140 [-1.043, 1.323]   0.00        0    282   -4.0       325
+
+field CdA: median 0.583, spread 0.140-1.272, iqr 0.718
+identifiability: median 0.00  (2/21 cars usable)
+field pooling: unavailable — only 2 identifiable cars
+cross-car common mode: 19 cars, shared rms 278 kW, per-car residual 95 kW, variance explained 85%
+
+NOR deployment: peak 353 kW, mean-when-on 171 kW, per-lap 6.67 MJ deployed / 4.63 MJ recovered (regulation: 4.0 MJ store, 7.0 MJ harvest/lap)
+
+total 35s
+.\.venv\Scripts\python.exe : core           INFO 	Loading data for Monaco Grand Prix - Race [v3.8.3]
+At line:8 char:11
++     try { .\.venv\Scripts\python.exe scripts\08.b_analyse_race.py --r ...
++           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (core           ...- Race [v3.8.3]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['12', '44', '6', '81', '30', '41', '10', '23', '31', '14', 
+'5', '63', '27', '43', '11', '55', '16', '18', '1', '87', '77', '3']
+core           INFO 	Loading data for Monaco Grand Prix - Race [v3.8.3]
+req            INFO 	Using cached data for session_info
+req            INFO 	Using cached data for driver_info
+req            INFO 	Using cached data for session_status_data
+req            INFO 	Using cached data for lap_count
+req            INFO 	Using cached data for track_status_data
+req            INFO 	Using cached data for _extended_timing_data
+req            INFO 	Using cached data for timing_app_data
+core           INFO 	Processing timing data...
+req            INFO 	Using cached data for car_data
+req            INFO 	Using cached data for position_data
+req            INFO 	Using cached data for weather_data
+req            INFO 	Using cached data for race_control_messages
+core           INFO 	Finished loading data for 22 drivers: ['12', '44', '6', '81', '30', '41', '10', '23', '31', '14', 
+'5', '63', '27', '43', '11', '55', '16', '18', '1', '87', '77', '3']
+D:\Projects\XRay Energy F1\X-RAY\xray\realfit.py:650: RuntimeWarning: All-NaN slice encountered
+  shared = np.nanmedian(M, axis=0)          # common mode
+  NOR: CdA 0.893 ident 0.09 deploy 4.59 MJ/lap
+  GAS: CdA 0.893 ident 0.00 deploy 4.70 MJ/lap
+  PER: CdA 0.893 ident 0.00 deploy 4.61 MJ/lap
+  ANT: CdA 0.893 ident 0.00 deploy 4.65 MJ/lap
+  ALO: CdA 0.893 ident 0.00 deploy 4.64 MJ/lap
+  LEC: CdA 0.876 ident 0.68 deploy 4.32 MJ/lap
+  STR: CdA 0.893 ident 0.00 deploy 4.44 MJ/lap
+  ALB: CdA 0.893 ident 0.00 deploy 4.71 MJ/lap
+  HUL: CdA 0.893 ident 0.00 deploy 4.64 MJ/lap
+  LAW: CdA 0.893 ident 0.00 deploy 4.60 MJ/lap
+  OCO: CdA 0.893 ident 0.00 deploy 5.02 MJ/lap
+  LIN: CdA 0.893 ident 0.00 deploy 4.62 MJ/lap
+  COL: CdA 0.859 ident 0.35 deploy 4.70 MJ/lap
+  HAM: CdA 0.893 ident 0.00 deploy 4.47 MJ/lap
+  BOR: CdA 0.893 ident 0.00 deploy 4.75 MJ/lap
+  SAI: CdA 0.893 ident 0.00 deploy 4.75 MJ/lap
+  HAD: CdA 0.956 ident 0.51 deploy 4.18 MJ/lap
+  RUS: CdA 0.893 ident 0.00 deploy 4.79 MJ/lap
+  BOT: CdA 0.893 ident 0.00 deploy 4.43 MJ/lap
+  PIA: CdA 0.893 ident 0.00 deploy 4.64 MJ/lap
+  BEA: CdA 0.893 ident 0.00 deploy 4.59 MJ/lap
+
+Monaco Grand Prix: 21 cars analysed, 19 refused
+  telemetry 4.17 Hz, 1451/1452 laps usable
+  pooled CdA: {'available': True, 'n_cars_pooled': 3, 'cda_pooled': 0.8926577670908679, 'cda_lo': 0.8394905874648985, 'cda_hi': 0.9458249467168373, 'per_car_deviation_pct': {'NOR': -20.975649785976064, 'GAS': -77.94852871166121, 'PER': -2.1125602976401905, 'ANT': -68.12036264027823, 'ALO': -52.00466071390547, 'LEC': -1.8979992307346305, 'STR': -50.4794867943713, 'ALB': -81.74537348434653, 'HUL': -55.91254855812065, 'LAW': 16.416000437264323, 'OCO': -91.08938936469252, 'LIN': 1.1783034258283633, 'COL': -3.753476576368804, 'HAM': -53.29020015504369, 'BOR': -89.7501423003698, 'SAI': -76.57387305769807, 'HAD': 7.090052203084672, 'RUS': -85.56693977875365, 'BOT': -3.689774983893511, 'PIA': -42.460372430773795, 'BEA': -104.28789494625453}, 'field_identifiability': 0.7617578355958796}
+  RDD rows: 1300
+wrote D:\Projects\XRay Energy F1\X-RAY\out\races\2026_r6_R.json (13.9 MB) in 143s
