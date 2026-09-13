@@ -45,6 +45,95 @@ function P({ children, style }: any) {
                      margin: '0 0 10px', ...style }}>{children}</p>;
 }
 
+/**
+ * Which estimator actually ran, and which one did not.
+ *
+ * This block exists because a reader who knows P3.5 built a hardened estimator
+ * will assume the numbers on this page came from it. They did not. The P3.5
+ * Part 3 candidate is `centre="evidence", boundary="conditional"`, and
+ * `xray/reinfer.py`'s `EstimatorAssumptions` defaults remain
+ * `centre="midpoint", boundary="clip", reserve_obs="point"` — the OLD canonical
+ * path. Nothing here activates anything; the activation gate lives in the
+ * artefact and in those defaults, not in a view.
+ *
+ * The four strings below are transcribed verbatim from
+ * `out/p35/part3/20260912T222358Z/summary.json`
+ * (`production_estimator_status`, `activation_decision`, `activation_blocker`)
+ * because no endpoint serves the P3.5 Part 3 summary yet. Transcribed prose is
+ * the weaker arrangement — `out/ablation.json` was hardcoded once and drifted to
+ * 5.03% against a measured 7.68% before it was served — so the artefact path and
+ * its fingerprint are named next to the words, and this needs a
+ * `/api/p35/status` endpoint to stop being a transcription.
+ */
+const P35_PART3 = {
+  artifact: 'out/p35/part3/20260912T222358Z/summary.json',
+  fingerprint: '309da5a58704d1',
+  production: 'OLD estimator remains production',
+  activation: 'FINAL HARDENED ESTIMATOR — NOT ACTIVATED',
+  blocker: 'FINAL conditional candidate does not show consistent real held-out '
+    + 'MAE improvement over OLD X-RAY across all three targets.',
+};
+
+function EstimatorActivationPanel() {
+  const row = (k: string, v: any, color: string = C.white) => (
+    <tr style={{ borderTop: `1px solid ${C.grid}` }}>
+      <td style={{ color: C.gray, padding: '6px 12px 6px 0',
+                   verticalAlign: 'top', whiteSpace: 'nowrap' }}>{k}</td>
+      <td style={{ color, verticalAlign: 'top', lineHeight: 1.55 }}>{v}</td>
+    </tr>
+  );
+  return (
+    <div style={{ border: `1px solid ${C.red}`, borderRadius: 10, padding: 16,
+                  background: 'rgba(225,6,0,0.07)', margin: '0 0 16px',
+                  maxWidth: 1000 }}>
+      <div style={{ color: C.red, fontSize: 11, letterSpacing: '0.09em',
+                    fontWeight: 700, marginBottom: 10 }}>
+        WHICH ESTIMATOR PRODUCED THESE NUMBERS
+      </div>
+      <table className="num" style={{ width: '100%', fontSize: 12.5,
+                                      borderCollapse: 'collapse' }}>
+        <tbody>
+          {row('PRODUCTION ESTIMATOR',
+               <b>P3 / OLD canonical — {P35_PART3.production}</b>)}
+          {row('P3.5 PART 3 CANDIDATE',
+               'experimental hardened candidate (centre=evidence, '
+               + 'boundary=conditional)', C.amber)}
+          {row('ACTIVATION', <b>NOT ACTIVATED</b>, C.red)}
+          {row('REASON',
+               'It did not outperform production consistently on the final real '
+               + 'held-out evaluation.', C.gray)}
+        </tbody>
+      </table>
+      <div style={{ color: C.red, fontSize: 11.5, fontWeight: 700, marginTop: 10,
+                    lineHeight: 1.5 }}>
+        {P35_PART3.activation}
+      </div>
+      <div style={{ color: C.gray, fontSize: 11.5, marginTop: 7, lineHeight: 1.6 }}>
+        {P35_PART3.blocker} The Part-2 candidate that preceded it was worse than
+        the old estimator on all three real held-out targets and wrecked synthetic
+        energy too — MAE 0.186 → 0.694 MJ, bias −0.046 → +0.653 MJ. The Part-3
+        conditional candidate restored that accuracy (MAE 0.188 MJ, bias
+        −0.034 MJ, correlation 0.839 against the old path's 0.844) and removed the
+        false-certainty floor collapse, and was <b style={{ color: C.red }}>still
+        not activated</b>: restoring what the old path already did is not an
+        improvement over it.
+      </div>
+      <div style={{ color: C.gray, fontSize: 11.5, marginTop: 7, lineHeight: 1.6 }}>
+        <b style={{ color: C.white }}>Public telemetry does not robustly identify
+        the store/reserve decomposition.</b> That limit is unchanged by either
+        candidate — it is a property of the signal, not of the estimator.
+      </div>
+      <div style={{ color: C.dim, fontSize: 11, marginTop: 8, lineHeight: 1.55 }}>
+        Transcribed from <span className="mono">{P35_PART3.artifact}</span>
+        {' '}(fingerprint <span className="mono">{P35_PART3.fingerprint}</span>),
+        not served from an endpoint. The Part-2 and Part-3 figures above are
+        recorded results re-read from <span className="mono">out/p35/</span>; no
+        held-out experiment was re-run to put them on this page.
+      </div>
+    </div>
+  );
+}
+
 /** Sample-rate ablation. Served from `out/ablation.json` rather than retyped:
  *  the previous hardcoded copy had already drifted from the artefact (it read
  *  5.0% MAPE at 100 Hz against a measured 7.68%). */
@@ -134,6 +223,12 @@ export function Evidence({ races, current }:
           number.
         </p>
       </div>
+
+      {/* Above the tab bar, not inside a sub-tab. Which estimator ran is not a
+          detail of one sub-tab's argument: a reader who opens "simulator
+          results" first and leaves would otherwise never see that the hardened
+          candidate is off. */}
+      <EstimatorActivationPanel />
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
         {TABS.map((t) => (
@@ -236,6 +331,23 @@ export function Evidence({ races, current }:
                 A circuit that never reaches high speed cannot pin drag area from a
                 speed trace. Monaco is not a bug; it is the method telling the truth.
               </P>
+              {/* The absence is shown, not implied away. `/api/races` summaries
+                  carry no `regulation` field, so this cannot be a per-row column
+                  without a backend change; stating it once in prose is honest,
+                  and a blank column would have read as "no race has provenance",
+                  which is false — Melbourne does. */}
+              <P style={{ color: C.amber }}>
+                <b>Regulation provenance is published for one race, not five.</b>
+                {' '}Melbourne's artefact carries an explicit{' '}
+                <span className="mono">regulation</span> block (variant
+                pre-Miami-2026, 250 kW harvest cap, source{' '}
+                <span className="mono">regs_for(session date)</span>). Spa,
+                Zandvoort, Monaco and Silverstone do not: their harvest respects
+                the correct post-Miami 350 kW cap, so the numbers are right, but
+                the artefact does not say so in-band and a reader has to take that
+                on trust. Not regenerated in this pass — it is an open
+                provenance-quality item, not a correctness one.
+              </P>
             </S>
           </div>
 
@@ -312,10 +424,21 @@ export function Evidence({ races, current }:
                   on the edge of it with no margin. The dashed line is this race.
                 </P>
                 <AblationChart ab={ab} hz={hz} />
+                {/* Served, never transcribed. The artefact this reads was stale
+                    by two weeks against the corrected regulation taper in
+                    `xray/regs.py` and still served 5.03% at 100 Hz while the
+                    strict xfail in `tests/test_estimator.py` measured 7.7% — the
+                    chart understated the error by about a third. Regenerated with
+                    the current code, the two now agree, which is the honest
+                    outcome and not a fix. */}
                 <P>
                   Source: <span className="mono" style={{ color: C.white }}>
                   out/ablation.json</span>, written by <span className="mono"
-                  style={{ color: C.white }}>scripts/05.run_ablation.py</span>.
+                  style={{ color: C.white }}>scripts/05.run_ablation.py</span>{' '}
+                  (3 seeds × LEADER per rate). Served live, not transcribed — the
+                  100 Hz point is the same known one-sided clip bias that{' '}
+                  <span className="mono">test_energy_mape_at_100hz</span> records
+                  as a strict expected failure against its 8% requirement.
                 </P>
               </S>
 

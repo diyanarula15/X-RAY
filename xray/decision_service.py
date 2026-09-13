@@ -194,15 +194,29 @@ def evaluate_decision_trace_from_payload(payload: dict[str, Any], car: str,
         raise ValueError("not enough common laps for a decision trace")
 
     rows = []
+    skipped_laps = []
     for i, lap in enumerate(laps):
         row = _evaluate_lap(payload, track, params, car, rival, laps, i, lap,
                             plan=explicit_pit_plan)
+        # `None` means no zone on that lap had a causal sample at its decision
+        # point -- it is skipped, not fatal. Chronological order of the surviving
+        # rows is unchanged because `laps` is already sorted and nothing is
+        # reordered or back-filled.
+        if row is None:
+            skipped_laps.append(int(lap))
+            continue
         rows.append(row)
+    if not rows:
+        raise ValueError("no causal decision opportunity on any common lap "
+                         f"(laps without a causal sample: {skipped_laps})")
     call = next((r for r in rows if r["attack"]), None)
     return {
         "car": car,
         "rival": rival,
         "laps": rows,
+        # Named so the UI cannot mistake a skipped lap for a lap that was
+        # evaluated and came out HOLD.
+        "laps_without_causal_sample": skipped_laps,
         "call": call,
         "fan": {"curves": [], "consensus_lap": call["lap"] if call else None,
                 "consensus_fraction": None, "n_policies": 0},
@@ -238,7 +252,7 @@ def evaluate_decision_trace_from_payload(payload: dict[str, Any], car: str,
 
 def _evaluate_lap(payload: dict[str, Any], track, params: VehicleParams,
                   car: str, rival: str, laps: list[int], i: int, lap: int,
-                  plan: dict | None = None) -> dict[str, Any]:
+                  plan: dict | None = None) -> dict[str, Any] | None:
     own_trace = payload["cars"][car]["trace"]
     rival_trace = payload["cars"][rival]["trace"]
     candidates = []
@@ -253,8 +267,20 @@ def _evaluate_lap(payload: dict[str, Any], track, params: VehicleParams,
         # `p_pass` as the gap at braking is an approximation, and it is labelled
         # one (`gap_reference_s`) rather than fixed by peeking.
         decision_s = zone.s_straight_start
-        own_e = belief_at_position(own_trace, lap, decision_s)
-        rival_e = belief_at_position(rival_trace, lap, decision_s)
+        # One opportunity without a causal sample is one opportunity, not the
+        # race. Zandvoort's zone B starts at s = 0.0 and lap 1 has no previous
+        # lap to read the boundary crossing from, so `belief_at_position`
+        # legitimately refuses there -- and that single refusal used to
+        # propagate out of the whole trace, costing all 8 Zandvoort battles
+        # (8/8 "no causal trace samples for lap 1 at s <= 0.0 m"). Skipping the
+        # opportunity keeps the refusal honest and local; if every zone on the
+        # lap refuses, the lap is dropped below, and if every lap drops the
+        # trace refuses with the reason.
+        try:
+            own_e = belief_at_position(own_trace, lap, decision_s)
+            rival_e = belief_at_position(rival_trace, lap, decision_s)
+        except ValueError:
+            continue
         gap = gap_at_position(payload, car, rival, lap, decision_s)
         dyn = _historical_dynamics(payload, car, rival, lap)
         laps_left = n_laps - i
@@ -309,6 +335,14 @@ def _evaluate_lap(payload: dict[str, Any], track, params: VehicleParams,
                      "own_sample_index": own_e.sample_index,
                      "rival_sample_index": rival_e.sample_index}
         candidates.append(candidate)
+
+    # Every opportunity on this lap lacked a causal sample (Zandvoort lap 1,
+    # where the only reachable zone starts at the start/finish line and there is
+    # no previous lap behind it). Reporting the lap as missing is correct;
+    # fabricating a row for it would put a decision on screen that no sample
+    # supports.
+    if not candidates:
+        return None
 
     # Attack candidates first, ranked by DP value; if none is affordable the
     # lap is a HOLD and the most valuable hypothetical is shown for context.
@@ -493,14 +527,46 @@ def pit_context_at_opportunity(payload: dict[str, Any], driver: str, lap: int,
 
 
 def belief_at_position(trace: dict[str, list], lap: int, s_m: float) -> UsableEnergyAtOpportunity:
-    """Causal usable-energy belief at or before ``s_m`` on ``lap``."""
+    """Causal usable-energy belief at or before ``s_m`` on ``lap``.
+
+    A zone whose straight starts AT the start/finish line (`s_straight_start ==
+    0.0`) has no same-lap sample at or before its decision point, because
+    `ingest.grid_lap` puts the first cell centre at s = 10 m. Zandvoort is the
+    only circuit on disk with such a zone (zone B, s = 0.0) and the bare
+    same-lap search refused it on lap 1, which aborted the whole decision trace:
+    8 of 8 Zandvoort battles returned "no causal trace samples for lap 1 at
+    s <= 0.0 m" and the tab was empty for the entire race.
+
+    The causally-latest sample before the start/finish line is the LAST sample
+    of the PREVIOUS lap -- the lap-boundary crossing -- so that is what is used,
+    and nothing else changes: the same-lap branch is tried first and wins
+    whenever it has any sample, so a circuit without an s = 0 zone takes the
+    identical index it always did. The previous-lap branch is only reachable at
+    the boundary itself (`s_m <= 0.0`); a mid-lap telemetry hole still refuses
+    rather than silently reaching back a whole lap for a belief.
+
+    NO FUTURE LEAKAGE: both branches are bounded above by the decision instant.
+    The same-lap mask is `s <= s_m`; the fallback mask is `lap < lap`, which is
+    entirely earlier in time than the boundary being decided at. A same-lap
+    sample at s > s_m is never a candidate in either branch, so there is no
+    path by which the car's own future position resolves s = 0.
+    """
     lap_arr = np.asarray(trace["lap"], dtype=int)
     s_arr = np.asarray(trace["s"], dtype=float)
     m = np.flatnonzero((lap_arr == int(lap)) & (s_arr <= float(s_m)))
+    source = "belief.usable_mean_at_or_before_zone"
+    if len(m) == 0 and float(s_m) <= 0.0:
+        # Strictly earlier laps only. No invented s = 0 sample, no default gap:
+        # this is a real measured sample, just the last one before the line.
+        m = np.flatnonzero(lap_arr < int(lap))
+        source = "belief.usable_mean_at_last_sample_of_previous_lap"
     if len(m) == 0:
         raise ValueError(f"no causal trace samples for lap {lap} at s <= {s_m:.1f} m")
+    # The trace is chronological, so the highest surviving index is the latest
+    # causally-available sample in either branch.
     idx = int(m[-1])
     return UsableEnergyAtOpportunity(
+        source=source,
         usable_energy_j=float(trace["usable_mean"][idx]) * 1e6,
         usable_p10_j=float(trace["usable_p10"][idx]) * 1e6,
         usable_p90_j=float(trace["usable_p90"][idx]) * 1e6,
@@ -1387,17 +1453,49 @@ def historical_replay(payload: dict[str, Any], car: str, rival: str,
         [g for g in snap["evaluation_fields"]["gaps"] if g.get("lap") in window_laps],
         car, rival)
 
-    # Whether `car` actually gained track position on `rival` inside the
-    # evaluation window, read from the same public position field the race
-    # result is made of -- never fabricated, and left `None` (not guessed)
-    # when either side of the comparison is missing.
+    # ---- OBSERVED HISTORICAL OUTCOME ------------------------------------
+    # The only thing the artefact can support: where the car was before the
+    # window and where it was at the end of it, from the same public
+    # `laps[].position` field the race result is built from. A position delta is
+    # an OUTCOME, not an action. It moves for pit stops, retirements ahead,
+    # penalties, incidents, traffic, safety cars and other drivers' races, none
+    # of which are in this payload, and a driver who attacks and fails keeps his
+    # position. `None` stays `None`; an unknown delta is never read as zero.
+    p_before = position_before.get(car)
+    p_after = position_after.get(car)
+    observed_delta = None if (p_before is None or p_after is None) else int(p_before - p_after)
+    if observed_delta is None:
+        observed_outcome = "position not published for this window"
+    elif observed_delta > 0:
+        observed_outcome = f"gained {observed_delta} position" + ("s" if observed_delta > 1 else "")
+    elif observed_delta < 0:
+        n = -observed_delta
+        observed_outcome = f"lost {n} position" + ("s" if n > 1 else "")
+    else:
+        observed_outcome = "no position change"
+
+    # ---- DRIVER ACTION: unknown ------------------------------------------
+    # There is no public channel that says whether the driver chose to attack.
+    # The previous version declared `actual_action = "attacked"` whenever the
+    # position improved and "held" otherwise, then compared that against P2 to
+    # print MATCHED/DIVERGED. Both halves were wrong: a failed attack recorded
+    # as "held", and a pit stop by the car ahead recorded as "attacked". Across
+    # the 852 rows the old verdict covered, every single one of them was a claim
+    # about driver intent derived from a quantity that does not carry intent.
+    # So the action is reported as unobserved, and the counterfactual -- what
+    # would have happened had the car followed P2 -- is reported as unresolved,
+    # because the race never branched.
+    driver_action_observed = False
+    counterfactual_status = "unresolved_from_historical_telemetry"
+
+    # ---- LEGACY, INTERNAL ONLY -------------------------------------------
+    # Kept so older bundles and any external reader do not KeyError, and for the
+    # index's `n_resolved` count. NOT a verdict, NOT user-facing, and nothing in
+    # the frontend may render them: see the comment above for why the concept is
+    # invalid.
     actual_action = None
-    if position_before.get(car) is not None and position_after.get(car) is not None:
-        actual_action = ("attacked" if position_after[car] < position_before[car]
-                         else "held")
-    # A plain comparison of two facts, not a probability: did what the driver
-    # actually did match what P2 would have called. `None` when either side is
-    # unknown -- this must never collapse a missing comparison into "held".
+    if observed_delta is not None:
+        actual_action = "attacked" if observed_delta > 0 else "held"
     matches_recommendation = None
     if actual_action is not None and decision is not None:
         matches_recommendation = (
@@ -1436,8 +1534,22 @@ def historical_replay(payload: dict[str, Any], car: str, rival: str,
         "later_observable_outcome": observed,
         "gap_to_rival_at_cutoff_s": gap_before,
         "gap_to_rival_at_window_end_s": gap_after,
+        # Three separated concepts, in the order a reader should take them:
+        # the X-RAY recommendation (`p2_recommendation`, canonical P2), the
+        # observed historical outcome (below, a position delta), and the driver's
+        # action (not observed at all).
+        "observed_position_before": p_before,
+        "observed_position_after": p_after,
+        "observed_position_delta": observed_delta,
+        "observed_outcome": observed_outcome,
+        "observed_outcome_basis": "public laps[].position at cutoff vs at window end",
+        "driver_action_observed": driver_action_observed,
+        "counterfactual_status": counterfactual_status,
+        # legacy/internal, documented above; never a user-facing verdict
         "actual_action": actual_action,
+        "actual_action_is_legacy": True,
         "matches_recommendation": matches_recommendation,
+        "matches_recommendation_is_legacy": True,
         "evaluation_fingerprint": snap["provenance"]["evaluation_fingerprint"],
         "quality_flags": snap["quality_flags"],
         "energy_inference_status": p3_status()["energy_inference"]["headline"],

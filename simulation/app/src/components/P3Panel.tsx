@@ -302,7 +302,17 @@ export function DataQualityPanel({ p3 }: { p3: P3Status | null }) {
   );
 }
 
-/** Off-policy replay. The label is permanent, not conditional. */
+/** Off-policy replay. The label is permanent, not conditional.
+ *
+ * Three separated concepts, same as `views/Situations.tsx`, and the two views
+ * must not disagree: the canonical P2 RECOMMENDATION, the OBSERVED OUTCOME
+ * (`observed_outcome`, a position delta the backend has already turned into a
+ * string), and the DRIVER ACTION, which is not observed at all. The legacy
+ * `actual_action` / `matches_recommendation` fields are still on the payload and
+ * are deliberately not read here -- `driver_action_observed` is always false and
+ * `counterfactual_status` is always unresolved, so a yes/no verdict built on
+ * them was grading the engine against a relabelled position delta.
+ */
 export function ReplayPanel({ replay }: { replay: P3Replay | null }) {
   if (!replay) return null;
   const rec = replay.p2_recommendation;
@@ -353,15 +363,28 @@ export function ReplayPanel({ replay }: { replay: P3Replay | null }) {
                 {' → '}
                 {replay.gap_to_rival_at_window_end_s == null
                   ? '—' : `${replay.gap_to_rival_at_window_end_s.toFixed(3)} s`}</td></tr>
-          <tr><td style={{ color: C.gray }}>what the driver actually did</td>
+          {/* OBSERVED OUTCOME, not a driver action and not a verdict. This row
+              used to print "what the driver actually did: attacked" and a
+              green/amber "matched the recommendation: yes/no", both derived from
+              one position delta over the window. A car promoted by the pit stop
+              of the car ahead was recorded as having attacked, and a driver who
+              attacked and failed was recorded as having held -- so the yes/no
+              graded P2 against a label the data cannot produce. The delta is
+              still shown, as a delta. No colour: a position change cannot say
+              the call was right. */}
+          <tr><td style={{ color: C.gray }}>observed outcome in the window</td>
               <td style={{ textAlign: 'right', color: C.white }}>
-                {replay.actual_action ?? 'unknown — no later position to compare'}</td></tr>
-          <tr><td style={{ color: C.gray }}>matched the recommendation</td>
-              <td style={{ textAlign: 'right',
-                           color: replay.matches_recommendation == null ? C.gray
-                             : replay.matches_recommendation ? C.green : C.amber }}>
-                {replay.matches_recommendation == null ? 'unknown'
-                  : replay.matches_recommendation ? 'yes' : 'no'}</td></tr>
+                {replay.observed_outcome ?? 'position not published for this window'}
+                {replay.observed_position_before != null
+                  && replay.observed_position_after != null
+                  ? ` (P${replay.observed_position_before} → `
+                    + `P${replay.observed_position_after})` : ''}</td></tr>
+          <tr><td style={{ color: C.gray }}>driver's own choice</td>
+              <td style={{ textAlign: 'right', color: C.dim }}>
+                not observed — no public channel carries it</td></tr>
+          <tr><td style={{ color: C.gray }}>counterfactual</td>
+              <td style={{ textAlign: 'right', color: C.dim }}>
+                unresolved from historical telemetry</td></tr>
           <tr><td style={{ color: C.gray }}>input fingerprint</td>
               <td style={{ textAlign: 'right', color: C.dim }}>
                 {fp(replay.information_at_cutoff?.input_fingerprint)}</td></tr>
@@ -369,12 +392,17 @@ export function ReplayPanel({ replay }: { replay: P3Replay | null }) {
       </table>
       <div style={{ color: C.gray, fontSize: 11.5, marginTop: 9, lineHeight: 1.55 }}>
         Later telemetry is used only for evaluation and never reaches the
-        recommendation. The car did not execute this recommendation, so the
-        observed outcome is the outcome of what the driver actually did — this
-        cannot show what the recommendation would have achieved. "Matched" only
-        says the driver's real action agrees with the call; a mismatch is not
-        shown as a worse outcome, because no counterfactual outcome exists for
-        the action not taken.
+        recommendation. This replay did not execute X-RAY&apos;s recommendation.
+        Counterfactual: unresolved from historical telemetry. The
+        race never branched onto X-RAY&apos;s call, and no public channel says
+        whether the driver chose to attack — so the outcome above is a change of
+        classified position, not a driver action, and it also moves for pit stops,
+        retirements ahead, penalties, incidents, traffic and safety cars. There is
+        no matched/diverged verdict here because the comparison it printed was P2
+        against that relabelling, and 852 rows carried it before it was removed.
+      </div>
+      <div style={{ color: C.dim, fontSize: 11, marginTop: 6, lineHeight: 1.5 }}>
+        Outcome basis: {replay.observed_outcome_basis}
       </div>
       <div style={{ color: C.amber, fontSize: 11.5, marginTop: 7, fontWeight: 700 }}>
         {replay.energy_inference_status}

@@ -129,30 +129,39 @@ def test_scenario_walkthrough_renders_the_permanent_disclaimer_unconditionally()
     assert "title=" not in panel_src.split("{replay.label}")[0][-200:]
 
 
-def test_scenario_walkthrough_never_recomputes_the_match_client_side():
-    """`matches_recommendation` and `actual_action` must be read, never derived,
-    in the frontend -- the comparison is the backend's."""
+def test_scenario_walkthrough_shows_no_driver_action_verdict_at_all():
+    """This test used to pin the opposite assertion, and the assertion was wrong.
+
+    It required `s.matches_recommendation === true/false` to be rendered, i.e. a
+    MATCHED / DIVERGED verdict per row. That verdict compared P2's call against a
+    "driver action" defined as "position improved over the evaluation window",
+    which records a failed attack as a hold and a promotion from the pit stop of
+    the car ahead as an attack. 852 rows carried it. The position delta survives
+    as an OBSERVED OUTCOME, the driver's action is reported as unobserved, and the
+    counterfactual is reported as unresolved -- so what is pinned here now is the
+    ABSENCE of the verdict, plus the presence of the honest fields.
+
+    Full coverage of the new semantics is in tests/test_situations_semantics.py.
+    """
     src = _strip_comments(WALKTHROUGH.read_text(encoding="utf-8"))
     banned = {
-        r"actual_action\s*=\s*[^=]": "a client-side actual_action derivation",
-        r"matches_recommendation\s*=\s*[^=]": "a client-side match derivation",
+        r"actual_action": "the legacy position-derived driver action",
+        r"matches_recommendation": "the legacy MATCHED/DIVERGED verdict",
         r"position_after\s*<\s*position_before": "a client-side position comparison",
     }
     for pattern, what in banned.items():
-        assert not re.search(pattern, src), f"Situations.tsx contains {what}"
-    # The view filters on the backend's own boolean. It used to walk forward
-    # through cutoffs comparing `r.matches_recommendation === want`; it now
-    # filters a precomputed list, but the comparison is still a read of the
-    # service's field against a literal, never a derivation.
-    assert "s.matches_recommendation === true" in src
-    assert "s.matches_recommendation === false" in src
-    # `null` is a real third state -- the evaluation window contained no lap
-    # completion for both cars, so no position change can be read. Folding it
-    # into `false` would report "the driver diverged" for a comparison that was
-    # never made. This is the bug that made the whole feature dead: at the old
-    # fixed 30 s horizon, shorter than a lap at every circuit, EVERY point came
-    # back null and the follow/disobey walk never once found a match.
-    assert "matches_recommendation !== null" in src
+        assert not re.search(pattern, src), f"Situations.tsx renders {what}"
+    # Read, never derived: the outcome string and its delta are the backend's.
+    assert "observed_outcome" in src
+    assert "observed_position_delta" in src
+    # `null` is still a real third state -- the window had no published position
+    # at both ends -- and it must not be folded into 0 ("no position change").
+    # At the old fixed 30 s horizon, shorter than a lap at every circuit, EVERY
+    # point came back null, which is what made the feature dead on arrival.
+    assert "observed_position_delta !== null" in src
+    assert "observed_position_delta === 0" in src
+    # The recommendation filter is canonical P2, not the P1 per-lap flag.
+    assert "recommendation === 'ATTACK'" in src
 
 
 def test_scenario_walkthrough_admits_when_no_divergent_instance_exists():

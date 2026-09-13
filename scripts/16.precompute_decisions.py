@@ -31,7 +31,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from simulation.api.main import (DECISIONS, RACES, build_bundle,  # noqa: E402
-                                 bundle_path, rebuild_index)
+                                 SITUATIONS_SCHEMA, bundle_path, rebuild_index)
 
 
 def pairs_for(d: dict, all_pairs: bool) -> list[tuple[str, str]]:
@@ -53,7 +53,9 @@ def build_one(rid: str, car: str, rival: str, force: bool) -> tuple[str, float, 
     mtime = (RACES / f"{rid}.json").stat().st_mtime_ns
     if not force and p.exists():
         try:
-            if json.loads(p.read_text(encoding="utf-8")).get("artefact_mtime_ns") == mtime:
+            cached = json.loads(p.read_text(encoding="utf-8"))
+            if (cached.get("artefact_mtime_ns") == mtime
+                    and cached.get("situations_schema") == SITUATIONS_SCHEMA):
                 return (f"{rid} {car}->{rival}", 0.0, "cached")
         except (ValueError, OSError):
             pass
@@ -67,9 +69,17 @@ def build_one(rid: str, car: str, rival: str, force: bool) -> tuple[str, float, 
     tmp.write_text(json.dumps(out), encoding="utf-8")
     tmp.replace(p)
     n_sit = len(out["situations"])
-    n_res = sum(1 for s in out["situations"] if s["matches_recommendation"] is not None)
+    # "Resolved" means the evaluation window had a published classification at BOTH
+    # ends, so an observed position delta exists. It used to count rows where
+    # `matches_recommendation` was non-null -- the driver-action verdict that has
+    # since been retired as invalid (position change also moves for pit stops,
+    # retirements ahead, penalties, incidents and safety cars). Counting the
+    # retired field still "worked" because it is retained internally, so the log
+    # would have kept reporting a quantity no view shows any more.
+    n_res = sum(1 for s in out["situations"]
+                if s.get("observed_position_delta") is not None)
     return (f"{rid} {car}->{rival}", time.time() - t0,
-            f"{n_sit} situations, {n_res} resolved")
+            f"{n_sit} situations, {n_res} with an observed position delta")
 
 
 def main() -> int:

@@ -55,7 +55,10 @@ export type Regulation = {
 };
 export type RaceDetail = RaceSummary & {
   circuit_geometry: Geometry; refusals: Record<string, Refusal>;
-  regulation: Regulation;
+  // Optional: artefacts analysed before the variant was stamped do not carry it,
+  // and the strip must say so rather than printing "undefined kW harvest".
+  regulation?: Regulation | null;
+  regulation_available?: boolean;
   calibration: any; drivers: string[]; laps: any[];
   // `solved`/`refusal`/`n_situations` come from the precomputed-bundle index.
   // `solved: false` means nobody has opened this pair yet, which is a third
@@ -163,10 +166,23 @@ export type P3Replay = {
     position_at_cutoff: number | null; position_at_window_end: number | null }>;
   gap_to_rival_at_cutoff_s: number | null;
   gap_to_rival_at_window_end_s: number | null;
-  // "attacked" | "held" | null -- read from real position change, never guessed.
+  // OBSERVED HISTORICAL OUTCOME: position delta over the evaluation window,
+  // positive = places gained. An outcome, not a driver action.
+  observed_position_before: number | null;
+  observed_position_after: number | null;
+  observed_position_delta: number | null;
+  observed_outcome: string | null;
+  observed_outcome_basis: string;
+  // The driver's choice is not in any public channel, so it is reported as
+  // unobserved and the counterfactual as unresolved rather than inferred from
+  // the position delta.
+  driver_action_observed: boolean;
+  counterfactual_status: string;
+  // LEGACY/INTERNAL, kept so existing readers do not break. `actual_action` is
+  // the position delta relabelled as intent and `matches_recommendation` is P2
+  // compared against that relabelling; neither is evidence about what the driver
+  // did. Do not introduce new readers.
   actual_action: 'attacked' | 'held' | null;
-  // null when either side of the comparison is unknown -- must never default
-  // to false/true.
   matches_recommendation: boolean | null;
   evaluation_fingerprint: string;
   quality_flags: Record<string, boolean>;
@@ -175,23 +191,64 @@ export type P3Replay = {
 
 /** One real decision point, already replayed off-policy server-side.
  *
- *  `matches_recommendation` and `actual_action` are computed by
- *  `decision_service.historical_replay` and copied through unchanged. The
- *  frontend filters on them; it never derives them. Both are `null` when the
- *  comparison is genuinely unavailable -- that is a third state, not a false. */
+ *  Every field is copied through from `decision_service.historical_replay`; the
+ *  frontend derives none of them. `observed_position_delta` is `null`, not 0,
+ *  when the window has no published position at both ends -- a third state. */
+/** One causal decision point, already replayed off-policy by the backend.
+ *
+ *  Every recommendation field below comes from ONE canonical P2 solver result --
+ *  the same one that produced `matches_recommendation`. The old shape carried P1's
+ *  `attack` next to P2's verdict, and the two disagreed on 137 of 852 rows; the
+ *  P1 call is now `legacy_p1_*` and must not be rendered as the recommendation. */
 export type Situation = {
-  lap: number; decision_time_s: number;
-  requested_zone: string | null; attack: boolean; gap_s: number | null;
+  lap: number; decision_time_s: number; gap_s: number | null;
+  // canonical P2 recommendation
+  recommendation: 'HOLD' | 'ATTACK' | null;
+  recommended_zone: string | null;
+  deployment_budget_mj: number | null; actual_deployed_mj: number | null;
+  pass_probability: number | null;
+  value_action: number | null; value_hold: number | null;
+  decision_margin: number | null;
+  next_best_action: { kind: string; zone: string | null;
+                      deployment_budget_mj: number; value: number } | null;
+  pass_model_calibration: string | null;
+  recommendation_source: string;
+  // OBSERVED HISTORICAL OUTCOME: a position delta from the public
+  // `laps[].position` field, positive = places gained. It is an outcome, not an
+  // action -- pit stops, retirements ahead, penalties, incidents, traffic and
+  // safety cars all move it, and an attack that failed moves it not at all.
+  observed_position_before: number | null;
+  observed_position_after: number | null;
+  observed_position_delta: number | null;
+  observed_outcome: string | null;
+  observed_outcome_basis: string;
+  // DRIVER ACTION: never observed. No public channel carries the driver's
+  // choice, so there is no followed/disobeyed verdict to render, and the
+  // counterfactual is unresolved because the race never branched onto P2's call.
+  driver_action_observed: boolean;
+  counterfactual_status: string;
+  // LEGACY/INTERNAL. The old position-derived action and the MATCHED/DIVERGED
+  // verdict built on it. Kept for compatibility only -- rendering either one is
+  // the bug this pass removed; `Situations.tsx` reads neither.
   matches_recommendation: boolean | null;
+  matches_recommendation_is_legacy?: boolean;
   actual_action: 'attacked' | 'held' | null;
+  actual_action_is_legacy?: boolean;
+  inferred_action_from_position: 'attacked' | 'held' | null;
+  actual_action_basis: string;
+  // legacy P1 per-lap call. Internal only: never display as the recommendation.
+  legacy_p1_attack: boolean;
+  legacy_p1_requested_zone: string | null;
   replay_error: string | null;
 };
 export type SituationList = {
   race: string; car: string; rival: string; horizon_s: number;
   situations: Situation[];
-  // Set when the engine legitimately declined this pair (e.g. no causal trace
-  // sample on lap 1). A refusal is a correct output, not an error path, and it
-  // is rendered as the reason rather than swallowed into an empty list.
+  // Set when the engine legitimately declined this pair. A refusal is a correct
+  // output, not an error path, and it is rendered as the reason rather than
+  // swallowed into an empty list. It no longer fires for a single
+  // opportunity without a causal sample (Zandvoort's s = 0 zone on lap 1):
+  // that opportunity is skipped and the rest of the race is still solved.
   refusal: string | null;
 };
 
@@ -276,7 +333,8 @@ export const api = {
   p3Status: () => j<P3Status>('/api/p3/status'),
   // Horizon is deliberately not passed: the API derives it from the race's own
   // median lap time. The old fixed 30 s was shorter than a lap everywhere, so
-  // `actual_action` came back null at every decision point on every circuit.
+  // the window closed before either car crossed the line and the observed
+  // position delta came back null at every decision point on every circuit.
   replay: (id: string, car: string, rival: string, cutoff: number) =>
     j<P3Replay>(`/api/race/${id}/replay?car=${car}&rival=${rival}&cutoff=${cutoff}`),
   rdd: (cutoff: number, bandwidth = 0.6) =>

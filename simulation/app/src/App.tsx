@@ -81,7 +81,17 @@ export default function App() {
       if (pairToken.current !== mine) return;
       setSubject(sc); setRival(rc);
       usePlayback.getState().setCars(subjectCode, rivalCode);
+      const ra = timeRange(sc), rb = timeRange(rc);
       if (!sc || !rc) {
+        // The clock window has to leave with the pair it belonged to. Replay is
+        // the one tab that renders without both cars, so on a failed swap it
+        // kept scrubbing the PREVIOUS pair's window: `sampleCar` reports
+        // `onTrack: false` outside a car's own observed span, so the surviving
+        // car sat frozen with a null gap and an em-dash energy readout while
+        // the scrub bar showed a perfectly healthy timeline. Re-range onto
+        // whichever car did load ([0, 1] if neither did); `setRange` resets
+        // `raceTime` to the new start, which is also the clamp.
+        usePlayback.getState().setRange(ra ?? rb ?? [0, 1]);
         // A car the estimator refused is a legitimate outcome, not an error to
         // swallow into a blank screen -- which is what the old `.catch(() =>
         // null)` produced, because every tab was guarded on `subject && rival`.
@@ -91,7 +101,6 @@ export default function App() {
       }
       // The shared clock spans the window where BOTH cars have telemetry, so the
       // two are always sampled at the same moment of the same race.
-      const ra = timeRange(sc), rb = timeRange(rc);
       const range: [number, number] | null = ra && rb
         ? [Math.max(ra[0], rb[0]), Math.min(ra[1], rb[1])] : (ra ?? null);
       if (range && range[1] > range[0]) {
@@ -100,6 +109,11 @@ export default function App() {
         const t = bestBattleTime(sc, rc, geoLength, range);
         if (t != null) usePlayback.getState().setTime(t);
       } else {
+        // Same reason as above: an empty intersection must not leave the old
+        // pair's window on the clock. Range onto the subject's own span so the
+        // scrub bar describes a car that exists, and let Theatre say there is
+        // no shared window.
+        usePlayback.getState().setRange(ra ?? rb ?? [0, 1]);
         setPairErr(`${subjectCode} and ${rivalCode} have no overlapping telemetry `
                    + 'window in this race — they cannot be replayed against each other.');
       }
@@ -125,8 +139,17 @@ export default function App() {
 
   function pick(which: 'subject' | 'rival', drv: string) {
     if (!race || !drv) return;
-    const s = which === 'subject' ? drv : (subject?.driver ?? '');
-    const r = which === 'rival' ? drv : (rival?.driver ?? '');
+    // The side you did NOT touch comes from the REQUESTED codes, not from the
+    // loaded car object. When one car fails to load its object is null, so
+    // `subject?.driver ?? ''` was '' and the `!s || !r` guard below swallowed
+    // every subsequent pick: after one unavailable car the picker accepted
+    // clicks and did nothing, with no message, for the rest of the session.
+    // `setCars` already records the codes that were asked for.
+    const st = usePlayback.getState();
+    const held = { subject: subject?.driver ?? st.subject ?? '',
+                   rival: rival?.driver ?? st.rival ?? '' };
+    const s = which === 'subject' ? drv : held.subject;
+    const r = which === 'rival' ? drv : held.rival;
     if (!s || !r || s === r) return;
     void applyPair(race.id, race.circuit_geometry.length, s, r);
   }
@@ -241,7 +264,11 @@ export default function App() {
         <span style={{ marginLeft: 'auto', color: lowIdent ? C.amber : C.dim,
                        display: 'flex', gap: 8, alignItems: 'baseline' }}>
           <span>{race.circuit}</span>
-          <span>· {race.regulation?.variant} · {race.regulation?.p_harv_max_kw} kW harvest</span>
+          {race.regulation
+            ? <span>· {race.regulation.variant} · {race.regulation.p_harv_max_kw} kW harvest</span>
+            : <span title="This race artefact was analysed before the regulation
+ variant was recorded. Re-analyse the round to stamp it; the app will not guess
+ which rulebook was in force.">· regulation variant not recorded</span>}
           <span>· {((current?.identifiability ?? 0) * 100).toFixed(0)}% identifiable</span>
           {lowIdent && <b title="No car ran fast enough at this circuit to pin drag area
  from its own trace. Bands here are wide by necessity, and the estimator says so

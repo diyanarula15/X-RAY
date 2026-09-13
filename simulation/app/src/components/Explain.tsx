@@ -21,11 +21,11 @@ export const GUIDE: Record<View, { title: string; what: string; do1: string[] }>
   },
   situations: {
     title: 'Situations',
-    what: 'Every point in this race where the engine had a call to make, and what the '
-      + 'driver actually did next. Pick one — that is the whole tab.',
+    what: 'Every point in this race where the engine had a call to make, plus the '
+      + 'observed classified-position outcome afterwards. Pick one — that is the whole tab.',
     do1: [
-      'Filter to "driver diverged" to find the moments the real driver did the '
-        + 'opposite of X-RAY’s call.',
+      'Filter to ATTACK calls or observed position outcomes without treating either '
+        + 'as proof of the driver’s private choice.',
       'Click a row to see what was knowable at that cutoff and what the engine would '
         + 'have said — read off the backend, never recomputed here.',
       '"Watch this moment in Replay" jumps the 3D clock to that exact second.',
@@ -35,8 +35,12 @@ export const GUIDE: Record<View, { title: string; what: string; do1: string[] }>
   },
   replay: {
     title: 'Replay',
-    what: 'A real 2026 race, replayed. Neither car has ever published its energy state '
-      + '— the red bar is reconstructed from speed alone.',
+    // Both bars are telemetry-derived. Saying only the red one was "reconstructed"
+    // implied the amber car's energy was known, which no 2026 artefact supports:
+    // `analysis.py` marks neither side as internally known, so the asymmetry was
+    // wording, not data.
+    what: 'A real 2026 race, replayed. Neither car has published its energy '
+      + 'state — both historical bars are telemetry-derived estimates from public traces.',
     do1: [
       'Press play (or Space) to run the battle. Arrow keys jump 5 s.',
       'Switch the track paint to "observability" to see where the trace tells us '
@@ -125,20 +129,21 @@ export function Onboarding() {
         + 'decides whether you can pass them.',
     },
     {
-      t: 'We reconstruct it from speed alone',
+      t: 'We estimate it from public telemetry',
       b: 'How hard a car accelerates, against how hard the air pushes back, says how '
         + 'much power it is using. Subtract what the engine can produce and the '
-        + 'remainder is electrical. Do that all lap and you have their battery.',
+        + 'remainder is electrical deployment evidence. Over a lap, that becomes an '
+        + 'energy estimate with explicit uncertainty, not a direct measurement.',
     },
     {
-      t: 'The red cloud is the uncertainty',
+      t: 'The uncertainty cloud is the signal range',
       b: 'Four hundred dots, each one guess at the rival’s remaining energy. They '
         + 'pull together where the speed trace is informative and spread apart where it '
         + 'is not. That is not decoration — it is the algorithm, drawn.',
     },
     {
       t: 'Then it tells you when to attack',
-      b: 'Knowing their energy and yours gives a probability of the pass on every lap. '
+      b: 'Combining both cars’ energy estimates gives a probability of the pass on every lap. '
         + 'Tested against a simulator where the true answer is known (30 seeded races, '
         + '3.7 Hz), it lands within one lap of the oracle’s call 87% of the time. Against '
         + 'attacking blind at the first chance: 0.30 expected value versus 0.02.',
@@ -183,10 +188,13 @@ export function Onboarding() {
 export function SceneLegend() {
   const [open, setOpen] = useState(true);
   const rows = [
-    { c: C.amber, t: 'your car, and the energy you have' },
-    { c: C.red, t: 'the rival, and our belief about theirs' },
+    { c: C.amber, t: 'CHASER — estimated usable energy, telemetry-derived' },
+    { c: C.red, t: 'TARGET — estimated usable energy, telemetry-derived' },
     { c: '#39C6E0', t: 'recovering energy under braking' },
-    { c: C.green, t: 'within 1.000 s — Override eligible' },
+    // The former green Manual Override row is gone with the badge it described.
+    // Eligibility is a regulation decision and the frontend must not infer it
+    // from an instantaneous gap; nothing is coloured green on that basis now.
+    { c: C.gray, t: 'Manual Override eligibility is not established from this frame' },
   ];
   return (
     <div className="panel" style={{ padding: open ? '11px 13px' : '7px 11px' }}>
@@ -208,7 +216,7 @@ export function SceneLegend() {
           ))}
           <div style={{ borderTop: `1px solid ${C.panelBorder}`, marginTop: 8,
             paddingTop: 8, color: C.dim, fontSize: 11, lineHeight: 1.55 }}>
-            The red cloud is 400 separate guesses at the rival's remaining energy.
+            The uncertainty cloud is 400 separate estimates of remaining energy.
             Tight = we can see. Spread = we cannot.
           </div>
         </div>

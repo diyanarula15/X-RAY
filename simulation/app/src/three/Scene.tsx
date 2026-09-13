@@ -182,12 +182,17 @@ function Actors({ geo, subject, rival, radius, centre }: {
 
   return (
     <>
+      {/* Role is passed explicitly rather than left implicit in the accent
+          colour: colour alone was the whole identity before, and amber vs red
+          is one hue step that a duel-camera frame at racing speed does not
+          resolve. CarMesh turns the role into shell colour, outline, marker
+          shape and a printed word. */}
       <CarMesh position={sPos.current} heading={sRot.current.heading}
-        bank={sRot.current.bank} accent={C.amber} speed={sRot.current.v}
-        ghost={sRot.current.ghost} />
+        bank={sRot.current.bank} accent={C.amber} role="CHASER"
+        speed={sRot.current.v} ghost={sRot.current.ghost} />
       <CarMesh position={rPos.current} heading={rRot.current.heading}
-        bank={rRot.current.bank} accent={C.red} speed={rRot.current.v}
-        ghost={rRot.current.ghost} />
+        bank={rRot.current.bank} accent={C.red} role="TARGET"
+        speed={rRot.current.v} ghost={rRot.current.ghost} />
       {!lite && <EnergyTrail history={trailS.current} lite={lite} />}
       {!lite && <EnergyTrail history={trailR.current} lite={lite} />}
       {showCloud && (
