@@ -107,7 +107,15 @@ def _as_power(out):
 
 
 def _curve_limit(v, curve: PowerCurve):
-    if type(v) is float or type(v) is int:
+    # `np.ndim(v) == 0`, not `type(v) is float`. `vehicle.step` integrates with
+    # numpy scalars, and `type(np.float64(90.0)) is float` is False -- so every
+    # scalar call fell through to the vectorised branch and allocated
+    # asarray + full_like + three where + clip to compute one number. In one
+    # `evaluate_decision_trace_from_payload` that is 6.0M calls and 69 s of a
+    # 186 s trace, the single largest cost in the decision endpoint. Same
+    # arithmetic either way; `test_physics` pins the curve itself.
+    if np.ndim(v) == 0:
+        v = float(v)
         if v <= curve.full_power_until_mps:
             return float(P_MGUK_MAX)
         if v >= curve.zero_at_mps:

@@ -1,12 +1,20 @@
+/* Only the four values CSS actually uses. The full palette lives in
+   `src/lib/theme.ts` as `C`, which every component reads; the other eight
+   custom properties were a second copy of it that nothing referenced, so the
+   two could drift with nothing to catch it. */
 :root {
-  --bg:#0B0B0F; --panel:#16161C; --border:#2A2A33; --grid:#26262E;
-  --red:#E10600; --amber:#FFC300; --green:#2ECC71; --gray:#9AA0A6;
-  --dim:#5A5A66; --white:#fff; color-scheme: dark;
+  --bg:#0B0B0F; --panel:#16161C; --border:#2A2A33; --white:#fff;
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; background: var(--bg); }
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  /* No 'Inter'. It was named here and never loaded -- no <link>, no bundled
+     font -- so every machine has always rendered the fallback, and the panel
+     spacing was tuned against that fallback. Naming a font we do not ship is
+     how a presentation machine renders something nobody has ever seen. */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+               Arial, sans-serif;
   color: var(--white); -webkit-font-smoothing: antialiased; overflow: hidden;
 }
 /* Non-negotiable: without this every readout jitters as it updates. */

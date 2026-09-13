@@ -12,9 +12,10 @@ export const DEMO_BEATS = [
   { label: 'cloud materialises', s: 3, apply: () => set({ showCloud: true }) },
   { label: 'convergence', s: 8, apply: () => set({ camera: 'duel', showCloud: true }) },
   { label: 'trails ignite', s: 5, apply: () => set({ paintMode: 'deployment' }) },
-  { label: 'decision', s: 6, apply: () => { set({ camera: 'tactical' }); usePlayback.getState().setView('strategy'); } },
+  { label: 'decision', s: 6, apply: () => { set({ camera: 'tactical' }); usePlayback.getState().setView('cockpit'); } },
+  { label: 'situations', s: 6, apply: () => usePlayback.getState().setView('situations') },
   { label: 'execution', s: 5, apply: () => { usePlayback.getState().setView('replay'); set({ camera: 'duel' }); } },
-  { label: 'observability', s: 5, apply: () => { set({ paintMode: 'observability' }); usePlayback.getState().setView('context'); } },
+  { label: 'observability', s: 5, apply: () => { set({ paintMode: 'observability' }); usePlayback.getState().setView('observability'); } },
 ] as const;
 
 function set(p: any) { usePlayback.setState(p); }

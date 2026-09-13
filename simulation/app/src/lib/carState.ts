@@ -65,15 +65,6 @@ export function timeRange(car: Car | null): [number, number] | null {
   return [t[0], t[t.length - 1]];
 }
 
-/** Session time at which the car begins the given lap. */
-export function lapStart(car: Car | null, lap: number): number | null {
-  const tr = car?.trace as any;
-  if (!tr?.t) return null;
-  const k = tr.lap.findIndex((l: number) => l === lap);
-  return k >= 0 ? tr.t[k] : null;
-}
-
-
 /**
  * The moment these two were actually closest on track.
  *

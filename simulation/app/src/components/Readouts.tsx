@@ -75,6 +75,17 @@ export function Panel({ children, style }: { children: any; style?: any }) {
   return <div className="panel" style={{ padding: 14, ...style }}>{children}</div>;
 }
 
+/** The panel-header treatment, declared once. The same four-property object was
+ *  inlined in a dozen views, so a change to the house style needed a dozen
+ *  edits and the sizes had already drifted (10, 10.5 and 11 all in use). */
+export function SectionTitle({ children, colour = C.gray, style }:
+  { children: any; colour?: string; style?: any }) {
+  return (
+    <div style={{ color: colour, fontSize: 11, letterSpacing: '0.09em',
+                  fontWeight: 700, marginBottom: 9, ...style }}>{children}</div>
+  );
+}
+
 /** Refusals are loud. Never a silent fallback, never a quiet default. */
 export function Refusal({ title, message, tone = 'red' }:
   { title: string; message: string; tone?: 'red' | 'amber' }) {

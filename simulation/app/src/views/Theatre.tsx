@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import type { Car, RaceDetail } from '../lib/api';
 import { sampleCar } from '../lib/carState';
 import { C } from '../lib/theme';
@@ -9,8 +9,14 @@ import { EnergyBar, Panel, Refusal } from '../components/Readouts';
 import { ScrubBar } from '../components/ScrubBar';
 import { SpeedTrace } from '../components/SpeedTrace';
 import { SceneLegend } from '../components/Explain';
-import { ScenarioWalkthrough } from '../components/ScenarioWalkthrough';
 import { Scene } from '../three/Scene';
+
+// The right rail and the gutter it sits in, named once. These were hand-tuned
+// magic numbers (`right: 366` = 330 + 18 + 18) repeated at three call sites, so
+// changing the rail width silently broke the overlays that abutted it.
+const RAIL_W = 330;
+const GUTTER = 18;
+const RAIL_EDGE = RAIL_W + GUTTER * 2;
 
 export function Theatre({ race, subject, rival, obs }: {
   race: RaceDetail; subject: Car | null; rival: Car | null; obs: any;
@@ -19,6 +25,7 @@ export function Theatre({ race, subject, rival, obs }: {
   // sample it at a readable rate instead of forcing a React render per frame.
   const raceTime = useThrottledTime(12);
   const setTime = usePlayback((s) => s.setTime);
+  const setView = usePlayback((s) => s.setView);
   const [t0, t1] = usePlayback((s) => s.tRange);
   const playing = usePlayback((s) => s.playing);
   const speed = usePlayback((s) => s.speed);
@@ -29,7 +36,6 @@ export function Theatre({ race, subject, rival, obs }: {
   const showCloud = usePlayback((s) => s.showCloud);
   const setShowCloud = usePlayback((s) => s.setShowCloud);
   const lite = usePlayback((s) => s.lite);
-  const [showWalkthrough, setShowWalkthrough] = useState(false);
 
   const L = race.circuit_geometry.length;
   const sS = useMemo(() => sampleCar(subject, raceTime, L), [subject, raceTime, L]);
@@ -103,7 +109,8 @@ export function Theatre({ race, subject, rival, obs }: {
         )}
       </div>
 
-      <div style={{ position: 'absolute', top: 18, right: 18, width: 330,
+      <div style={{ position: 'absolute', top: GUTTER, right: GUTTER, width: RAIL_W,
+                    maxHeight: `calc(100% - ${GUTTER * 2}px)`, overflowY: 'auto',
                     display: 'flex', flexDirection: 'column', gap: 12 }}>
         <Panel>
           <div style={{ color: C.dim, fontSize: 10.5, marginBottom: 8, lineHeight: 1.5 }}>
@@ -191,7 +198,7 @@ export function Theatre({ race, subject, rival, obs }: {
         </Panel>
       </div>
 
-      <div style={{ position: 'absolute', bottom: 16, left: 18, right: 366,
+      <div style={{ position: 'absolute', bottom: 16, left: GUTTER, right: RAIL_EDGE,
                     display: 'flex', flexDirection: 'column', gap: 10 }}>
         <SpeedTrace subject={subject} rival={rival} raceTime={raceTime} />
         <ScrubBar car={subject} rival={rival} />
@@ -209,25 +216,19 @@ export function Theatre({ race, subject, rival, obs }: {
         </div>
       )}
 
+      {/* The scenario walkthrough that used to hang here as a collapsed overlay
+          is now the Situations tab. It was wedged between the 3D scene and the
+          right rail at a hardcoded offset, easy to miss entirely, and its
+          "find the next divergent instance" walk fired up to 40 serial requests
+          with every control disabled meanwhile. */}
       {subject && rival && (
-        <div style={{ position: 'absolute', top: 18, right: 366, maxHeight: '78%',
-                      overflowY: 'auto' }}>
-          {!showWalkthrough ? (
-            <button onClick={() => setShowWalkthrough(true)}
-              style={{ padding: '7px 12px', fontSize: 11.5, borderRadius: 7,
-                       border: `1px solid ${C.panelBorder}`, background: 'rgba(11,11,15,.85)',
-                       color: C.gray }}>
-              ▸ step through real situations
-            </button>
-          ) : (
-            <div className="panel" style={{ padding: 13 }}>
-              <button onClick={() => setShowWalkthrough(false)}
-                style={{ float: 'right', border: 'none', background: 'transparent',
-                         color: C.dim, fontSize: 12 }}>✕</button>
-              <ScenarioWalkthrough raceId={race.id} car={subject.driver} rival={rival.driver} />
-            </div>
-          )}
-        </div>
+        <button onClick={() => setView('situations')}
+          style={{ position: 'absolute', top: GUTTER, right: RAIL_EDGE,
+                   padding: '7px 12px', fontSize: 12, borderRadius: 7,
+                   border: `1px solid ${C.panelBorder}`, background: 'rgba(11,11,15,.85)',
+                   color: C.gray }}>
+          ▸ pick a situation
+        </button>
       )}
     </div>
   );

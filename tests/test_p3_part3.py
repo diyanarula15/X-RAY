@@ -277,11 +277,16 @@ def test_the_panels_are_wired_into_the_existing_views_not_a_new_app():
     walkthrough (Replay tab), and validation/registry status onto their own
     Evidence tab -- rather than leaving two P3 panels crammed into Decision/
     Method as before. An exported panel nobody mounts is still not a surface."""
-    energy = (APP / "views" / "Fingerprint.tsx").read_text(encoding="utf-8")
-    walkthrough = (APP / "components" / "ScenarioWalkthrough.tsx").read_text(encoding="utf-8")
+    # The Energy tab was cut (its radar computed its own axes in TypeScript from
+    # invented constants) and Method was merged into Evidence, so the energy
+    # status, the validation registry and the limits narrative now share one
+    # view; the scenario walkthrough became its own top-level Situations tab.
+    # The panels still have to be MOUNTED somewhere -- an exported panel nobody
+    # mounts is still not a surface, which is what this has always asserted.
     evidence = (APP / "views" / "Evidence.tsx").read_text(encoding="utf-8")
-    assert "EnergyStatusPanel" in energy and "api.p3Status()" in energy
-    assert "ReplayPanel" in walkthrough and "api.replay(" in walkthrough
+    situations = (APP / "views" / "Situations.tsx").read_text(encoding="utf-8")
+    assert "EnergyStatusPanel" in evidence and "api.p3Status()" in evidence
+    assert "ReplayPanel" in situations and "api.replay(" in situations
     for name in ("ValidationPanel", "ModelStatusPanel", "DataQualityPanel"):
         assert name in evidence, name
 

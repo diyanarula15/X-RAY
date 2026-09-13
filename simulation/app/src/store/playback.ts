@@ -7,8 +7,18 @@ import { create } from 'zustand';
  * 3D scene, every overlay and every chart subscribe to this. Nothing keeps its
  * own timer.
  */
-export type View = 'cockpit' | 'strategy' | 'energy' | 'context' | 'replay'
-  | 'evidence' | 'method';
+/**
+ * Five tabs, down from seven. `energy` held a radar whose axes were computed in
+ * this frontend from invented constants (`mean(dep)/4`, `reserve_mean/1.4e6`),
+ * which is the one thing the frontend guards exist to prevent; `strategy` folded
+ * into `cockpit` because both answered "attack or hold"; `method` folded into
+ * `evidence` because both answered "what do we actually know"; and `context`
+ * became `observability` once the RDD explorer's cutoff slider was removed (it
+ * refit against 130 MB of re-parsed JSON on every drag). `situations` is new and
+ * is the surface for picking a real decision point out of the race.
+ */
+export type View = 'cockpit' | 'situations' | 'replay' | 'observability'
+  | 'evidence';
 
 type State = {
   raceId: string | null; view: View;

@@ -6,6 +6,16 @@ async function j<T>(url: string): Promise<T> {
   return r.json() as Promise<T>;
 }
 
+async function post<T>(url: string, body: unknown): Promise<T> {
+  const r = await fetch(BASE + url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(`${r.status} ${url}`);
+  return r.json() as Promise<T>;
+}
+
 export type RaceSummary = {
   id: string; event: string; circuit: string; date: string; round: number; year: number;
   n_cars: number; n_refused: number; has_elevation: boolean; track_length: number;
@@ -34,12 +44,34 @@ export type Car = {
   trace: CarTrace; cloud: number[][]; cloud_stride: number;
 };
 export type Refusal = { kind: string; message: string; identifiability?: number };
+export type Regulation = {
+  variant: string; p_harv_max_kw: number;
+  p_dep_max_zone_kw: number; p_dep_max_elsewhere_kw: number;
+  source: string;
+  // An object in the artefact, not a string -- the old `string` type was a
+  // latent lie that only survived because nothing rendered the field.
+  zone_eligibility: { available: boolean; source: string; semantics: string;
+                      separate_from_variant: boolean };
+};
 export type RaceDetail = RaceSummary & {
   circuit_geometry: Geometry; refusals: Record<string, Refusal>;
+  regulation: Regulation;
   calibration: any; drivers: string[]; laps: any[];
+  // `solved`/`refusal`/`n_situations` come from the precomputed-bundle index.
+  // `solved: false` means nobody has opened this pair yet, which is a third
+  // state and is shown as one -- not folded into "refused".
   battles: { car: string; ahead: string; laps_close: number;
-             median_gap: number; first_lap: number }[];
+             median_gap: number; first_lap: number;
+             solved: boolean; refusal: string | null;
+             n_situations: number | null }[];
 };
+
+/** Job status for an on-demand Stage 2 analysis run, started via
+ *  `api.analyzeRace`. Mirrors `simulation/api/main.py::_JOBS` verbatim. */
+export type AnalyzeJob =
+  | { status: 'running' }
+  | { status: 'done'; race_id: string; path: string }
+  | { status: 'error'; message: string; traceback?: string };
 
 /** P2 strategic recommendation. Field names mirror
  *  `decision_service._serialise_p2` EXACTLY -- if one is renamed there, this
@@ -141,23 +173,58 @@ export type P3Replay = {
   energy_inference_status: string;
 };
 
+/** One real decision point, already replayed off-policy server-side.
+ *
+ *  `matches_recommendation` and `actual_action` are computed by
+ *  `decision_service.historical_replay` and copied through unchanged. The
+ *  frontend filters on them; it never derives them. Both are `null` when the
+ *  comparison is genuinely unavailable -- that is a third state, not a false. */
+export type Situation = {
+  lap: number; decision_time_s: number;
+  requested_zone: string | null; attack: boolean; gap_s: number | null;
+  matches_recommendation: boolean | null;
+  actual_action: 'attacked' | 'held' | null;
+  replay_error: string | null;
+};
+export type SituationList = {
+  race: string; car: string; rival: string; horizon_s: number;
+  situations: Situation[];
+  // Set when the engine legitimately declined this pair (e.g. no causal trace
+  // sample on lap 1). A refusal is a correct output, not an error path, and it
+  // is rendered as the reason rather than swallowed into an empty list.
+  refusal: string | null;
+};
+
+/** Stage 1's measured sample-rate ablation, served from `out/ablation.json`.
+ *  These are SIMULATOR numbers. They were literals in the old Method view and
+ *  had already drifted from the artefact (100 Hz read 5.0 against a measured
+ *  7.68), which is exactly why they are fetched now. */
+export type Ablation = {
+  rates: number[]; mape: number[]; coverage: number[];
+  cda_abs_err_pct: number[]; failures: Record<string, unknown>;
+};
+
 export const api = {
   races: () => j<RaceSummary[]>('/api/races'),
   race: (id: string) => j<RaceDetail>(`/api/race/${id}/summary`),
   car: (id: string, d: string) => j<Car>(`/api/race/${id}/car/${d}`),
-  battle: (id: string, a: string, b: string) =>
-    j<{ a: Car; b: Car; gaps: any[]; zones: Geometry['zones']; track_length: number }>(
-      `/api/race/${id}/battle/${a}/${b}`),
   observability: (id: string) => j<any>(`/api/race/${id}/observability`),
   decision: (id: string, car: string, rival: string) =>
     j<any>(`/api/race/${id}/decision?car=${car}&rival=${rival}`),
   p2: (id: string, car: string, rival: string) =>
     j<P2Decision>(`/api/race/${id}/p2?car=${car}&rival=${rival}`),
+  situations: (id: string, car: string, rival: string) =>
+    j<SituationList>(`/api/race/${id}/situations?car=${car}&rival=${rival}`),
   p3Status: () => j<P3Status>('/api/p3/status'),
-  p3Race: (id: string) => j<any>(`/api/race/${id}/p3`),
-  replay: (id: string, car: string, rival: string, cutoff: number, horizon = 30) =>
-    j<P3Replay>(`/api/race/${id}/replay?car=${car}&rival=${rival}` +
-                `&cutoff=${cutoff}&horizon=${horizon}`),
+  // Horizon is deliberately not passed: the API derives it from the race's own
+  // median lap time. The old fixed 30 s was shorter than a lap everywhere, so
+  // `actual_action` came back null at every decision point on every circuit.
+  replay: (id: string, car: string, rival: string, cutoff: number) =>
+    j<P3Replay>(`/api/race/${id}/replay?car=${car}&rival=${rival}&cutoff=${cutoff}`),
   rdd: (cutoff: number, bandwidth = 0.6) =>
     j<any>(`/api/rdd?cutoff=${cutoff}&bandwidth=${bandwidth}`),
+  ablation: () => j<Ablation>('/api/ablation'),
+  analyzeRace: (round: number, year = 2026, session = 'R') =>
+    post<{ job_id: string }>('/api/races/analyze', { round, year, session }),
+  analyzeStatus: (jobId: string) => j<AnalyzeJob>(`/api/races/analyze/${jobId}`),
 };

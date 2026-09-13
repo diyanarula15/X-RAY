@@ -21,7 +21,7 @@ in `./.venv/bin/python` on macOS/Linux.
 - **`ffmpeg` on PATH** — only needed for `06.b_make_video.py` (Setup B).
 
 ```powershell
-py -3.14 -m venv .venv                 # or any 3.11+
+py -3.12 -m venv .venv                 # or any 3.11+
 ```
 
 Every setup below installs into this same `.venv` from the root
@@ -77,9 +77,10 @@ simulation, and the summary figure / demo video.
 ```
 
 `06.a_make_summary.py` exits with `SystemExit` if `out/ablation.json` is
-missing — run `05.run_ablation.py` first. `--mode full` on
+missing — run `05.run_ablation.py` first. `--mode fast` is shown explicitly
+above even though it's already the default; `--mode full` on
 `03.b_run_decision_eval.py` reruns a full 200 Hz sim per race (minutes, not
-seconds); `--mode fast` is the default shown here.
+seconds).
 
 ---
 
@@ -119,13 +120,47 @@ Postman) while iterating on the backend.
 ```
 
 Every route 404s until `08.b_analyse_race.py` has written a race JSON.
+`GET /api/races` globs `out/races/*.json` directly (`simulation/api/main.py`
+`_all_races()`) — it always reflects exactly whichever rounds have been
+analysed, nothing more. To populate multiple races, loop the analysis step
+over several round numbers before starting the server:
+
+```powershell
+foreach ($n in 1..10) {
+    .\.venv\Scripts\python scripts\07.a_feasibility.py --round $n
+    .\.venv\Scripts\python scripts\07.b_run_real.py --round $n
+    .\.venv\Scripts\python scripts\08.b_analyse_race.py --round $n
+}
+.\.venv\Scripts\python scripts\08.a_feasibility_report.py   # optional, once at the end
+```
+
+`07.a`/`07.b` are optional per-round diagnostics (feasibility check / CdA
+fit printout); only `08.b_analyse_race.py` writes the `out/races/<id>.json`
+that the API serves. Each round needs a network fetch on first run only —
+FastF1 caches to `xray/data/cache/` after that. Don't assume a fixed round
+count: not every round number is guaranteed to exist for a given season, so
+expect some rounds in a large range to fail — the loop above doesn't stop on
+a single failure, so just check `out/races/` afterward to see which rounds
+actually produced JSON. There is no round/calendar list checked into the
+repo; round numbers are always picked by hand.
+
 Routes:
 
 ```
-GET /api/races                         GET /api/race/{rid}/observability
-GET /api/race/{rid}/summary            GET /api/race/{rid}/decision
-GET /api/race/{rid}/car/{drv}          GET /api/race/{rid}/counterfactual
-GET /api/race/{rid}/battle/{a}/{b}     GET /api/rdd
+GET  /api/races
+POST /api/races/analyze
+GET  /api/races/analyze/{job_id}
+GET  /api/race/{rid}/summary
+GET  /api/race/{rid}/car/{drv}
+GET  /api/race/{rid}/battle/{a}/{b}
+GET  /api/race/{rid}/observability
+GET  /api/race/{rid}/decision
+GET  /api/race/{rid}/p2
+GET  /api/race/{rid}/p3
+GET  /api/race/{rid}/counterfactual
+GET  /api/race/{rid}/replay
+GET  /api/p3/status
+GET  /api/rdd
 ```
 
 ---
@@ -172,12 +207,12 @@ npm run dev              # Vite dev server with hot reload
 ```
 
 The light tier (no `fastf1`/`pandas`/`fastapi`/`pyarrow`) is enough for the
-Stage 1 suite (`test_estimator.py`, `test_golden.py`, `test_physics.py`,
-`test_balance.py`, `test_setmem.py`, `test_modes.py`, `test_pipeline.py`,
-`test_rbpf.py`, `test_strategy.py`, `test_pooling.py`, `test_qmdp.py`,
-`test_deadband.py`, `test_decision.py`, `test_live_readiness.py`); the full
-tier is needed for `test_decision_service.py` (imports
-`simulation/api/main.py`).
+Stage 1 suite — every `tests/test_*.py` file except the ones that import
+`fastf1`, `pandas`, `fastapi`, or `simulation.api.main`/`xray.data.ingest`/
+`xray.realfit`. Currently that's: `test_frontend_p2.py`, `test_p3_part1.py`,
+`test_p35_part1.py`, `test_p35_part2.py`, `test_p35_part3.py`,
+`test_environment.py`, `test_decision_service.py`, `test_live_readiness.py`
+— those need the full tier.
 
 **Do not** run `scripts\99.make_golden.py` to silence a golden-baseline
 failure — see `dev_readme.md` §7 item 2 for the known cross-platform

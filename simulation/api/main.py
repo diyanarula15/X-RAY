@@ -9,31 +9,63 @@ from __future__ import annotations
 
 import json
 import sys
+import threading
+import traceback
+import uuid
+from contextlib import asynccontextmanager
 from functools import lru_cache
+from math import isfinite
 from pathlib import Path
 
 import numpy as np
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Body, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 ROOT = Path(__file__).resolve().parent.parent        # simulation/  -- for app/dist
 REPO_ROOT = ROOT.parent                               # repo root   -- for out/, xray/
 RACES = REPO_ROOT / "out" / "races"
+OUT = REPO_ROOT / "out"
+DECISIONS = REPO_ROOT / "out" / "decisions"
 sys.path.insert(0, str(REPO_ROOT))
 
-app = FastAPI(title="X-RAY", version="2.0")
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    """Preload so the first request is not the slow one."""
+    try:
+        _all_races()
+        for p in sorted(RACES.glob("*.json"))[:1]:
+            _race(p.stem)
+    except Exception:
+        pass
+    yield
+
+
+app = FastAPI(title="X-RAY", version="2.0", lifespan=_lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"],
                    allow_headers=["*"])
 
 
-@lru_cache(maxsize=8)
-def _race(rid: str) -> dict:
+# maxsize is 12 against 10 races on disk. At the old 8 every request evicted a
+# neighbour and re-parsed ~13 MB of JSON to answer it.
+@lru_cache(maxsize=12)
+def _race_at(rid: str, mtime_ns: int) -> dict:
     p = RACES / f"{rid}.json"
     if not p.exists():
         raise HTTPException(404, f"race {rid} not analysed")
     return json.loads(p.read_text())
+
+
+def _race(rid: str) -> dict:
+    """Keyed on mtime, not just id. Cached on id alone, re-analysing a round
+    through POST /api/races/analyze wrote a new artefact that this process then
+    refused to read for the rest of its life -- the button appeared to do
+    nothing for any round already loaded."""
+    p = RACES / f"{rid}.json"
+    if not p.exists():
+        raise HTTPException(404, f"race {rid} not analysed")
+    return _race_at(rid, p.stat().st_mtime_ns)
 
 
 @lru_cache(maxsize=1)
@@ -71,15 +103,60 @@ def races():
     return _all_races()
 
 
-@app.on_event("startup")
-def _warm() -> None:
-    """Preload so the first request is not the slow one."""
+# In-memory job registry for on-demand Stage 2 analysis. This process is a
+# single dev-server instance (the same one `docs/STARTUP.md` tells you to run
+# with `uvicorn ... --port 8011`), so a module-level dict is the whole state
+# store; it does not survive a restart, same as the CLI script it wraps.
+_JOBS: dict[str, dict] = {}
+
+
+def _run_analysis_job(job_id: str, year: int, round_: int, session: str,
+                       drivers: list[str] | None, max_laps: int | None,
+                       particles: int) -> None:
+    from xray.analysis import analyse, write
+
     try:
-        _all_races()
-        for p in sorted(RACES.glob("*.json"))[:1]:
-            _race(p.stem)
-    except Exception:
-        pass
+        payload = analyse(year, round_, session, drivers=drivers,
+                          max_laps=max_laps, n_particles=particles)
+        path = write(payload)
+        _JOBS[job_id] = {"status": "done", "race_id": payload["id"],
+                         "path": str(path)}
+    except Exception as exc:  # noqa: BLE001 -- surfaced to the poller, not swallowed
+        _JOBS[job_id] = {"status": "error", "message": str(exc),
+                         "traceback": traceback.format_exc()}
+
+
+@app.post("/api/races/analyze")
+def analyze_race(body: dict = Body(...)):
+    """Run the same pipeline `scripts/08.b_analyse_race.py --round N` runs,
+    on demand, from the frontend. FastF1 download + particle filter is
+    network-bound and can take minutes, so this returns a job id immediately
+    and the real work happens on a background thread -- never on the request
+    thread, which would block every other endpoint until it finished."""
+    try:
+        round_ = int(body["round"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise HTTPException(422, "round is required and must be an integer") from exc
+    year = int(body.get("year", 2026))
+    session = str(body.get("session", "R"))
+    drivers = body.get("drivers")
+    max_laps = body.get("max_laps")
+    particles = int(body.get("particles", 400))
+
+    job_id = uuid.uuid4().hex
+    _JOBS[job_id] = {"status": "running"}
+    threading.Thread(target=_run_analysis_job,
+                     args=(job_id, year, round_, session, drivers, max_laps, particles),
+                     daemon=True).start()
+    return {"job_id": job_id}
+
+
+@app.get("/api/races/analyze/{job_id}")
+def analyze_race_status(job_id: str):
+    job = _JOBS.get(job_id)
+    if job is None:
+        raise HTTPException(404, "no such job")
+    return job
 
 
 @app.get("/api/race/{rid}/summary")
@@ -88,12 +165,29 @@ def summary(rid: str):
     return {
         **_summary(d),
         "circuit_geometry": d["circuit_geometry"],
+        "regulation": d["regulation"],
         "refusals": d["refusals"],
         "calibration": d["calibration"],
         "drivers": sorted(d["cars"].keys()),
-        "battles": d.get("battles", []),
+        # Each battle carries what the precomputed bundle knows about it, so the
+        # pairing picker can mark a pair the engine declines instead of letting
+        # you choose it and land on an explanation. `null` means "not solved
+        # yet", which is a third state and is shown as such.
+        "battles": _annotate_battles(rid, d.get("battles", [])),
         "laps": d["laps"][:2000],
     }
+
+
+def _annotate_battles(rid: str, battles: list[dict]) -> list[dict]:
+    idx = read_index()
+    out = []
+    for b in battles:
+        e = idx.get(f"{rid}__{b['car']}__{b['ahead']}")
+        out.append({**b,
+                    "solved": e is not None,
+                    "refusal": (e or {}).get("refusal"),
+                    "n_situations": (e or {}).get("n_situations")})
+    return out
 
 
 @app.get("/api/race/{rid}/car/{drv}")
@@ -102,18 +196,6 @@ def car(rid: str, drv: str):
     if drv not in d["cars"]:
         raise HTTPException(404, d["refusals"].get(drv, {"message": "no such car"}))
     return d["cars"][drv]
-
-
-@app.get("/api/race/{rid}/battle/{a}/{b}")
-def battle(rid: str, a: str, b: str):
-    d = _race(rid)
-    for c in (a, b):
-        if c not in d["cars"]:
-            raise HTTPException(404, {"car": c, **d["refusals"].get(c, {})})
-    gaps = [g for g in d["gaps"] if {g["car"], g["ahead"]} == {a, b}]
-    return {"a": d["cars"][a], "b": d["cars"][b], "gaps": gaps,
-            "zones": d["circuit_geometry"]["zones"],
-            "track_length": d["circuit_geometry"]["length"]}
 
 
 @app.get("/api/race/{rid}/observability")
@@ -152,7 +234,10 @@ def decision(rid: str, car: str = Query(...), rival: str = Query(...)):
     d = _race(rid)
     if car not in d["cars"] or rival not in d["cars"]:
         raise HTTPException(404, "car not analysed")
-    return _decision_payload(d, car, rival)
+    b = _bundle(rid, car, rival)
+    if b.get("refusal"):
+        raise HTTPException(422, b["refusal"])
+    return b["decision"]
 
 
 @app.get("/api/race/{rid}/p2")
@@ -169,17 +254,18 @@ def p2_decision(rid: str, car: str = Query(...), rival: str = Query(...),
     d = _race(rid)
     if car not in d["cars"] or rival not in d["cars"]:
         raise HTTPException(404, "car not analysed")
+    if from_lap is None:
+        # The default view is precomputed with everything else for this pair.
+        p2 = _bundle(rid, car, rival)["p2"]
+        if "error" in p2:
+            raise HTTPException(422, p2["error"])
+        return p2
     try:
         return evaluate_opportunity_decision(d, car, rival, from_lap=from_lap)
     except KeyError as exc:
         raise HTTPException(404, str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
-
-
-@lru_cache(maxsize=32)
-def _decision_cached(rid: str, car: str, rival: str) -> str:
-    return json.dumps(_decision_payload(_race(rid), car, rival))
 
 
 def _decision_payload(d: dict, car: str, rival: str) -> dict:
@@ -193,21 +279,252 @@ def _decision_payload(d: dict, car: str, rival: str) -> dict:
         raise HTTPException(422, str(exc)) from exc
 
 
-@app.get("/api/rdd")
-def rdd(cutoff: float = Query(1.0, ge=0.2, le=3.0),
-        season: int = 2026, bandwidth: float = Query(0.6, ge=0.1, le=2.0)):
-    """Live regression discontinuity. The only endpoint that computes.
+def _default_horizon_s(d: dict) -> float:
+    """The evaluation window has to be long enough to contain a lap completion.
 
-    The judge drags the cutoff; this refits both sides and returns the
-    discontinuity, its standard error and a p-value, every time.
+    Position is only published per lap, so `historical_replay` can only say what
+    the driver actually did once both cars have crossed the line inside the
+    window. At the old 30 s default, `evaluation_fields["laps"]` came back empty
+    at every one of Melbourne's 22 decision points (median lap 85.2 s), so
+    `actual_action` was None, `matches_recommendation` was None, and the
+    follow/disobey walk searched the whole race and never once found a match --
+    the feature could not fire on any circuit. 1.75 median laps clears one lap
+    boundary from any starting phase; at Melbourne it resolves to True/held.
+    """
+    times = [r["lap_time"] for r in d.get("laps", []) if r.get("lap_time")]
+    if not times:
+        return 150.0
+    times.sort()
+    return round(1.75 * times[len(times) // 2], 1)
+
+
+def _situations_rows(d: dict, car: str, rival: str, trace: dict,
+                     horizon: float) -> list[dict]:
+    """Every causal decision point in one race, each already replayed off-policy.
+
+    The frontend used to build this by firing one `/replay` per point, serially,
+    up to 40 of them, with every control disabled for the duration -- which is
+    how you lose a live demo. One request instead. `matches_recommendation` and
+    `actual_action` are copied verbatim from `historical_replay`; the comparison
+    stays where it was, in the service, and nothing here adds arithmetic.
+    """
+    from xray.decision_service import historical_replay
+
+    rows = []
+    for r in trace.get("laps", []):
+        t = r.get("decision_time_s")
+        if t is None:
+            continue
+        row = {"lap": r.get("lap"), "decision_time_s": t,
+               "requested_zone": r.get("requested_zone"),
+               "attack": bool(r.get("attack")), "gap_s": r.get("gap_s"),
+               "matches_recommendation": None, "actual_action": None,
+               "replay_error": None}
+        try:
+            rep = historical_replay(d, car, rival, float(t), horizon_s=horizon)
+        except (ValueError, KeyError) as exc:
+            # A point the snapshot cannot serve is reported as such, not
+            # dropped: a filter over a silently shortened list is a filter that
+            # lies about how many situations the race contained.
+            row["replay_error"] = f"{type(exc).__name__}: {exc}"
+        else:
+            row["matches_recommendation"] = rep.get("matches_recommendation")
+            row["actual_action"] = rep.get("actual_action")
+            row["replay_error"] = rep.get("p2_error")
+        rows.append(row)
+    return rows
+
+
+def _json_safe(o):
+    """Map non-finite floats to null at the serialisation boundary.
+
+    The DP uses `-inf` to mean "this action is not available at any price", and
+    196 of them reach one Melbourne-round decision payload as `value_attack`.
+    JSON has no infinity, so FastAPI's encoder raises and the endpoint returns
+    500 -- which it has always done: `/api/race/2026_r10_R/decision?car=HUL&
+    rival=LAW` was a hard failure, so Cockpit and the old Strategy tab rendered
+    nothing at all for those pairs. `null` is the right image because it is the
+    value the frontend already treats as "not affordable"; the solver keeps its
+    `-inf`, which is meaningful arithmetic and is not touched.
+    """
+    if isinstance(o, float):
+        return o if isfinite(o) else None
+    if isinstance(o, dict):
+        return {k: _json_safe(v) for k, v in o.items()}
+    if isinstance(o, list):
+        return [_json_safe(v) for v in o]
+    return o
+
+
+def bundle_path(rid: str, car: str, rival: str) -> Path:
+    return DECISIONS / f"{rid}__{car}__{rival}.json"
+
+
+INDEX = DECISIONS / "_index.json"
+
+
+def read_index() -> dict:
+    """Tiny sidecar: bundle key -> {refusal, n_situations, n_resolved}.
+
+    The summary endpoint needs to know which battles are actually viable so the
+    pairing picker can mark the dead ones, and three of ten races open on a
+    battle the engine declines. Answering that by reading the bundles themselves
+    would be 8 x ~600 kB of JSON per summary request, to extract one string
+    each. `rebuild_index` regenerates it from whatever is on disk.
+    """
+    try:
+        return json.loads(INDEX.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def write_index_entry(key: str, entry: dict) -> None:
+    idx = read_index()
+    idx[key] = entry
+    DECISIONS.mkdir(parents=True, exist_ok=True)
+    tmp = INDEX.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(idx, allow_nan=False), encoding="utf-8")
+    tmp.replace(tmp.with_suffix(""))
+
+
+def index_entry(bundle: dict) -> dict:
+    sits = bundle.get("situations") or []
+    return {"refusal": bundle.get("refusal"),
+            "n_situations": len(sits),
+            "n_resolved": sum(1 for x in sits
+                              if x.get("matches_recommendation") is not None),
+            "artefact_mtime_ns": bundle.get("artefact_mtime_ns")}
+
+
+def rebuild_index() -> dict:
+    idx = {}
+    for p in sorted(DECISIONS.glob("*__*__*.json")):
+        try:
+            idx[p.stem] = index_entry(json.loads(p.read_text(encoding="utf-8")))
+        except (OSError, ValueError):
+            continue
+    DECISIONS.mkdir(parents=True, exist_ok=True)
+    tmp = INDEX.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(idx, allow_nan=False), encoding="utf-8")
+    tmp.replace(INDEX)
+    return idx
+
+
+def build_bundle(rid: str, car: str, rival: str, d: dict | None = None) -> dict:
+    """Everything the Cockpit and Situations tabs need for one pair, in one object.
+
+    `evaluate_decision_trace_from_payload` costs 54 s for a 22-lap pair -- 6.2M
+    Python-level `vehicle.step` calls inside `calibrate_zone`. It sits on the
+    path of every driver swap, which is what made choosing drivers feel broken
+    rather than merely slow. It is also fully determined by the race artefact,
+    so it is computed once and written to `out/decisions/`; the API only ever
+    recomputes for a pair nobody has asked for before, and writes that one
+    through too. `scripts/09.precompute_decisions.py` does the batch.
+    """
+    from xray.decision_service import evaluate_opportunity_decision
+
+    d = d if d is not None else _race(rid)
+    horizon = _default_horizon_s(d)
+
+    # A pair the engine legitimately declines is CARRIED, not raised past the
+    # cache. Three of ten races open on a battle whose first lap has no causal
+    # trace sample ("no causal trace samples for lap 1 at s <= 0.0 m"), and that
+    # refusal used to leave the tab blank behind a bare 422. A refusal is a
+    # correct output and has to be reported as one -- but it also has to be
+    # cached, or every visit to that pair pays the full solve to be told no.
+    refusal = None
+    try:
+        trace = _decision_payload(d, car, rival)
+    except HTTPException as exc:
+        trace, refusal = None, str(exc.detail)
+    if refusal is None:
+        try:
+            p2 = evaluate_opportunity_decision(d, car, rival)
+        except (KeyError, ValueError) as exc:
+            p2 = {"error": f"{type(exc).__name__}: {exc}"}
+    else:
+        p2 = {"error": refusal}
+    return _json_safe({
+        "race": rid, "car": car, "rival": rival, "horizon_s": horizon,
+        # Stamped so a re-analysed race invalidates its bundles instead of
+        # serving a decision trace built from telemetry that no longer exists.
+        "artefact_mtime_ns": (RACES / f"{rid}.json").stat().st_mtime_ns,
+        "refusal": refusal,
+        "decision": trace,
+        "p2": p2,
+        "situations": ([] if trace is None
+                       else _situations_rows(d, car, rival, trace, horizon)),
+    })
+
+
+def _bundle(rid: str, car: str, rival: str) -> dict:
+    p = bundle_path(rid, car, rival)
+    mtime = (RACES / f"{rid}.json").stat().st_mtime_ns
+    if p.exists():
+        try:
+            cached = json.loads(p.read_text(encoding="utf-8"))
+            if cached.get("artefact_mtime_ns") == mtime:
+                return _json_safe(cached)
+        except (ValueError, OSError):
+            pass          # a truncated bundle is rebuilt, never served
+    out = build_bundle(rid, car, rival)
+    DECISIONS.mkdir(parents=True, exist_ok=True)
+    tmp = p.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(out, allow_nan=False), encoding="utf-8")
+    tmp.replace(p)        # atomic: a reader never sees a half-written bundle
+    write_index_entry(p.stem, index_entry(out))
+    return out
+
+
+@app.get("/api/race/{rid}/situations")
+def situations(rid: str, car: str = Query(...), rival: str = Query(...)):
+    d = _race(rid)
+    if car not in d["cars"] or rival not in d["cars"]:
+        raise HTTPException(404, "car not analysed")
+    b = _bundle(rid, car, rival)
+    return {"race": rid, "car": car, "rival": rival,
+            "horizon_s": b["horizon_s"], "situations": b["situations"],
+            "refusal": b.get("refusal")}
+
+
+@lru_cache(maxsize=4)
+def _rdd_rows_cached(season: int, stamp: str) -> list[dict]:
+    """Pooled RDD rows across every analysed race of a season.
+
+    This used to run inline in the route: glob, `json.loads` all ten artefacts,
+    ~130 MB and 2.9 s of GIL-bound parsing, on every single request, to produce
+    a few thousand rows totalling well under a megabyte. These are `def` routes
+    on the threadpool, so a handful of concurrent RDD requests stalled every
+    other endpoint. Keyed on mtime like `_all_races_cached`, so a freshly
+    analysed round still invalidates it.
     """
     rows = []
-    for p in RACES.glob("*.json"):
+    for p in sorted(RACES.glob("*.json")):
         d = json.loads(p.read_text())
         if d["year"] != season:
             continue
         for r in d["rdd"]["rows"]:
             rows.append({**r, "race": d["id"], "circuit": d["circuit"]})
+    return rows
+
+
+def _rdd_rows(season: int) -> list[dict]:
+    stamp = ",".join(f"{p.name}:{p.stat().st_mtime_ns}"
+                     for p in sorted(RACES.glob("*.json")))
+    return _rdd_rows_cached(season, stamp)
+
+
+@app.get("/api/rdd")
+def rdd(cutoff: float = Query(1.0, ge=0.2, le=3.0),
+        season: int = 2026, bandwidth: float = Query(0.6, ge=0.1, le=2.0)):
+    """Regression discontinuity at the Manual Override eligibility boundary.
+
+    The fit is live -- both sides refit at whatever cutoff is asked for, with
+    the falsification scan across cutoff positions beside it -- but the pooled
+    rows it fits are cached, because re-reading the race artefacts was three
+    orders of magnitude more expensive than the regression.
+    """
+    rows = _rdd_rows(season)
     if len(rows) < 10:
         return {"n": len(rows), "error": "not enough analysed races"}
     x = np.array([r["gap_s"] for r in rows])
@@ -336,18 +653,19 @@ def _rdd_scan(x, y, bw: float) -> list:
     return out
 
 
-@app.get("/api/race/{rid}/counterfactual")
-def counterfactual(rid: str, car: str, rival: str, lap: int):
-    d = _race(rid)
-    dec = _decision_payload(d, car, rival)
-    rows = dec["laps"]
-    chosen = next((r for r in rows if r["lap"] == lap), None)
-    if chosen is None:
-        raise HTTPException(404, "lap not in the decision trace")
-    best = max(rows, key=lambda r: r["q"])
-    return {"asked": chosen, "best_available": best,
-            "delta_q": round(best["q"] - chosen["q"], 4),
-            "engine_call": dec["call"]}
+@app.get("/api/ablation")
+def ablation():
+    """Stage 1's measured sample-rate ablation, from `out/ablation.json`.
+
+    Served rather than retyped: the same eight (Hz, MAPE) pairs were literals in
+    `Method.tsx`, so the chart and the artefact could disagree without anything
+    failing. These are SIMULATOR numbers from the Stage 1 estimator, not the
+    real-data stack, and the view labels them that way.
+    """
+    p = OUT / "ablation.json"
+    if not p.exists():
+        raise HTTPException(404, "out/ablation.json not generated")
+    return json.loads(p.read_text())
 
 
 # ------------------------------------------------------------------ P3 evidence
@@ -370,9 +688,12 @@ def p3_race_endpoint(rid: str):
 
 @app.get("/api/race/{rid}/replay")
 def p3_replay_endpoint(rid: str, car: str, rival: str, cutoff: float,
-                       horizon: float = 30.0):
+                       horizon: float | None = None):
+    # Horizon defaults per-race, not to 30 s -- see `_default_horizon_s`.
     from xray.decision_service import historical_replay
-    return historical_replay(_race(rid), car, rival, cutoff, horizon_s=horizon)
+    d = _race(rid)
+    h = float(horizon) if horizon else _default_horizon_s(d)
+    return historical_replay(d, car, rival, cutoff, horizon_s=h)
 
 
 dist = ROOT / "app" / "dist"

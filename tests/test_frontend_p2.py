@@ -21,10 +21,11 @@ import pytest
 APP = pathlib.Path(__file__).resolve().parent.parent / "simulation" / "app" / "src"
 P2_PANEL = APP / "components" / "P2Panel.tsx"
 API_TS = APP / "lib" / "api.ts"
-# P4 renamed the Decision view to Strategy.tsx (the "Decision" nav tab became
-# "Strategy" in the new information architecture) -- same component, same P2
-# wiring, new name.
-DECISION = APP / "views" / "Strategy.tsx"
+# The P2-bearing view has been renamed twice: Decision.tsx -> Strategy.tsx (P4's
+# nav rename) -> Cockpit.tsx, when the Strategy tab was folded into Cockpit.
+# Two tabs both answering "attack or hold" off the same two endpoints was a
+# split with nothing behind it. Same P2Panel, same `api.p2` wiring, one file.
+DECISION = APP / "views" / "Cockpit.tsx"
 
 
 def _strip_comments(src: str) -> str:
@@ -146,7 +147,11 @@ def test_missing_p2_data_renders_a_fallback_rather_than_crashing():
     assert "if (!p2)" in src, "no null guard on the P2 payload"
     assert "The P1 decision trace above is" in src or "No P2 recommendation" in src
     d = DECISION.read_text(encoding="utf-8")
-    assert ".catch(() => setP2(null))" in d, "a failed P2 fetch must not break the view"
+    # The property is that a rejected P2 fetch cannot take the view down with
+    # it, not that it is spelled with one particular `.catch`. Cockpit now
+    # settles all three requests together, which isolates each failure and also
+    # lets the view stop showing a spinner once they have all resolved.
+    assert (".catch(() => setP2(null))" in d or "Promise.allSettled" in d),         "a failed P2 fetch must not break the view"
     assert "useState<P2Decision | null>(null)" in d
 
 

@@ -17,8 +17,11 @@ import pytest
 APP = pathlib.Path(__file__).resolve().parent.parent / "simulation" / "app" / "src"
 COCKPIT = APP / "views" / "Cockpit.tsx"
 EVIDENCE = APP / "views" / "Evidence.tsx"
-FINGERPRINT = APP / "views" / "Fingerprint.tsx"
-WALKTHROUGH = APP / "components" / "ScenarioWalkthrough.tsx"
+# The scenario walkthrough became a top-level tab. It used to be a collapsed
+# overlay wedged into the 3D scene at a hardcoded offset, and its "find the next
+# divergent instance" walk fired up to 40 SERIAL /replay requests with every
+# control disabled meanwhile. Same bans, new file.
+WALKTHROUGH = APP / "views" / "Situations.tsx"
 CANDIDATE_TABLE = APP / "components" / "CandidateActionsTable.tsx"
 APP_TSX = APP / "App.tsx"
 PLAYBACK = APP / "store" / "playback.ts"
@@ -97,12 +100,23 @@ def test_evidence_view_hosts_the_registry_panels():
         assert name in src
 
 
-def test_energy_tab_hosts_the_energy_status_panel_and_the_existing_band():
-    """The p10/p90 uncertainty band (`Readouts.tsx`) predates P4 and must survive
-    the reorg; this only checks the energy-status panel landed beside it, not
-    that the band itself changed."""
-    src = FINGERPRINT.read_text(encoding="utf-8")
+def test_energy_status_panel_survived_the_removal_of_the_energy_tab():
+    """The Energy tab was cut: its radar computed its own axes in TypeScript from
+    invented constants (`mean(dep)/4`, `reserve_mean/1.4e6`), which is exactly
+    what these guards exist to prevent. The one thing on it worth keeping was the
+    energy-status panel, which moved to Evidence -- an exported panel nobody
+    mounts is still not a surface."""
+    src = EVIDENCE.read_text(encoding="utf-8")
     assert "EnergyStatusPanel" in src
+
+
+def test_no_view_recreates_the_frontend_computed_energy_radar():
+    """The specific arithmetic that got the Energy tab cut, banned by pattern so
+    it cannot come back in another file."""
+    for path in list(APP.rglob("*.tsx")):
+        src = _strip_comments(path.read_text(encoding="utf-8"))
+        assert "reserve_mean / 1.4e6" not in src.replace(" ", " "), path
+        assert "1.4e6" not in src, f"{path} divides by an invented reserve constant"
 
 
 def test_scenario_walkthrough_renders_the_permanent_disclaimer_unconditionally():
@@ -125,21 +139,62 @@ def test_scenario_walkthrough_never_recomputes_the_match_client_side():
         r"position_after\s*<\s*position_before": "a client-side position comparison",
     }
     for pattern, what in banned.items():
-        assert not re.search(pattern, src), f"ScenarioWalkthrough.tsx contains {what}"
-    assert "r.matches_recommendation === want" in src
+        assert not re.search(pattern, src), f"Situations.tsx contains {what}"
+    # The view filters on the backend's own boolean. It used to walk forward
+    # through cutoffs comparing `r.matches_recommendation === want`; it now
+    # filters a precomputed list, but the comparison is still a read of the
+    # service's field against a literal, never a derivation.
+    assert "s.matches_recommendation === true" in src
+    assert "s.matches_recommendation === false" in src
+    # `null` is a real third state -- the evaluation window contained no lap
+    # completion for both cars, so no position change can be read. Folding it
+    # into `false` would report "the driver diverged" for a comparison that was
+    # never made. This is the bug that made the whole feature dead: at the old
+    # fixed 30 s horizon, shorter than a lap at every circuit, EVERY point came
+    # back null and the follow/disobey walk never once found a match.
+    assert "matches_recommendation !== null" in src
 
 
 def test_scenario_walkthrough_admits_when_no_divergent_instance_exists():
+    """An empty filter result is stated as the real answer for this pair, not
+    rendered as a blank panel that reads like a loading state."""
     src = WALKTHROUGH.read_text(encoding="utf-8")
-    assert "No opportunity in this race where the driver's action diverged" in src \
-        or "No further opportunity where the driver's action matched" in src
+    assert "No situation in this race matches that filter" in src
+    assert "not an empty page" in src
+    # And the same for a pair the engine never had a call to make about.
+    assert "No causal decision points" in src
 
 
-def test_the_view_switch_matches_the_new_seven_tab_architecture():
+def test_the_view_switch_matches_the_five_tab_architecture():
+    """Seven tabs became five. `energy` invented numbers client-side, `strategy`
+    duplicated `cockpit`, `method` duplicated `evidence`, and `context` lost its
+    RDD sub-tab (a cutoff slider that refit against 130 MB of re-parsed JSON on
+    every drag) so it is now plainly `observability`. `situations` is new."""
     src = PLAYBACK.read_text(encoding="utf-8")
     i = src.index("export type View =")
     view_type = src[i:src.index(";", i)]
-    for name in ("cockpit", "strategy", "energy", "context", "replay", "evidence", "method"):
+    for name in ("cockpit", "situations", "replay", "observability", "evidence"):
         assert f"'{name}'" in view_type, f"View union is missing '{name}'"
-    for stale in ("'theatre'", "'observability'", "'rdd'", "'decision'", "'fingerprint'"):
+    for stale in ("'theatre'", "'rdd'", "'decision'", "'fingerprint'",
+                  "'strategy'", "'energy'", "'context'", "'method'"):
         assert stale not in view_type, f"View union still declares the retired id {stale}"
+
+
+def test_every_view_in_the_union_is_reachable_from_the_nav():
+    """A tab in the type but not in the nav is a view nobody can open; a nav
+    entry not in the type does not compile. This pins the first direction."""
+    view_src = PLAYBACK.read_text(encoding="utf-8")
+    i = view_src.index("export type View =")
+    ids = re.findall(r"'([a-z]+)'", view_src[i:view_src.index(";", i)])
+    app = APP_TSX.read_text(encoding="utf-8")
+    nav = app[app.index("const VIEWS"):app.index("export default function App")]
+    for name in ids:
+        assert f"id: '{name}'" in nav, f"View '{name}' is not in the nav bar"
+        assert f"view === '{name}'" in app, f"View '{name}' renders nothing"
+
+
+def test_the_retired_views_are_gone_not_merely_unmounted():
+    """A deleted tab whose file survives is a file the next person re-mounts."""
+    for name in ("Fingerprint.tsx", "Strategy.tsx", "RDD.tsx", "Method.tsx"):
+        assert not (APP / "views" / name).exists(), f"{name} should have been deleted"
+    assert not (APP / "components" / "ScenarioWalkthrough.tsx").exists()

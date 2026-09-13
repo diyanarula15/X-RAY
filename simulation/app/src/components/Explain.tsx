@@ -15,73 +15,59 @@ export const GUIDE: Record<View, { title: string; what: string; do1: string[] }>
         + 'is worth, side by side.',
       'The ENERGY badge says how validated the rival-energy estimate is — open Evidence '
         + 'for the full story.',
+      'Scroll down for the strategy horizon: the threshold trace, the opportunity '
+        + 'forecast, and the numbers behind any lap you click.',
     ],
   },
-  strategy: {
-    title: 'Strategy horizon',
-    what: 'Which opportunity, which zone, and why. The white line is the threshold: the '
-      + 'quality of chance worth taking on that lap. Dots above it are worth taking.',
+  situations: {
+    title: 'Situations',
+    what: 'Every point in this race where the engine had a call to make, and what the '
+      + 'driver actually did next. Pick one — that is the whole tab.',
     do1: [
-      'Click any dot to see the numbers behind it — your energy, theirs, the zone.',
-      'The opportunity-horizon strip shows the current call plus the forecast '
-        + 'opportunities ahead — faint dots are forecasts, not observed fact.',
-      'The faint fan is the same question re-answered for 200 different guesses about '
-        + 'the rival’s style. The robustness number is how many agree.',
-    ],
-  },
-  energy: {
-    title: 'Energy',
-    what: 'Each driver’s deployment style, estimated from the speed trace alone, plus '
-      + 'the energy-inference status: what kind of number this is, and whether it has '
-      + 'been shown to add real predictive value.',
-    do1: [
-      'Read the energy status panel first — it says plainly whether the estimate is '
-        + 'validated.',
-      'The shaded ring is uncertainty. It tightens as the race supplies more laps.',
-      'Scrub the race in Replay, come back, and watch the ring close.',
-    ],
-  },
-  context: {
-    title: 'Race context',
-    what: 'Everything around the decision: where the estimator can and cannot learn '
-      + '(Observability), and the one test we run to try to break our own estimates (RDD).',
-    do1: [
-      'Observability: green = the trace tells us about energy here, red = it tells us '
-        + 'nothing.',
-      'RDD: drag the cutoff slider. If our estimates are real, the jump appears at '
-        + '1.000 s and nowhere else.',
-      'Read the UNDERPOWERED panel — our RDD answer is a null, and that panel says '
-        + 'whether that means anything.',
+      'Filter to "driver diverged" to find the moments the real driver did the '
+        + 'opposite of X-RAY’s call.',
+      'Click a row to see what was knowable at that cutoff and what the engine would '
+        + 'have said — read off the backend, never recomputed here.',
+      '"Watch this moment in Replay" jumps the 3D clock to that exact second.',
+      '"not observable" is a real third state, not a failure: the window contained no '
+        + 'lap completion for both cars, so no position change can be read.',
     ],
   },
   replay: {
     title: 'Replay',
-    what: 'A real 2026 race, replayed, plus a step-through of real historical situations. '
-      + 'Neither car has ever published its energy state — the red bar is reconstructed '
-      + 'from speed alone.',
+    what: 'A real 2026 race, replayed. Neither car has ever published its energy state '
+      + '— the red bar is reconstructed from speed alone.',
     do1: [
       'Press play (or Space) to run the battle. Arrow keys jump 5 s.',
-      'Open "step through real situations" to see X-RAY’s off-policy call at real past '
-        + 'decision points, and what the driver actually did next.',
-      '"Follow" and "disobey" jump between real instances that matched or diverged from '
-        + 'the call — this is never a simulation of what would have happened.',
+      'Switch the track paint to "observability" to see where the trace tells us '
+        + 'anything about energy and where it tells us nothing.',
+      '"Pick a situation" opens the Situations tab for this same pair.',
+    ],
+  },
+  observability: {
+    title: 'Observability',
+    what: 'Where around this circuit the estimator can and cannot learn anything about '
+      + 'energy. Red stretches are not missing data — they are places the physics '
+      + 'genuinely says nothing.',
+    do1: [
+      'Green = the trace is informative about energy here. Red = it is not, and the '
+        + 'band stays wide because of it.',
+      'Compare a high-speed circuit against Monaco: the refusal is the method working, '
+        + 'not failing.',
     ],
   },
   evidence: {
-    title: 'Evidence',
-    what: 'What each model is, and what is known about it — energy inference, pass '
-      + 'model, tyres, CdA and the rest, each with its own status and validation result.',
+    title: 'Evidence & limits',
+    what: 'What each model is, what is known about it, and what the system cannot do — '
+      + 'stated before anything it can.',
     do1: [
-      'The negative held-out result is stated first, at the same weight as everything '
-        + 'else — read it before trusting any energy number elsewhere in the app.',
-      'The model-status table says which components are production and which are '
-        + 'research-only code that never touches a real race.',
+      'Model registry: which components are production and which are research-only '
+        + 'code that never touches a real race.',
+      'Real-data limits: our RDD answer is a null, and the panel states the minimum '
+        + 'detectable effect next to it — without that number the null means nothing.',
+      'Simulator results are labelled Stage 1 and are NOT a claim about real-data '
+        + 'accuracy. Nothing has measured the gap between the two stacks.',
     ],
-  },
-  method: {
-    title: 'Method & limits',
-    what: 'What this system cannot do, stated before anything it can.',
-    do1: ['Read it first if you are deciding whether to believe the rest.'],
   },
 };
 

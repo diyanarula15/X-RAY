@@ -71,6 +71,20 @@ export function Observability({ data }: { data: any }) {
       .attr('fill', C.gray).attr('font-size', 11).text('start / finish');
   }, [data, layer]);
 
+  // Standalone tab now that "Race context" lost its RDD sub-tab, so a missing
+  // payload has to say so. It previously rendered its full chrome around an
+  // empty SVG, which reads as "this circuit has no observability" rather than
+  // "the request failed".
+  if (!data?.geometry?.x?.length) {
+    return (
+      <div style={{ padding: 34, color: C.amber, fontSize: 13, lineHeight: 1.7,
+                    maxWidth: 640 }}>
+        No observability map for this race — the circuit geometry or the
+        per-point information field is missing from the artefact.
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: '26px 34px', height: '100%', overflow: 'auto' }}>
       <h2 className="display" style={{ fontSize: 26, margin: 0 }}>Observability map</h2>
