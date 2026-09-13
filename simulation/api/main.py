@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import sys
 import threading
 import time
@@ -54,17 +55,37 @@ _BUNDLE_JOBS: dict[str, dict] = {}
 async def _lifespan(_app: FastAPI):
     """Preload so the first request is not the slow one."""
     global _BUNDLE_POOL
-    _BUNDLE_POOL = ProcessPoolExecutor(max_workers=2)
+
+    # Vercel serverless functions should not create our local
+    # multiprocessing pool during application startup.
+    if os.getenv("VERCEL"):
+        _BUNDLE_POOL = None
+        print("X-RAY: running on Vercel, process pool disabled", flush=True)
+    else:
+        _BUNDLE_POOL = ProcessPoolExecutor(max_workers=2)
+
     try:
+        print("X-RAY: preload starting", flush=True)
+
         _all_races()
+
         for p in sorted(RACES.glob("*.json"))[:1]:
             _race(p.stem)
-    except Exception:
-        pass
+
+        print("X-RAY: preload complete", flush=True)
+    except Exception as exc:
+        print(
+            f"X-RAY preload warning: {type(exc).__name__}: {exc}",
+            flush=True,
+        )
+        traceback.print_exc()
+
     try:
         yield
     finally:
-        _BUNDLE_POOL.shutdown(wait=False, cancel_futures=True)
+        if _BUNDLE_POOL is not None:
+            _BUNDLE_POOL.shutdown(wait=False, cancel_futures=True)
+
         _BUNDLE_POOL = None
 
 
