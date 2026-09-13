@@ -2,7 +2,19 @@
 name = "x-ray"
 version = "0.1.0"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "numpy==2.3.5",
+    "scipy==1.16.3",
+    "matplotlib==3.10.8",
+    "PyYAML==6.0.3",
+    "pytest==9.0.2",
+    "fastf1==3.8.3",
+    "fastapi==0.121.2",
+    "uvicorn==0.41.0",
+    "pandas==2.3.3",
+    "pyarrow==23.0.1",
+    "google-genai==2.23.0",
+]
 
 [tool.vercel]
 entrypoint = "simulation.api.main:app"
