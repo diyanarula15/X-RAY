@@ -504,3 +504,70 @@ targets.
 **Claim that may not be made:** that the energy estimator is real-data validated, or that
 real rival-energy accuracy is known. There is no public battery channel, so there is no
 real ground truth to measure against at all.
+
+---
+
+# Generated commentary — the LLM judge
+
+## What it is
+
+`xray/judge/` produces **verdicts**: a language model's reading of whether one
+precomputed ATTACK/HOLD call in `out/decisions/` was justified by the evidence the
+engine had. Produced offline by `scripts/17.judge_situations.py`, served read-only
+at `GET /api/race/{rid}/judge`, rendered by `simulation/app/src/components/JudgePanel.tsx`.
+
+**Category: GENERATED COMMENTARY.** Not physics, not a measurement, not a statistical
+estimate, not calibrated against anything. Every verdict carries `is_measurement: false`
+and a `label` saying so, at every boundary it crosses — cache entry, verdict file, API
+response, UI banner. `schema.RESERVED_KEYS` rejects a verdict that tries to set either
+field, so those markings can never be model-supplied.
+
+## Claims that may not be made
+
+- That a verdict **validates** the decision engine. It is one model's reading of one
+  serialized bundle, with no ground truth anywhere in the loop.
+- That agreement between a verdict and `matches_recommendation` is a **score**. The judge
+  is never shown that field (`evidence.OUTCOME_KEYS`, asserted by
+  `tests/test_judge.py::test_evidence_tools_never_expose_the_outcome`). "Did the evidence
+  justify the call" and "did the driver do the same thing" are different questions; the
+  report prints the cross-tab under a heading that says it is a diagnostic, and tuning the
+  prompt toward that agreement would turn this into a second, worse copy of
+  `decision_service.historical_replay`.
+- That a **number in verdict prose** is a measurement. The report counts numeric tokens
+  appearing in prose but nowhere in the tool transcript that produced it, and publishes
+  the count as a judge defect.
+
+## What the rubric scores, and the expected shape of the result
+
+Six axes, 0/1/2: `bracket_reporting`, `pass_model_honesty`, `gap_provenance`,
+`affordability_and_value`, `confidence_calibration`, `refusal_discipline`.
+
+`pass_model_honesty` and `bracket_reporting` are **expected to score low often**. Every lap
+row in the corpus carries `pass_model.calibration: "placeholder"` and
+`dataset_version: "synthetic-design-anchors"` (see "Pass model: still SYNTHETIC" above), and
+the rival energy bracket is routinely wider than the margin a call turns on — one Melbourne
+row reads p10 0.0, p90 1.84 MJ around a point value of 0.916. A high mean on those two axes
+is evidence the judge is rubber-stamping, not evidence the decision engine is good.
+
+`schema.validate_verdict` rejects a 0 on either of those axes combined with a JUSTIFIED
+verdict. That contradiction is also the cheapest available route to sycophancy — flag
+everything, endorse everything, look thorough — so it is enforced in code rather than asked
+for in the prompt.
+
+## Layer
+
+`xray/judge/` imports **only the standard library and `google.genai`** — stricter than the
+INFERENCE↛SIMULATION rule, and enforced by
+`tests/test_judge.py::test_judge_package_imports_only_stdlib_and_the_sdk` plus
+`tests/test_layers.py::test_the_judge_package_is_isolated_from_every_computing_layer`. It
+therefore cannot call `overtake.p_pass`, cannot call `vehicle.step`, and cannot re-solve a
+DP. Every number in a verdict came out of a JSON file on disk. A judge that could compute
+would eventually be asked to, and a verdict would quietly become a second, unvalidated
+physics path.
+
+## Stack
+
+The bundles are produced by the real stack — FastF1 → `xray/data/ingest.py` →
+`xray/realfit.py` → `xray/analysis.py` → `xray/decision_service.py`. Stage 1 and the
+set-membership research group produced none of these numbers, the prompt says so, and the
+report's first line says so.

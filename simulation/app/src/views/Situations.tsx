@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api, type Situation } from '../lib/api';
-import type { P3Replay } from '../lib/api';
+import type { JudgeSet, P3Replay } from '../lib/api';
 import { ReplayPanel } from '../components/P3Panel';
+import { JudgePanel } from '../components/JudgePanel';
 import { SectionTitle } from '../components/Readouts';
 import { C } from '../lib/theme';
 import { usePlayback } from '../store/playback';
@@ -22,7 +23,7 @@ import { usePlayback } from '../store/playback';
  * filtering is instant.
  */
 
-type Filter = 'all' | 'matched' | 'diverged' | 'attack';
+type Filter = 'all' | 'matched' | 'diverged' | 'attack' | 'judged';
 
 const FILTERS: { id: Filter; label: string; hint: string }[] = [
   { id: 'all', label: 'all', hint: 'every causal decision point in the race' },
@@ -32,11 +33,22 @@ const FILTERS: { id: Filter; label: string; hint: string }[] = [
     hint: 'the driver did the opposite of the call' },
   { id: 'attack', label: 'ATTACK called',
     hint: 'points where the engine recommended attacking' },
+  { id: 'judged', label: 'LLM-judged',
+    hint: 'points a language model has commented on' },
 ];
 
-function matches(s: Situation, f: Filter): boolean {
+/** The verdict key for a row. The server keys verdicts by the same
+ *  `decision_time_s` this table already uses as its React key and selection
+ *  identity, so the join is a lookup and never a search. */
+function judgeKey(s: Situation): string {
+  return s.decision_time_s.toFixed(2);
+}
+
+function matches(s: Situation, f: Filter, judge: JudgeSet | null): boolean {
   if (f === 'all') return true;
   if (f === 'attack') return s.attack;
+  // Presence of a verdict, not a re-derivation of one.
+  if (f === 'judged') return judge?.verdicts?.[judgeKey(s)] != null;
   // `matches_recommendation` is null when the comparison could not be made at
   // all -- those rows belong to neither bucket and are excluded from both,
   // rather than being folded into "diverged" as a false.
@@ -52,6 +64,7 @@ export function Situations({ raceId, car, rival }:
   const [filter, setFilter] = useState<Filter>('all');
   const [sel, setSel] = useState<number | null>(null);
   const [replay, setReplay] = useState<P3Replay | null>(null);
+  const [judge, setJudge] = useState<JudgeSet | null>(null);
   const [loadingReplay, setLoadingReplay] = useState(false);
   const setView = usePlayback((s) => s.setView);
   const setTime = usePlayback((s) => s.setTime);
@@ -60,16 +73,24 @@ export function Situations({ raceId, car, rival }:
   useEffect(() => {
     const mine = ++token.current;
     setList(null); setErr(null); setRefusal(null); setSel(null); setReplay(null);
+    setJudge(null);
     api.situations(raceId, car, rival)
       .then((d) => {
         if (token.current !== mine) return;
         setList(d.situations); setRefusal(d.refusal ?? null);
       })
       .catch((e) => { if (token.current === mine) setErr(String(e)); });
+    // Verdicts are optional commentary generated offline, and most pairs have
+    // none. A failure here must never block the table, so it resolves to null
+    // rather than propagating to `err`.
+    api.judge(raceId, car, rival)
+      .then((d) => { if (token.current === mine) setJudge(d.available ? d : null); })
+      .catch(() => { if (token.current === mine) setJudge(null); });
   }, [raceId, car, rival]);
 
   const shown = useMemo(
-    () => (list ?? []).filter((s) => matches(s, filter)), [list, filter]);
+    () => (list ?? []).filter((s) => matches(s, filter, judge)),
+    [list, filter, judge]);
 
   // Selection is by decision time, not list index: the index moves when the
   // filter changes, and a selection that silently jumps to a different lap
@@ -147,7 +168,7 @@ export function Situations({ raceId, car, rival }:
 
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '14px 0 10px' }}>
           {FILTERS.map((f) => {
-            const n = (list ?? []).filter((s) => matches(s, f.id)).length;
+            const n = (list ?? []).filter((s) => matches(s, f.id, judge)).length;
             const on = filter === f.id;
             return (
               <button key={f.id} onClick={() => setFilter(f.id)} title={f.hint}
@@ -179,7 +200,8 @@ export function Situations({ raceId, car, rival }:
                 <th>gap</th>
                 <th>X-RAY called</th>
                 <th>driver</th>
-                <th style={{ paddingRight: 12 }}>outcome</th>
+                <th>outcome</th>
+                <th style={{ paddingRight: 12 }}>LLM judge</th>
               </tr>
             </thead>
             <tbody>
@@ -197,12 +219,16 @@ export function Situations({ raceId, car, rival }:
                     <td style={{ color: s.attack ? C.green : C.gray, fontWeight: 700 }}>
                       {s.attack ? 'ATTACK' : 'HOLD'}</td>
                     <td style={{ color: C.gray }}>{s.actual_action ?? '—'}</td>
-                    <td style={{ paddingRight: 12,
-                                 color: s.matches_recommendation === true ? C.green
+                    <td style={{ color: s.matches_recommendation === true ? C.green
                                    : s.matches_recommendation === false ? C.amber : C.dim }}>
                       {s.matches_recommendation === true ? 'matched'
                         : s.matches_recommendation === false ? 'diverged'
                           : 'not observable'}</td>
+                    {/* The label and its colour are both server fields. A
+                        mapping table here would be a second opinion about what
+                        a verdict means. */}
+                    <td style={{ paddingRight: 12, color: C.dim }}>
+                      {judge?.verdicts?.[judgeKey(s)]?.verdict_label ?? '—'}</td>
                   </tr>
                 );
               })}
@@ -241,6 +267,8 @@ export function Situations({ raceId, car, rival }:
             {loadingReplay
               ? <div style={{ color: C.dim, fontSize: 12 }}>replaying…</div>
               : <ReplayPanel replay={replay} />}
+            <JudgePanel verdict={judge?.verdicts?.[judgeKey(current)] ?? null}
+                        stale={judge?.stale} />
           </>
         )}
       </div>

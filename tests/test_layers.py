@@ -65,6 +65,30 @@ def test_no_inference_module_imports_the_simulator(module):
         f"or arrives through the feed.")
 
 
+JUDGE = XRAY / "judge"
+
+
+@pytest.mark.parametrize(
+    "path", sorted(JUDGE.glob("*.py")) if JUDGE.exists() else [],
+    ids=lambda p: p.name)
+def test_the_judge_package_is_isolated_from_every_computing_layer(path):
+    """`xray/judge/` is PRESENTATION/AUDIT and holds a stricter rule than
+    rule 1 above: it may import only the standard library and the LLM SDK.
+
+    The generalisation matters. Rule 1 stops inference importing the simulator;
+    it would not stop an LLM judge importing `overtake.p_pass` "just to check
+    the number", which would make a generated verdict into a second,
+    unvalidated physics path that the rest of the stack might believe. The full
+    scan, including the SDK-confinement and redaction guarantees, is in
+    `tests/test_judge.py`; this entry exists so the rule is visible from the
+    file that assigns modules to layers.
+    """
+    leaked = _imported_module_names(path) & (SIMULATION | INFERENCE)
+    assert not leaked, (
+        f"xray/judge/{path.name} imports {sorted(leaked)}. The judge reads "
+        f"serialized results and computes nothing.")
+
+
 # (module, attribute) -> (value, why it is allowed to differ from its siblings)
 #
 # An entry here is an admission, not an approval. Adding one should be harder

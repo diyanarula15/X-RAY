@@ -204,6 +204,64 @@ export type Ablation = {
   cda_abs_err_pct: number[]; failures: Record<string, unknown>;
 };
 
+/** One axis of the LLM judge's rubric. `score` is served as 0, 1 or 2 and is
+ *  rendered as the digit the server sent -- it is never averaged, re-banded or
+ *  turned into a pass/fail here. */
+export type JudgeAxis = {
+  score: 0 | 1 | 2; note: string; evidence_refs: string[];
+};
+
+/** One verdict over one precomputed situation.
+ *
+ *  GENERATED COMMENTARY. Every string here was written by a language model
+ *  reading the serialized evidence bundle, and the server labels it as such:
+ *  `is_measurement` is always false. Nothing here is a measurement, nothing
+ *  here is physics, and nothing here is recomputed in TypeScript.
+ *
+ *  The judge was never shown `actual_action` or `matches_recommendation`, so a
+ *  verdict is NOT a second opinion about whether the driver agreed. It answers
+ *  a different question: did the evidence support the call as stated.
+ *
+ *  `verdict_label` and `verdict_tone` come from the server on purpose. An
+ *  enum-to-label or enum-to-colour map in this file would be the frontend
+ *  holding its own opinion about what a verdict means, which is the drift the
+ *  static scans in `tests/test_frontend_p2.py` exist to prevent. */
+export type JudgeVerdict = {
+  verdict: string;
+  verdict_label: string;
+  verdict_tone: 'ok' | 'warn' | 'bad' | 'neutral';
+  summary: string;
+  judge_confidence: string;
+  abstained: boolean;
+  abstain_reason: string | null;
+  axes: Record<string, JudgeAxis>;
+  overclaims: { claim: string; field: string; why_wrong: string }[];
+  label: string;
+  is_measurement: false;
+  model_id: string;
+  prompt_version: string;
+  rubric_version: string;
+  tool_calls: string[];
+  n_turns: number;
+  generated_at: string;
+  judge_error: string | null;
+};
+
+/** Every cached verdict for one pair, keyed by `decision_time_s.toFixed(2)`.
+ *
+ *  `available: false` is a normal answer: `out/` is gitignored, so a fresh
+ *  checkout has no verdicts until someone runs the batch. `stale` means the
+ *  race was re-analysed after these verdicts were written -- they are still
+ *  served, and flagged, rather than hidden. */
+export type JudgeSet = {
+  race: string; car: string; rival: string;
+  available: boolean; reason: string | null;
+  label: string; is_measurement: false; stale: boolean;
+  model_id: string; prompt_version: string; rubric_version: string;
+  judge_version: string; generated_at: string | null;
+  verdicts: Record<string, JudgeVerdict>;
+};
+
 export const api = {
   races: () => j<RaceSummary[]>('/api/races'),
   race: (id: string) => j<RaceDetail>(`/api/race/${id}/summary`),
@@ -224,6 +282,11 @@ export const api = {
   rdd: (cutoff: number, bandwidth = 0.6) =>
     j<any>(`/api/rdd?cutoff=${cutoff}&bandwidth=${bandwidth}`),
   ablation: () => j<Ablation>('/api/ablation'),
+  // Read-only: the server serves verdicts produced offline by
+  // `scripts/17.judge_situations.py`. No request here ever reaches a model.
+  judge: (id: string, car: string, rival: string) =>
+    j<JudgeSet>(`/api/race/${id}/judge?car=${car}&rival=${rival}`),
+  judgeReport: () => j<any>('/api/judge/report'),
   analyzeRace: (round: number, year = 2026, session = 'R') =>
     post<{ job_id: string }>('/api/races/analyze', { round, year, session }),
   analyzeStatus: (jobId: string) => j<AnalyzeJob>(`/api/races/analyze/${jobId}`),

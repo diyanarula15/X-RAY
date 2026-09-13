@@ -15,3 +15,12 @@ fastapi==0.121.2
 uvicorn==0.41.0
 pandas==2.3.3
 pyarrow==23.0.1
+
+# Stage 3 — LLM-as-judge over the precomputed decision bundles. Optional, and
+# deliberately so: only scripts/17.judge_situations.py imports it, and
+# xray/judge/gemini.py guards the import, so a checkout without it still runs
+# pytest and still serves the API. The API reads out/judge/ verdicts through
+# xray/judge/store.py, which is standard library only — a hard import anywhere
+# in that chain would make uvicorn startup depend on this package on machines
+# that never run the judge.
+google-genai==2.23.0

@@ -31,10 +31,16 @@ commented blocks:
 - **Light** (Stage 1 only): `numpy scipy matplotlib PyYAML pytest`
 - **Full** (adds Stage 2 real-data + API): light tier +
   `fastf1 pandas==2.3.3 fastapi uvicorn pyarrow`
+- **Stage 3** (adds the LLM judge, Setup H): full tier + `google-genai`
 
-`-r requirements.txt` installs both blocks, which is what every setup below
-does and what Setups C–E require. For a Stage-1-only machine (Setup A or B)
-you may instead install just the first block by hand.
+`-r requirements.txt` installs all three blocks, which is what every setup
+below does and what Setups C–E require. For a Stage-1-only machine (Setup A or
+B) you may instead install just the first block by hand.
+
+`google-genai` is optional in practice: only `scripts/17.judge_situations.py`
+imports it, the import is guarded, and the API reads judge output through a
+standard-library-only module. A checkout without it still runs `pytest` and
+still serves every route.
 
 `pandas==2.3.3`, not a newer 3.x, is required — fastf1 pins
 `pandas<3.0.0,>=2.1.1` in its own metadata, so pip enforces it either way.
@@ -144,7 +150,26 @@ a single failure, so just check `out/races/` afterward to see which rounds
 actually produced JSON. There is no round/calendar list checked into the
 repo; round numbers are always picked by hand.
 
-Routes:
+**Precompute the decision bundles before opening the app.** The per-pair
+decision trace costs ~54 s to solve, and it sits on the path of every driver
+swap in the frontend — computed on request, choosing a driver looks broken
+rather than merely slow. It is fully determined by the race artefact, so it is
+solved once to disk:
+
+```powershell
+.\.venv\Scripts\python scripts\16.precompute_decisions.py --workers 4
+```
+
+That writes `out/decisions/<race>__<CAR>__<RIVAL>.json` for each race's
+observed battles, both orderings. The API serves those files and only solves
+for a pair nobody has asked for before (writing that one through too, so it is
+paid at most once ever). `--index-only` rebuilds just the sidecar
+`out/decisions/_index.json`; `--all-pairs` does the full ordered cross product,
+which is ~380 pairs per race and hours of CPU.
+
+Routes (this list was stale — it named `/battle/{a}/{b}` and `/counterfactual`,
+which `simulation/api/main.py` does not define, and omitted `situations` and
+`ablation`; it now matches the `@app.get` decorators in that file):
 
 ```
 GET  /api/races
@@ -152,15 +177,17 @@ POST /api/races/analyze
 GET  /api/races/analyze/{job_id}
 GET  /api/race/{rid}/summary
 GET  /api/race/{rid}/car/{drv}
-GET  /api/race/{rid}/battle/{a}/{b}
 GET  /api/race/{rid}/observability
 GET  /api/race/{rid}/decision
 GET  /api/race/{rid}/p2
 GET  /api/race/{rid}/p3
-GET  /api/race/{rid}/counterfactual
+GET  /api/race/{rid}/situations
 GET  /api/race/{rid}/replay
+GET  /api/race/{rid}/judge          # Setup H; {"available": false} until then
+GET  /api/judge/report              # Setup H; {"available": false} until then
 GET  /api/p3/status
 GET  /api/rdd
+GET  /api/ablation
 ```
 
 ---
@@ -242,3 +269,86 @@ model fingerprint — reads existing sources of truth (git HEAD, the registry,
 Run it before handing off a build for review; it needs the full manifest
 installed (imports `xray.registry`/`xray.overtake` and reads
 `simulation/api/main.py`'s FastAPI version string, but not a running server).
+
+---
+
+## Setup H — LLM judge over the precomputed situations
+
+Grades whether each ATTACK/HOLD call in `out/decisions/` was **justified by the
+evidence the engine had**. Not whether the driver agreed — that comparison is
+`matches_recommendation`, it already exists in `decision_service`, and it needs
+no model. The judge is never shown it.
+
+Everything here is offline and batched. The API never calls a model, on this
+path or any other; it serves verdicts from disk.
+
+**Prerequisites:** Setup D (race artefacts on disk) **and**
+`scripts/16.precompute_decisions.py` (the bundles the judge reads), plus an API
+key:
+
+```powershell
+.\.venv\Scripts\python -m pip install -r requirements.txt
+$env:GEMINI_API_KEY = "<your key>"
+```
+
+```powershell
+# 1. Cost projection and the per-stratum allocation. No API calls, no key needed.
+.\.venv\Scripts\python scripts\17.judge_situations.py --dry-run
+
+# 2. A small real run to see the shape of the output.
+.\.venv\Scripts\python scripts\17.judge_situations.py --race 2026_r10_R --n 20
+
+# 3. The default stratified sample: 240 situations across every race,
+#    both calls, matched/diverged/unresolved, and every refused pair.
+.\.venv\Scripts\python scripts\17.judge_situations.py
+```
+
+Writes `out/judge/cache/` (the source of truth: transcript, verdict, usage),
+`out/judge/verdicts/` (the view the API serves), `out/judge/samples/` (the
+reproducible sample manifest) and `out/judge/reports/` (JSON + markdown).
+Restart the API, or just reload the page — the endpoints read from disk on each
+request. The verdict appears as a column and a panel in the **Situations** tab.
+
+**The daily request cap is the binding constraint.** The agentic loop costs 3–5
+requests per situation, so the default 240-situation sample is roughly a day's
+allowance. Defaults are `--rpm 15 --rpd 1000`, the conservative reading of
+`gemini-2.5-flash-lite`'s free tier; Google's published table is the authority,
+so re-check it rather than trusting those numbers. `--max-requests` (default
+900) is a hard per-run budget: the run stops cleanly when it is spent and says
+how many items remain.
+
+`--workers` does not exist here, deliberately. This is the one place that does
+*not* mirror `scripts/16`: a process pool against a per-minute cap manufactures
+429s and nothing else.
+
+Resuming, and the three modes that need no key and no network:
+
+```powershell
+.\.venv\Scripts\python scripts\17.judge_situations.py --resume <sample_id>
+.\.venv\Scripts\python scripts\17.judge_situations.py --materialize   # rebuild verdicts/ from cache
+.\.venv\Scripts\python scripts\17.judge_situations.py --report <run_id>  # rebuild a report from cache
+```
+
+Because verdicts are cached on `(situation, evidence, model, prompt version)`,
+re-running a completed sample costs **zero** requests. Editing the prompt
+changes `PROMPT_VERSION` — a hash of the prompt text — which invalidates every
+cached verdict on purpose, so one report can never pool answers from two
+rubrics.
+
+With no key set, the script prints a refusal and exits 2 rather than raising;
+`--dry-run`, `--materialize` and `--report` still work.
+
+**Reading the output.** Verdicts are GENERATED COMMENTARY, labelled
+`is_measurement: false` at every boundary — not physics, not a measurement, and
+not a validation of the decision engine. `docs/model_inventory.md` has the full
+entry, including the claims that may not be made from them. Two things worth
+knowing before reading a report:
+
+- `pass_model_honesty` and `bracket_reporting` are *expected* to score low
+  often. Every lap row in the corpus carries
+  `pass_model.calibration: "placeholder"`. A high mean on those two is evidence
+  the judge is rubber-stamping, not that the engine is good.
+- The `verdict × matches_recommendation` cross-tab is printed under
+  "Diagnostic, not a target" and means it. Tuning the prompt toward agreement
+  would turn this into a second, worse copy of
+  `decision_service.historical_replay`.

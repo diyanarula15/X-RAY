@@ -696,6 +696,43 @@ def p3_replay_endpoint(rid: str, car: str, rival: str, cutoff: float,
     return historical_replay(d, car, rival, cutoff, horizon_s=h)
 
 
+# ------------------------------------------------------------------ LLM judge
+# Read-only. This process never calls a language model, on this path or any
+# other: `scripts/16` exists because a 54 s solve on the driver-swap path made
+# choosing a driver look broken, and a network-bound LLM call on a request path
+# is the same mistake with worse tails. Verdicts are produced offline by
+# `scripts/17.judge_situations.py` and served from disk here.
+#
+# Only `xray.judge.store` is imported, and it is standard-library-only. If the
+# SDK ever leaked into this import chain, serving a request would start
+# requiring `google-genai` to be installed --
+# `tests/test_judge_api.py::test_the_api_never_imports_the_llm_client` asserts
+# it has not.
+
+
+@app.get("/api/race/{rid}/judge")
+def judge_endpoint(rid: str, car: str = Query(...), rival: str = Query(...)):
+    """Cached LLM-judge verdicts for one pair, keyed by decision time.
+
+    `available: false` is a normal answer, not an error. `out/` is gitignored,
+    so a fresh clone has no verdicts at all, and a 404 here would render the
+    Situations tab as broken for a state that just means nobody has run the
+    judge yet.
+    """
+    from xray.judge import store as judge_store
+    return _json_safe(judge_store.read_pair(rid, car, rival))
+
+
+@app.get("/api/judge/report")
+def judge_report_endpoint():
+    from xray.judge.paths import LATEST_REPORT
+    try:
+        return _json_safe(json.loads(LATEST_REPORT.read_text(encoding="utf-8")))
+    except (OSError, ValueError):
+        return {"available": False,
+                "reason": "no judge report yet -- run scripts/17.judge_situations.py"}
+
+
 dist = ROOT / "app" / "dist"
 if dist.exists():
     app.mount("/", StaticFiles(directory=str(dist), html=True), name="app")
