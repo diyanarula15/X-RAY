@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo } from 'react';
 import type { Car, RaceDetail } from '../lib/api';
-import { sampleCar } from '../lib/carState';
+import { sampleCar, timeRange } from '../lib/carState';
 import { C } from '../lib/theme';
 import { usePlayback } from '../store/playback';
 import { useThrottledTime } from '../store/clock';
@@ -17,6 +17,23 @@ import { Scene } from '../three/Scene';
 const RAIL_W = 330;
 const GUTTER = 18;
 const RAIL_EDGE = RAIL_W + GUTTER * 2;
+
+// ROLE is fixed by the pairing; POSITION is the thing that moves, and they are
+// two separate readouts here because the old header had only one: it printed
+// "<driver> ahead" off the sign of `d`, so the only identity statement on screen
+// was recomputed every frame and flipped the moment a pass completed. A battle
+// where NORRIS=CHASER 0.4 s behind becomes NORRIS=CHASER 0.2 s ahead is one
+// battle; renaming the target into the chaser makes it read as two. The subject
+// of the session is the CHASER for every frame of the replay, the estimated car
+// is the TARGET, and no code path below writes either.
+const ROLE_SUBJECT = 'CHASER';
+const ROLE_RIVAL = 'TARGET';
+
+// Published bodywork geometry (2026 regulation caps overall length at 5.6 m),
+// not an estimate and not a regulation call: "side by side" means the cars
+// overlap along the lap. Nothing downstream of this is a strategy or an
+// eligibility decision — see the eligibility note in the gap readout.
+const CAR_LENGTH_M = 5.6;
 
 export function Theatre({ race, subject, rival, obs }: {
   race: RaceDetail; subject: Car | null; rival: Car | null; obs: any;
@@ -46,12 +63,43 @@ export function Theatre({ race, subject, rival, obs }: {
   // is the whole reason this number means anything.
   const gap = useMemo(() => {
     if (!sS || !rS || !sS.onTrack || !rS.onTrack) return null;
+    // d = rival.s - subject.s, wrap-corrected across the start line. d > 0 is
+    // the RIVAL ahead and the subject behind. The field used to be called
+    // `subjectAhead` and set to `d > 0`, i.e. the exact inverse: at
+    // subject.s=100 / rival.s=110 the header read "<subject> ahead" while the
+    // 3D scene, which places each car at `poseAt(geo, s)` (Scene.tsx), drew the
+    // subject 10 m behind. Same frame, same numbers, opposite stories.
+    // The name now states the sign convention so the two cannot disagree.
     let d = rS.s - sS.s;
     if (d > L / 2) d -= L; else if (d < -L / 2) d += L;
     const behind = d > 0 ? sS : rS;
     return { seconds: Math.abs(d) / Math.max(behind.v, 5), metres: Math.abs(d),
-             subjectAhead: d > 0 };
+             rivalAhead: d > 0 };
   }, [sS, rS, L]);
+
+  // Physical position, derived per frame, kept separate from the roles above.
+  // `state` is a description of the track situation and is NOT a strategy call:
+  // the canonical strategy vocabulary is ATTACK / HOLD and lives in Cockpit,
+  // fed by the solver. Nothing here ever produces a third strategy word.
+  const position = useMemo(() => {
+    if (!gap) return null;
+    if (gap.metres <= CAR_LENGTH_M) {
+      return { subject: 'SIDE-BY-SIDE', rival: 'SIDE-BY-SIDE', state: 'SIDE-BY-SIDE' };
+    }
+    return gap.rivalAhead
+      ? { subject: 'BEHIND', rival: 'AHEAD', state: 'CHASING' }
+      : { subject: 'AHEAD', rival: 'BEHIND', state: 'DEFENDING POSITION' };
+  }, [gap]);
+
+  // Both cars have telemetry, but not necessarily over the same stretch of the
+  // session. The shared clock is the intersection, so when it is empty there is
+  // no moment at which the two can be compared at all — said out loud rather
+  // than rendered as a frozen car with a null gap.
+  const windowsOverlap = useMemo(() => {
+    const a = timeRange(subject), b = timeRange(rival);
+    if (!a || !b) return null;
+    return Math.min(a[1], b[1]) > Math.max(a[0], b[0]);
+  }, [subject, rival]);
 
   // the one clock, advancing in seconds of race time
   useEffect(() => {
@@ -94,17 +142,51 @@ export function Theatre({ race, subject, rival, obs }: {
           {' '}· <span className="num">{(sS?.v ? sS.v * 3.6 : 0).toFixed(0)}</span> km/h
           {' '}· {race.telemetry.median_hz} Hz public telemetry
         </div>
-        {gap && (
+        {/* HISTORICAL REPLAY, said at the top of the viewport. Without it this
+            screen is indistinguishable from a live or simulated run, and the
+            P2 recommendation rendered beside it reads as an action being taken
+            — it is not: the recorded telemetry is the only thing moving here,
+            and no counterfactual branch is executed anywhere in this view. */}
+        <div style={{ marginTop: 9, display: 'inline-block', padding: '5px 9px',
+                      border: `1px solid ${C.amber}`, borderRadius: 6,
+                      background: 'rgba(255,195,0,.08)' }}>
+          <b style={{ color: C.amber, fontSize: 11, letterSpacing: '0.09em' }}>
+            HISTORICAL REPLAY
+          </b>
+          <span style={{ color: C.gray, fontSize: 11 }}> · Recorded telemetry</span>
+          <div style={{ color: C.dim, fontSize: 10.5, marginTop: 3, maxWidth: 420,
+                        lineHeight: 1.5 }}>
+            X-RAY recommendation is advisory here. This replay does not execute
+            the counterfactual branch.
+          </div>
+        </div>
+        {gap && position && (
           <div style={{ marginTop: 9, display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span className="num" style={{ fontSize: 30, fontWeight: 800,
-              color: gap.seconds < 1 ? C.green : C.white }}>
+            <span className="num" style={{ fontSize: 30, fontWeight: 800, color: C.white }}>
               {gap.seconds.toFixed(2)}s
             </span>
             <span style={{ color: C.gray, fontSize: 12 }}>
-              {gap.metres.toFixed(0)} m · {gap.subjectAhead ? `${subject?.driver} ahead`
-                : `${rival?.driver} ahead`}
-              {gap.seconds < 1 && <b style={{ color: C.green }}> · Override eligible</b>}
+              {gap.metres.toFixed(0)} m
+              {' · '}{ROLE_SUBJECT} {subject?.driver} <b style={{ color: C.amber }}>
+                {position.subject}</b>
+              {' · '}{ROLE_RIVAL} {rival?.driver} <b style={{ color: C.red }}>
+                {position.rival}</b>
+              {' · '}<span style={{ color: C.dim }}>track state {position.state}</span>
             </span>
+          </div>
+        )}
+        {/* The 1.000 s Manual Override rule is decided at a zone detection point
+            against the regulation in force, not by whatever the instantaneous
+            on-track gap happens to be in this frame. The old badge lit
+            "Override eligible" off `gap.seconds < 1` computed right here, which
+            is the frontend issuing a legal ruling from one interpolated sample;
+            the car payload carries no Manual Override eligibility field
+            (`regulation.zone_eligibility` is deployment-ZONE geometry, a
+            different rule), so there is nothing to render and the definitive
+            badge is gone. */}
+        {gap && (
+          <div style={{ color: C.dim, fontSize: 10.5, marginTop: 5 }}>
+            Manual Override: eligibility not established — not inferred from this gap.
           </div>
         )}
       </div>
@@ -113,23 +195,31 @@ export function Theatre({ race, subject, rival, obs }: {
                     maxHeight: `calc(100% - ${GUTTER * 2}px)`, overflowY: 'auto',
                     display: 'flex', flexDirection: 'column', gap: 12 }}>
         <Panel>
+          {/* Neither side is known here. This panel used to read "Yours is
+              known; theirs is reconstructed from speed", which is true of the
+              simulator and false of every session this view can open: these are
+              historical PUBLIC-data races, the payload marks no car as
+              internally known, and both bars are the same particle-filter
+              output off the same public speed trace. The asymmetric wording made
+              the amber bar look like a measurement and invited reading its width
+              as instrument noise rather than as an identified band. */}
           <div style={{ color: C.dim, fontSize: 10.5, marginBottom: 8, lineHeight: 1.5 }}>
-            Deployable energy — how much each car can still throw at the other.
-            Yours is known; theirs is reconstructed from speed.
+            Estimated usable energy — both cars. Telemetry-derived from public
+            speed alone; no car publishes its energy state. Bands are p10–p90.
           </div>
-          <EnergyBar label={`YOU — ${subject?.driver ?? '—'}`}
+          <EnergyBar label={`${ROLE_SUBJECT} — ${subject?.driver ?? '—'}`}
             mean={sS?.usable ?? null} p10={sS?.p10} p90={sS?.p90} colour={C.amber}
             sub={sS ? (sS.usable < 0.02
-              ? `store spent · recovering ${Math.round(sS.harvest)} kW`
+              ? `estimated deployable band at its floor · recovering ${Math.round(sS.harvest)} kW`
               : `deploying ${Math.round(sS.deploy)} kW`) : undefined} />
-          <EnergyBar label={`RIVAL — ${rival?.driver ?? '—'}`}
+          <EnergyBar label={`${ROLE_RIVAL} — ${rival?.driver ?? '—'}`}
             mean={rS?.usable ?? null} p10={rS?.p10} p90={rS?.p90} colour={C.red}
             unknown={!showCloud}
             sub={rS ? (rS.stale
               ? 'telemetry gap — estimate suspended'
               : rS.usable < 0.02
-                ? 'store spent · nothing left to deploy at you'
-                : `band ±${((rS.p90 - rS.p10) / 2).toFixed(2)} MJ · reconstructed`)
+                ? 'estimated deployable band at its floor'
+                : `band ±${((rS.p90 - rS.p10) / 2).toFixed(2)} MJ · telemetry-derived`)
               : undefined} />
           {rival && (
             <div style={{ borderTop: `1px solid ${C.panelBorder}`, paddingTop: 9,
@@ -146,14 +236,36 @@ export function Theatre({ race, subject, rival, obs }: {
           {rS?.dry && (
             <motion.div key="dry" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 24 }}>
+              {/* "The store HAS reached the floor" was a claim the trace cannot
+                  support: a speed trace measures flows exactly and absolute
+                  level only up to an unidentified constant, so a cut-out is
+                  evidence consistent with a floor, not a measurement of one —
+                  and a store/reserve split is not separately identifiable from
+                  public telemetry at all. No estimator value changed with this
+                  wording; only the strength of the claim. */}
               <Refusal tone="amber" title="DEPLOYMENT CUT-OUT"
-                message="The rival stopped deploying while still on the throttle below the taper. The store has reached the floor this driver refuses to spend — the band collapses onto it." />
+                message="Deployment cut-out detected. Observed behaviour is consistent with the car being near its deployable-energy floor. Public telemetry does not uniquely identify store and reserve separately." />
             </motion.div>
           )}
         </AnimatePresence>
 
         {!rival && refusal && (
           <Refusal title={`CANNOT ESTIMATE — ${refusal[0]}`} message={refusal[1].message} />
+        )}
+
+        {/* Replay is the one tab not guarded on `subject && rival` upstream, so
+            an unavailable car used to land here as a scene with one car missing,
+            a null gap and an em-dash energy bar — indistinguishable from a
+            loading frame. Say which side is missing instead. */}
+        {(!subject || !rival) && (
+          <Refusal title="PAIR NOT PLAYABLE"
+            message={`The ${!subject ? ROLE_SUBJECT : ROLE_RIVAL} side has no `
+              + 'analysed trace in this race, so there is no pair to replay. '
+              + 'Pick another pairing in the bar above.'} />
+        )}
+        {windowsOverlap === false && (
+          <Refusal title="NO SHARED TELEMETRY WINDOW"
+            message="These two cars have no overlapping telemetry window in this race. There is no moment at which both can be sampled, so no gap and no comparison exist — the clock has nothing to span." />
         )}
 
         <SceneLegend />

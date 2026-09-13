@@ -110,10 +110,13 @@ export function Cockpit({ raceId, car, rival }:
 
     if (d.call) {
       svg.append('circle').attr('cx', x(d.call.lap)).attr('cy', y(d.call.q)).attr('r', 13)
-        .attr('fill', 'none').attr('stroke', C.green).attr('stroke-width', 2.4);
+        .attr('fill', 'none').attr('stroke', C.gray).attr('stroke-width', 2.4);
       svg.append('text').attr('x', x(d.call.lap) + 20).attr('y', y(d.call.q) - 18)
-        .attr('fill', C.green).attr('font-size', 13).attr('font-weight', 700)
-        .text(`the call — lap ${d.call.lap}, zone ${d.call.zone}`);
+        .attr('fill', C.gray).attr('font-size', 13).attr('font-weight', 700)
+        // "the call" was the P1 row's own label. On 29% of decision points it
+        // names a different action than canonical P2, so the word "call" here
+        // was claiming an authority this layer does not have.
+        .text(`legacy P1 per-lap call — lap ${d.call.lap}, zone ${d.call.zone}`);
     }
   }, [d]);
 
@@ -140,7 +143,15 @@ export function Cockpit({ raceId, car, rival }:
     );
   }
 
-  const attack = p2 ? p2.decision === 'ATTACK' : !!row?.attack;
+  // P2 is the only thing allowed in the headline slot. This line used to read
+  // `p2 ? p2.decision === 'ATTACK' : !!row?.attack`, so a failed /p2 fetch
+  // silently promoted the P1 per-lap flag into the 46px ATTACK/HOLD readout
+  // with nothing on screen saying which layer produced it. The audit measured
+  // P1 disagreeing with canonical P2 on 961 of 3,298 decision points (29%), so
+  // that fallback printed the wrong call about one time in three. `null` is the
+  // third state -- decline rather than guess; the legacy trace below keeps the
+  // diagnostic without being called a recommendation.
+  const attack: boolean | null = p2 ? p2.decision === 'ATTACK' : null;
   const synthetic = p2 ? p2.pass_model_calibration !== 'empirical' : true;
   const chosenLabel = p2
     ? (attack ? `ATTACK(${p2.zone}, ${p2.deployment_budget_mj.toFixed(3)} MJ)` : 'HOLD')
@@ -149,18 +160,33 @@ export function Cockpit({ raceId, car, rival }:
   return (
     <div style={{ padding: '26px 34px', height: '100%', overflow: 'auto' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'wrap' }}>
-        <div className="num" style={{ fontSize: 46, fontWeight: 800,
-                                      color: attack ? C.green : C.amber }}>
-          {attack ? 'ATTACK' : 'HOLD'}{attack && p2?.zone ? ` — ZONE ${p2.zone}` : ''}
+        <div className="num" style={{ fontSize: attack == null ? 28 : 46, fontWeight: 800,
+                                      color: attack == null ? C.gray
+                                             : attack ? C.green : C.amber }}>
+          {attack == null ? 'NO CANONICAL RECOMMENDATION'
+                          : attack ? 'ATTACK' : 'HOLD'}
+          {attack && p2?.zone ? ` — ZONE ${p2.zone}` : ''}
         </div>
+        {/* P1's confidence is not the confidence in the headline, and unlabelled
+            next to a P2 headline it read as if it were. Named for its layer. */}
         {row?.confidence != null && (
-          <Badge text={`confidence ${pct(row.confidence, 0)}`}
-                 color={row.confidence > 0.3 ? C.amber : C.gray} />
+          <Badge text={`legacy P1 confidence ${pct(row.confidence, 0)}`}
+                 color={C.gray} />
         )}
         {p3?.energy_inference && (
           <Badge text={`ENERGY: ${p3.energy_inference.status}`} color={C.amber} />
         )}
       </div>
+
+      {!p2 && (
+        <div style={{ color: C.amber, fontSize: 13, lineHeight: 1.7, maxWidth: 760,
+                      marginTop: 8 }}>
+          P2 unavailable — no canonical strategic recommendation for this pair.
+          The legacy P1 per-lap trace below is still shown as a diagnostic, but it
+          is not a recommendation: it disagrees with canonical P2 on 961 of 3,298
+          audited decision points (29%).
+        </div>
+      )}
 
       {p2 && (
         <div style={{ color: C.gray, fontSize: 13, lineHeight: 1.7, maxWidth: 760,
@@ -258,9 +284,8 @@ export function Cockpit({ raceId, car, rival }:
         </h3>
         <p style={{ color: C.gray, fontSize: 13, lineHeight: 1.65, margin: '0 0 14px',
                     maxWidth: 820 }}>
-          Which opportunity, which zone, and why. The white line is the threshold:
-          the quality of chance worth taking on that lap. Click any dot for the
-          numbers behind it.
+          Which opportunity, which zone, and why — from P2, the canonical
+          optimiser that produced the headline call above.
         </p>
 
         <P2Panel p2={p2} />
@@ -272,6 +297,27 @@ export function Cockpit({ raceId, car, rival }:
           </div>
         )}
 
+        {/* Everything below this line comes from /decision (P1), not /p2. It was
+            previously unlabelled and sat under the same "Strategy horizon"
+            heading as the P2 panel, so its per-lap ATTACK/HOLD flag read as the
+            current recommendation. */}
+        <div style={{ borderTop: `1px solid ${C.panelBorder}`, marginTop: 26,
+                      paddingTop: 14 }}>
+          <div style={{ color: C.gray, fontSize: 11.5, fontWeight: 700,
+                        letterSpacing: '0.06em' }}>
+            LEGACY P1 TRACE — historical per-lap diagnostic, not the canonical
+            strategic recommendation
+          </div>
+          <div style={{ color: C.dim, fontSize: 12, lineHeight: 1.6, marginTop: 5,
+                        maxWidth: 820 }}>
+            The per-lap flag in this section disagrees with canonical P2 on 961 of
+            3,298 audited decision points (29%). Read it as a record of what the
+            older per-lap solver did, not as what to do now. The white line is
+            that solver's threshold: the quality of chance it treated as worth
+            taking on a lap. Click any dot for the numbers behind it.
+          </div>
+        </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 310px',
                       gap: 20, marginTop: 16 }}>
           <div className="panel" style={{ padding: 12 }}>
@@ -279,8 +325,12 @@ export function Cockpit({ raceId, car, rival }:
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div className="panel" style={{ padding: 15 }}>
-              <SectionTitle>MODEL</SectionTitle>
-              <div className="num" style={{ fontSize: 30, fontWeight: 800, color: C.green }}>
+              <SectionTitle>LEGACY P1 MODEL</SectionTitle>
+              {/* A 30px green number under the bare title "MODEL" read as
+                  confidence in the headline call. It is the P1 row's own
+                  confidence; named and desaturated so it cannot. */}
+              <div style={{ color: C.gray, fontSize: 11.5 }}>P1 trace confidence</div>
+              <div className="num" style={{ fontSize: 30, fontWeight: 800, color: C.gray }}>
                 {(((d?.call?.confidence ?? d?.laps?.[0]?.confidence ?? 0) as number) * 100).toFixed(0)}%
               </div>
               <div style={{ color: C.gray, fontSize: 12.5, marginTop: 6, lineHeight: 1.6 }}>
@@ -311,7 +361,7 @@ export function Cockpit({ raceId, car, rival }:
             </div>
             {sel && (
               <div className="panel" style={{ padding: 15 }}>
-                <SectionTitle>LAP {sel.lap}</SectionTitle>
+                <SectionTitle>LEGACY P1 — LAP {sel.lap}</SectionTitle>
                 <table className="num" style={{ width: '100%', fontSize: 12.5, color: C.gray }}>
                   <tbody>
                     <tr><td>opportunity q</td><td style={{ textAlign: 'right', color: C.white }}>{sel.q.toFixed(3)}</td></tr>
@@ -365,18 +415,28 @@ export function Cockpit({ raceId, car, rival }:
                     )}
                   </tbody>
                 </table>
-                <div style={{ marginTop: 10, fontSize: 12.5,
-                              color: sel.attack ? C.green : C.gray }}>
-                  {/* The rule is the DP's value comparison, not q against tau.
-                      Saying "q clears the threshold" described the heuristic the
-                      API used before it delegated to the core solver, and the two
-                      disagree: the DP can attack with q below tau, and holds
-                      whenever the attack is unaffordable whatever q says. */}
+                {/* The rule is the DP's value comparison, not q against tau.
+                    Saying "q clears the threshold" described the heuristic the
+                    API used before it delegated to the core solver, and the two
+                    disagree: the DP can attack with q below tau, and holds
+                    whenever the attack is unaffordable whatever q says.
+
+                    It was also rendered as bare prose in green -- 'ATTACK —
+                    V(attack) exceeds V(hold)' -- which is how the canonical call
+                    is styled at the top of this view, so a P1 row that disagreed
+                    with P2 (961 of 3,298 decision points, 29%) read as the
+                    recommendation. Same information, named for its layer and
+                    desaturated. */}
+                <div style={{ marginTop: 10, fontSize: 12, color: C.gray,
+                              lineHeight: 1.6 }}>
+                  legacy P1 flag for lap {sel.lap}:{' '}
                   {sel.attack
-                    ? 'ATTACK — V(attack) exceeds V(hold)'
+                    ? 'ATTACK — V(attack) exceeded V(hold) in the per-lap trace'
                     : sel.attack_affordable === false
                       ? 'HOLD — not enough usable energy to fund an attack'
                       : 'HOLD — V(hold) is at least V(attack)'}
+                  <br />Diagnostic only — the canonical recommendation is the P2
+                  headline at the top of this view.
                 </div>
               </div>
             )}

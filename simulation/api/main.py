@@ -47,9 +47,16 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"],
                    allow_headers=["*"])
 
 
-# maxsize is 12 against 10 races on disk. At the old 8 every request evicted a
-# neighbour and re-parsed ~13 MB of JSON to answer it.
-@lru_cache(maxsize=12)
+# One slot per race artefact on disk, with a floor so an empty `out/races/` still
+# caches. At the old fixed 8 every request evicted a neighbour and re-parsed
+# ~13 MB of JSON to answer it -- and the comment claimed "12 against 10 races"
+# while `out/races/` holds 5, so the margin it described did not exist. Counted
+# at import instead of written down: a hardcoded count goes stale the first time
+# a round is analysed.
+_RACE_CACHE_SLOTS = max(8, len(list(RACES.glob("*.json"))) * 2)
+
+
+@lru_cache(maxsize=_RACE_CACHE_SLOTS)
 def _race_at(rid: str, mtime_ns: int) -> dict:
     p = RACES / f"{rid}.json"
     if not p.exists():
@@ -165,7 +172,16 @@ def summary(rid: str):
     return {
         **_summary(d),
         "circuit_geometry": d["circuit_geometry"],
-        "regulation": d["regulation"],
+        # `.get`, not `[...]`. Every race artefact currently on disk predates
+        # `analysis.py` stamping the regulation variant (it writes the block at
+        # analysis.py:232), so a hard index raised KeyError and this endpoint
+        # returned 500 for ALL FIVE races -- and since the frontend loads a race
+        # through `/summary`, nothing in the app could open at all. The real fix
+        # is re-analysing the artefacts; until then absence is reported as
+        # absence rather than filled in with a guessed variant, which is the one
+        # thing a regulation field must never do.
+        "regulation": d.get("regulation"),
+        "regulation_available": "regulation" in d,
         "refusals": d["refusals"],
         "calibration": d["calibration"],
         "drivers": sorted(d["cars"].keys()),
@@ -298,15 +314,49 @@ def _default_horizon_s(d: dict) -> float:
     return round(1.75 * times[len(times) // 2], 1)
 
 
+# Bumped whenever the SHAPE of a situation row changes. The bundle stamp used to
+# track only `artefact_mtime_ns`, i.e. the inputs -- so when the row schema changed
+# (P1 `attack` -> canonical P2 `recommendation`) every bundle built by the previous
+# code stayed "valid" and would have been served with the recommendation field the
+# frontend now reads simply absent: a silently blank column, on 60 of 74 bundles.
+# A cache key has to cover the producing code's output contract, not just its input.
+#
+# 2 -> 3: the position-derived "driver action" and its MATCHED/DIVERGED verdict
+# stopped being user-facing and the observed-outcome fields
+# (`observed_position_delta`, `observed_outcome`, `counterfactual_status`, ...)
+# were added. A schema-2 bundle has none of them, so served against schema-3
+# semantics it would render an empty outcome column next to a recommendation --
+# `_bundle` compares this number exactly, so such a bundle is rebuilt, not served.
+SITUATIONS_SCHEMA = 3
+
+
 def _situations_rows(d: dict, car: str, rival: str, trace: dict,
                      horizon: float) -> list[dict]:
     """Every causal decision point in one race, each already replayed off-policy.
 
     The frontend used to build this by firing one `/replay` per point, serially,
     up to 40 of them, with every control disabled for the duration -- which is
-    how you lose a live demo. One request instead. `matches_recommendation` and
-    `actual_action` are copied verbatim from `historical_replay`; the comparison
-    stays where it was, in the service, and nothing here adds arithmetic.
+    how you lose a live demo. One request instead.
+
+    ONE RECOMMENDATION PER ROW, and it is P2's. Every displayed recommendation
+    field is lifted from `rep["p2_recommendation"]`, the canonical solver result.
+
+    THREE SEPARATED CONCEPTS, none of which is allowed to impersonate another:
+    the X-RAY recommendation (canonical P2), the observed historical outcome (a
+    position delta, `observed_*`), and the driver's action (not observed -- there
+    is no public channel for it). The row no longer carries a user-facing
+    matched/diverged verdict, because the one it used to carry was derived from
+    the position delta and so asserted intent from an outcome.
+
+    They used to. The row's `attack` came from the P1 per-lap trace while the
+    verdict came from P2 inside `historical_replay`, and the two only coincided
+    when P2 happened to call HOLD. 137 of 852 rows (16.1%) rendered a
+    contradiction -- Monaco showed 40 rows reading `HOLD | held | diverged`,
+    because the P1 column said HOLD while P2 had called ATTACK. The P1 trace is
+    still used here to ENUMERATE decision points, which is all it is good for;
+    its own call is carried as `legacy_p1_attack` and is not displayed.
+
+    Nothing here computes a decision. No P2 equation is restated.
     """
     from xray.decision_service import historical_replay
 
@@ -315,11 +365,48 @@ def _situations_rows(d: dict, car: str, rival: str, trace: dict,
         t = r.get("decision_time_s")
         if t is None:
             continue
-        row = {"lap": r.get("lap"), "decision_time_s": t,
-               "requested_zone": r.get("requested_zone"),
-               "attack": bool(r.get("attack")), "gap_s": r.get("gap_s"),
-               "matches_recommendation": None, "actual_action": None,
-               "replay_error": None}
+        row = {
+            "lap": r.get("lap"), "decision_time_s": t, "gap_s": r.get("gap_s"),
+            # --- canonical P2 recommendation, all from one solver result -------
+            "recommendation": None, "recommended_zone": None,
+            "deployment_budget_mj": None, "actual_deployed_mj": None,
+            "pass_probability": None, "value_action": None, "value_hold": None,
+            "decision_margin": None, "next_best_action": None,
+            "pass_model_calibration": None,
+            "recommendation_source": "p2/evaluate_opportunity_decision",
+            # --- OBSERVED HISTORICAL OUTCOME (what physically happened) -------
+            # A position delta, from the public `laps[].position` field. It is
+            # not a driver action: pit stops, retirements ahead, penalties,
+            # incidents, traffic and safety cars all move it, and an attack that
+            # failed moves it not at all. `driver_action_observed` is therefore
+            # False on every row -- no public channel carries the driver's choice
+            # -- and the counterfactual is unresolved because the race never
+            # branched onto P2's recommendation.
+            "observed_position_before": None,
+            "observed_position_after": None,
+            "observed_position_delta": None,
+            "observed_outcome": None,
+            "observed_outcome_basis": "public laps[].position at cutoff vs at window end",
+            "driver_action_observed": False,
+            "counterfactual_status": "unresolved_from_historical_telemetry",
+            # --- LEGACY, INTERNAL, NEVER DISPLAYED ---------------------------
+            # These are the old position-derived "driver action" and the
+            # MATCHED/DIVERGED verdict built on it. 852 rows rendered that
+            # verdict, and every one was a claim about intent read off a
+            # quantity that carries none. Retained only so an older reader does
+            # not KeyError and so the bundle index can keep counting resolved
+            # windows. No frontend field reads them.
+            "matches_recommendation": None,
+            "matches_recommendation_is_legacy": True,
+            "actual_action": None,
+            "actual_action_is_legacy": True,
+            "inferred_action_from_position": None,
+            "actual_action_basis": "legacy: track_position_change_over_evaluation_window",
+            # --- legacy, internal, never displayed ---------------------------
+            "legacy_p1_attack": bool(r.get("attack")),
+            "legacy_p1_requested_zone": r.get("requested_zone"),
+            "replay_error": None,
+        }
         try:
             rep = historical_replay(d, car, rival, float(t), horizon_s=horizon)
         except (ValueError, KeyError) as exc:
@@ -328,8 +415,21 @@ def _situations_rows(d: dict, car: str, rival: str, trace: dict,
             # lies about how many situations the race contained.
             row["replay_error"] = f"{type(exc).__name__}: {exc}"
         else:
+            p2 = rep.get("p2_recommendation") or {}
+            row["recommendation"] = p2.get("decision")
+            row["recommended_zone"] = p2.get("zone")
+            for k in ("deployment_budget_mj", "actual_deployed_mj",
+                      "pass_probability", "value_action", "value_hold",
+                      "decision_margin", "next_best_action",
+                      "pass_model_calibration"):
+                row[k] = p2.get(k)
+            for k in ("observed_position_before", "observed_position_after",
+                      "observed_position_delta", "observed_outcome",
+                      "driver_action_observed", "counterfactual_status"):
+                row[k] = rep.get(k)
             row["matches_recommendation"] = rep.get("matches_recommendation")
             row["actual_action"] = rep.get("actual_action")
+            row["inferred_action_from_position"] = rep.get("actual_action")
             row["replay_error"] = rep.get("p2_error")
         rows.append(row)
     return rows
@@ -367,10 +467,9 @@ def read_index() -> dict:
     """Tiny sidecar: bundle key -> {refusal, n_situations, n_resolved}.
 
     The summary endpoint needs to know which battles are actually viable so the
-    pairing picker can mark the dead ones, and three of ten races open on a
-    battle the engine declines. Answering that by reading the bundles themselves
-    would be 8 x ~600 kB of JSON per summary request, to extract one string
-    each. `rebuild_index` regenerates it from whatever is on disk.
+    pairing picker can mark the dead ones, and some races open on a battle the
+    engine declines. Answering that by reading the bundles themselves would be
+    8 x ~600 kB of JSON per summary request, to extract one string each. `rebuild_index` regenerates it from whatever is on disk.
     """
     try:
         return json.loads(INDEX.read_text(encoding="utf-8"))
@@ -391,8 +490,13 @@ def index_entry(bundle: dict) -> dict:
     sits = bundle.get("situations") or []
     return {"refusal": bundle.get("refusal"),
             "n_situations": len(sits),
+            # Rows whose evaluation window actually has a published position at
+            # both ends. This used to count `matches_recommendation is not None`,
+            # i.e. rows with a MATCHED/DIVERGED verdict -- a count of rows on
+            # which an invalid claim could be made. Same arithmetic, honest
+            # subject: the window resolved, not the driver obeyed.
             "n_resolved": sum(1 for x in sits
-                              if x.get("matches_recommendation") is not None),
+                              if x.get("observed_position_delta") is not None),
             "artefact_mtime_ns": bundle.get("artefact_mtime_ns")}
 
 
@@ -427,11 +531,12 @@ def build_bundle(rid: str, car: str, rival: str, d: dict | None = None) -> dict:
     horizon = _default_horizon_s(d)
 
     # A pair the engine legitimately declines is CARRIED, not raised past the
-    # cache. Three of ten races open on a battle whose first lap has no causal
-    # trace sample ("no causal trace samples for lap 1 at s <= 0.0 m"), and that
-    # refusal used to leave the tab blank behind a bare 422. A refusal is a
-    # correct output and has to be reported as one -- but it also has to be
-    # cached, or every visit to that pair pays the full solve to be told no.
+    # cache: a refusal is a correct output and has to be reported as one -- but
+    # it also has to be cached, or every visit to that pair pays the full solve
+    # to be told no. The refusal this used to describe ("no causal trace samples
+    # for lap 1 at s <= 0.0 m", all 8 Zandvoort battles) is gone: that was one
+    # opportunity at the start/finish line aborting a whole race, and
+    # `decision_service` now skips the opportunity instead.
     refusal = None
     try:
         trace = _decision_payload(d, car, rival)
@@ -449,6 +554,7 @@ def build_bundle(rid: str, car: str, rival: str, d: dict | None = None) -> dict:
         # Stamped so a re-analysed race invalidates its bundles instead of
         # serving a decision trace built from telemetry that no longer exists.
         "artefact_mtime_ns": (RACES / f"{rid}.json").stat().st_mtime_ns,
+        "situations_schema": SITUATIONS_SCHEMA,
         "refusal": refusal,
         "decision": trace,
         "p2": p2,
@@ -463,7 +569,8 @@ def _bundle(rid: str, car: str, rival: str) -> dict:
     if p.exists():
         try:
             cached = json.loads(p.read_text(encoding="utf-8"))
-            if cached.get("artefact_mtime_ns") == mtime:
+            if (cached.get("artefact_mtime_ns") == mtime
+                    and cached.get("situations_schema") == SITUATIONS_SCHEMA):
                 return _json_safe(cached)
         except (ValueError, OSError):
             pass          # a truncated bundle is rebuilt, never served
@@ -491,8 +598,10 @@ def situations(rid: str, car: str = Query(...), rival: str = Query(...)):
 def _rdd_rows_cached(season: int, stamp: str) -> list[dict]:
     """Pooled RDD rows across every analysed race of a season.
 
-    This used to run inline in the route: glob, `json.loads` all ten artefacts,
-    ~130 MB and 2.9 s of GIL-bound parsing, on every single request, to produce
+    This used to run inline in the route: glob and `json.loads` every artefact in
+    `out/races/` -- measured at ten of them, ~130 MB and 2.9 s of GIL-bound
+    parsing (5 are on disk now, so re-measure before quoting the MB) -- on every
+    single request, to produce
     a few thousand rows totalling well under a megabyte. These are `def` routes
     on the threadpool, so a handful of concurrent RDD requests stalled every
     other endpoint. Keyed on mtime like `_all_races_cached`, so a freshly

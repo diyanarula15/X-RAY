@@ -118,6 +118,89 @@ def _latest(kind: str) -> tuple[dict | None, str | None]:
         return None, None
 
 
+def _p35_part3_root() -> str:
+    return os.environ.get("XRAY_P35_ARTIFACTS", os.path.join("out", "p35"))
+
+
+def _p35_part3() -> tuple[dict | None, str | None]:
+    """Newest P3.5 Part 3 summary, or (None, None).
+
+    Separate from `_latest` because the P3.5 artifacts live under `out/p35/`, not
+    `out/p3/`, and pointing one root at both would make `XRAY_P3_ARTIFACTS` in a
+    test silently redirect the activation verdict too.
+    """
+    paths = sorted(glob.glob(os.path.join(_p35_part3_root(), "part3", "*", "summary.json")))
+    if not paths:
+        return None, None
+    try:
+        with open(paths[-1]) as fh:
+            return json.load(fh), paths[-1]
+    except (OSError, json.JSONDecodeError):
+        return None, None
+
+
+def _hardened_candidate_entry() -> "ModelEntry":
+    """The P3.5 hardened candidate, as the thing it is: built, measured, not in the path.
+
+    It was missing from this registry entirely, while `docs/dev_readme.md` 7.1
+    names `registry_payload()` as the single source of truth for "is the hardened
+    estimator activated". A reader who knew P3.5 existed had nowhere to check, and
+    absence reads as "never built" rather than "built and rejected" -- the exact
+    collapse `Validation.available` vs `result` exists to prevent.
+
+    DISABLED rather than a new status word: implemented, deliberately not in the
+    path, which is what `xray/reinfer.py`'s defaults (centre="midpoint",
+    boundary="clip", reserve_obs="point") enforce. Every string below is read from
+    the artifact on disk, never restated here -- flipping the verdict is a rerun,
+    not an edit to this file.
+    """
+    d, path = _p35_part3()
+    if d is None:
+        return ModelEntry(
+            "Hardened estimator candidate (P3.5 Part 3)",
+            "hardened_estimator_candidate", DISABLED, False,
+            reason="no P3.5 Part 3 artifact on disk; the candidate is not in the "
+                   "path and no activation verdict can be quoted",
+            validation=Validation(False, "none", NOT_ATTEMPTED))
+    cfg = d.get("final_candidate_configuration", {})
+    gate_b = d.get("gate_b_recorded", {})
+    metrics = {
+        "activation_decision": d.get("activation_decision"),
+        "production_estimator_status": d.get("production_estimator_status"),
+        "synthetic_energy_mj": {k: {"mae_mj": v.get("mae_mj"),
+                                    "bias_mj": v.get("bias_mj"),
+                                    "corr": v.get("corr")}
+                                for k, v in gate_b.items() if isinstance(v, dict)},
+        "real_held_out_mae": [
+            {"target": r.get("target"),
+             "candidate": (r.get("final") or {}).get("mae"),
+             "old_xray": (r.get("old_xray") or {}).get("mae"),
+             "train_optimal_fixed_e": (r.get("train_optimal_fixed_e") or {}).get("mae")}
+            for r in d.get("gate_d_real_metrics", [])],
+    }
+    return ModelEntry(
+        "Hardened estimator candidate (P3.5 Part 3)",
+        "hardened_estimator_candidate", DISABLED, False,
+        version=f"centre={cfg.get('centre')}, boundary={cfg.get('boundary')}",
+        reason=d.get("activation_blocker"),
+        validation=Validation(
+            True, "indirect_predictive", NO_ROBUST_IMPROVEMENT, metrics=metrics,
+            artifact=path, fingerprint=d.get("summary_fingerprint"),
+            provenance="leave-one-race-out held-out real telemetry; fixed-E fitted "
+                       "on training races only",
+            notes=tuple(d.get("remaining_scientific_limitations", ()))),
+        # No numbers in these notes on purpose: the Part 2 / Part 3 / old figures
+        # are in `metrics` above, read from the artifact. A note restating them
+        # would be the second opinion this file exists to prevent.
+        notes=(d.get("activation_decision") or "",
+               "the Part 2 candidate it replaced lost on every real held-out "
+               "target AND degraded synthetic energy; Part 3 restored the old "
+               "path's synthetic accuracy and removed the false-certainty floor "
+               "collapse",
+               "restoring parity with the production path is not an improvement "
+               "over it, so the candidate stays off"))
+
+
 def _mean_over_runs(runs: list[dict], group: str, key: str) -> float | None:
     vals = [r[group][key] for r in runs if group in r and key in r[group]]
     return None if not vals else float(sum(vals) / len(vals))
@@ -285,6 +368,7 @@ def registry() -> list[ModelEntry]:
             notes=("same code as the production entry, run against simulator "
                    "truth -- the blindfold is what makes this a separate entry "
                    "rather than a separate implementation",)),
+        _hardened_candidate_entry(),
         ModelEntry(
             "Stage-1 estimator", "stage1_estimator", RESEARCH_ONLY, False,
             reason="locked to the synthetic `Observation` type by its import; "

@@ -15,6 +15,57 @@ import { C } from '../lib/theme';
  */
 const WHEEL_R = 0.36;
 
+/** Which car in the battle this is. The subject being analysed chases; the car
+ *  whose hidden energy state is being reconstructed is the target. */
+export type CarRole = 'CHASER' | 'TARGET';
+
+/**
+ * Role identity is carried on FOUR independent channels, not one.
+ *
+ * The version this replaces gave both cars the same '#DCDCE4' shell and
+ * differed only in the accent colour on the spine stripe and the two wings --
+ * three small parts totalling well under a tenth of the car's projected area.
+ * At duel-camera distance those parts are a handful of pixels wide, so in the
+ * side-by-side and overlapping frames that are the whole point of this view a
+ * viewer could not name which car was which, and a colour-blind viewer had
+ * nothing at all (amber #FFC300 vs red #E10600 differ almost only in hue).
+ *
+ * So: (1) whole-shell colour, not trim; (2) a silhouette cue that changes the
+ * car's outline -- a tall narrow dorsal fin on the chaser against a wide flat
+ * cross-blade on the target, vertical against horizontal, readable with the
+ * colour thrown away; (3) a floating marker of a different SHAPE per role
+ * (solid cone against open ring) at a different height per role, drawn with
+ * depth testing off so the rear car's marker is not swallowed when the two
+ * cars overlap on screen; (4) a spelled-out role label on a camera-facing
+ * sprite, so the answer survives any camera rotation by construction.
+ *
+ * Colours come from `lib/theme.ts` only. Nothing here reads or writes motion.
+ */
+
+/** The role word, drawn to a canvas so no webfont has to be fetched at runtime
+ *  (the scene must render on a borrowed laptop with no network). */
+function roleLabelTexture(role: CarRole, colour: string) {
+  const cv = document.createElement('canvas');
+  cv.width = 256;
+  cv.height = 64;
+  const c2 = cv.getContext('2d');
+  if (c2) {
+    c2.font = 'bold 38px system-ui, -apple-system, "Segoe UI", sans-serif';
+    c2.textAlign = 'center';
+    c2.textBaseline = 'middle';
+    // Dark stroke under the fill: the label flies over track, kerb and sky, and
+    // a bare fill vanished against the light kerbing in the tactical shot.
+    c2.lineWidth = 9;
+    c2.strokeStyle = '#07070A';
+    c2.strokeText(role, 128, 34);
+    c2.fillStyle = colour;
+    c2.fillText(role, 128, 34);
+  }
+  const tex = new THREE.CanvasTexture(cv);
+  tex.anisotropy = 4;
+  return tex;
+}
+
 /** Side profile, in metres, nose to the right. */
 function bodyProfile() {
   const p = new THREE.Shape();
@@ -57,10 +108,10 @@ function Wheel({ x, z, w, r, spin, ghost }: {
 }
 
 export function CarMesh({
-  position, heading, bank = 0, accent, ghost = false, speed = 0,
+  position, heading, bank = 0, accent, role, ghost = false, speed = 0,
 }: {
   position: THREE.Vector3; heading: number; bank?: number;
-  accent: string; ghost?: boolean; speed?: number;
+  accent: string; role: CarRole; ghost?: boolean; speed?: number;
 }) {
   const g = useRef<THREE.Group>(null);
   const spin = useRef(0);
@@ -81,19 +132,50 @@ export function CarMesh({
     return geo;
   }, []);
 
+  const isChaser = role === 'CHASER';
+
+  // WHOLE-CAR colour, which is the channel the old trim-only accent lacked: the
+  // chaser is a pale near-white body, the target is its full identity red over
+  // the entire shell. Both are taken from the identity colour in lib/theme.ts
+  // and only mixed toward white, so the palette is respected and both stay
+  // clearly off the '#07070A' background.
+  const shellColour = useMemo(() => {
+    const c = new THREE.Color(accent);
+    return ghost
+      ? c.lerp(new THREE.Color('#8A8A94'), 0.7).getStyle()
+      : c.lerp(new THREE.Color(C.white), isChaser ? 0.74 : 0.06).getStyle();
+  }, [accent, ghost, isChaser]);
+
+  // Trim inverts against the shell so the wings read on both bodies: amber trim
+  // on the pale chaser, white trim on the red target. Red-on-red was invisible.
+  const trimColour = isChaser ? accent : C.white;
+
   const shell = useMemo(() => new THREE.MeshStandardMaterial({
-    color: ghost ? '#8A8A94' : '#DCDCE4', roughness: 0.55, metalness: 0.15,
+    color: shellColour, roughness: isChaser ? 0.55 : 0.42, metalness: 0.15,
     transparent: ghost, opacity: ghost ? 0.32 : 1,
-  }), [ghost]);
+  }), [shellColour, isChaser, ghost]);
   const dark = useMemo(() => new THREE.MeshStandardMaterial({
     color: '#22222A', roughness: 0.8, metalness: 0.1,
     transparent: ghost, opacity: ghost ? 0.3 : 1,
   }), [ghost]);
   const acc = useMemo(() => new THREE.MeshStandardMaterial({
-    color: accent, emissive: new THREE.Color(accent),
+    color: trimColour, emissive: new THREE.Color(trimColour),
     emissiveIntensity: ghost ? 0.25 : 0.55, roughness: 0.5, metalness: 0.1,
     transparent: ghost, opacity: ghost ? 0.35 : 1,
+  }), [trimColour, ghost]);
+
+  // Marker and label are unlit and depth-test-free; see the channel note above
+  // for why depth testing is off.
+  const markerMat = useMemo(() => new THREE.MeshBasicMaterial({
+    color: accent, transparent: true, opacity: ghost ? 0.35 : 0.95,
+    depthTest: false, depthWrite: false,
   }), [accent, ghost]);
+
+  const labelTex = useMemo(() => roleLabelTexture(role, accent), [role, accent]);
+  const labelMat = useMemo(() => new THREE.SpriteMaterial({
+    map: labelTex, transparent: true, opacity: ghost ? 0.4 : 0.95,
+    depthTest: false, depthWrite: false,
+  }), [labelTex, ghost]);
 
   return (
     <group ref={g}>
@@ -134,11 +216,46 @@ export function CarMesh({
             <boxGeometry args={[0.52, 0.42, 0.05]} />
           </mesh>
         ))}
+        {/* Silhouette cue -- the channel that still works in greyscale and in
+            peripheral vision. The chaser grows a tall narrow dorsal fin; the
+            target grows a wide flat cross-blade that overhangs the wheel line.
+            Vertical against horizontal, ~0.9 m of added outline either way,
+            against the old identity's largest feature (a 60 mm spine stripe). */}
+        {isChaser ? (
+          <mesh position={[-1.45, 1.44, 0]} material={acc}>
+            <boxGeometry args={[2.2, 1.08, 0.08]} />
+          </mesh>
+        ) : (
+          <mesh position={[-0.95, 1.26, 0]} material={acc}>
+            <boxGeometry args={[0.46, 0.09, 2.45]} />
+          </mesh>
+        )}
         <Wheel x={1.85} z={0.85} w={0.4} r={WHEEL_R} spin={spin} ghost={ghost} />
         <Wheel x={1.85} z={-0.85} w={0.4} r={WHEEL_R} spin={spin} ghost={ghost} />
         <Wheel x={-1.85} z={0.9} w={0.52} r={WHEEL_R * 1.08} spin={spin} ghost={ghost} />
         <Wheel x={-1.85} z={-0.9} w={0.52} r={WHEEL_R * 1.08} spin={spin} ghost={ghost} />
       </group>
+
+      {/* Role marker: solid cone for the chaser, open ring for the target, and
+          the two sit at different heights so when the cars overlap the two
+          markers are still two separate things on screen rather than one blob. */}
+      {isChaser ? (
+        <mesh position={[0, 0.215, 0]} rotation={[Math.PI, 0, 0]}
+          material={markerMat} renderOrder={10}>
+          <coneGeometry args={[0.052, 0.1, 4]} />
+        </mesh>
+      ) : (
+        <mesh position={[0, 0.155, 0]} rotation={[Math.PI / 2, 0, 0]}
+          material={markerMat} renderOrder={10}>
+          <torusGeometry args={[0.058, 0.017, 6, 18]} />
+        </mesh>
+      )}
+
+      {/* The word itself, on a sprite. A sprite is camera-aligned, so this is
+          the one channel that cannot be lost to a camera rotation -- the
+          tactical top-down and the duel side-on read the same. */}
+      <sprite position={[0, isChaser ? 0.325 : 0.255, 0]}
+        scale={[0.46, 0.115, 1]} material={labelMat} renderOrder={11} />
     </group>
   );
 }

@@ -9,12 +9,22 @@ import { usePlayback } from '../store/playback';
 /**
  * Pick a real situation out of the race — DISPLAY + NAVIGATION ONLY.
  *
- * Every row is a causal decision point the engine already evaluated, and every
- * comparison shown (`matches_recommendation`, `actual_action`) is read verbatim
- * from `decision_service.historical_replay` via `/api/race/{id}/situations`.
- * Nothing here simulates a branch the race did not take: "diverged" means the
- * driver's real action differed from X-RAY's off-policy call, not that we know
- * what would have happened instead.
+ * THREE SEPARATED CONCEPTS, and the whole point of this view is that they are
+ * not allowed to blur:
+ *   X-RAY RECOMMENDATION   `recommendation`, canonical P2, the only call shown.
+ *   OBSERVED OUTCOME       `observed_outcome`, a position delta over the window.
+ *   DRIVER ACTION          not observed. No public channel carries it.
+ *
+ * This view used to print MATCHED / DIVERGED per row from
+ * `matches_recommendation`, which was P2's call compared against an "action"
+ * inferred from the position delta: a driver who attacked and failed was
+ * recorded as having held, and a car promoted by the pit stop of the car ahead
+ * was recorded as having attacked. 852 rows carried that verdict and none of
+ * them could support it, so the verdict is gone. The position delta is still
+ * shown, labelled as what it is, and the counterfactual — what would have
+ * happened had the car taken X-RAY's call — is reported as unresolved, because
+ * the race never branched. `matches_recommendation` / `actual_action` remain in
+ * the payload as legacy fields and are not read here.
  *
  * This replaced a walkthrough that fired up to 40 SERIAL `/replay` requests to
  * find a divergent instance, with every control disabled for the duration. The
@@ -22,26 +32,32 @@ import { usePlayback } from '../store/playback';
  * filtering is instant.
  */
 
-type Filter = 'all' | 'matched' | 'diverged' | 'attack';
+type Filter = 'all' | 'attack' | 'gained' | 'nochange';
 
+// Chips describe the OBSERVED OUTCOME or the engine's own call. There is
+// deliberately no "driver followed"/"driver disobeyed" chip: selecting rows by a
+// claim the data cannot make is the same error as printing it per row.
 const FILTERS: { id: Filter; label: string; hint: string }[] = [
   { id: 'all', label: 'all', hint: 'every causal decision point in the race' },
-  { id: 'matched', label: 'driver matched the call',
-    hint: 'the driver did what X-RAY would have called' },
-  { id: 'diverged', label: 'driver diverged',
-    hint: 'the driver did the opposite of the call' },
   { id: 'attack', label: 'ATTACK called',
-    hint: 'points where the engine recommended attacking' },
+    hint: 'points where canonical P2 recommended attacking' },
+  { id: 'gained', label: 'gained position',
+    hint: 'the car was classified further forward at the end of the window — '
+        + 'an outcome, which pit stops and retirements ahead also produce' },
+  { id: 'nochange', label: 'no position change',
+    hint: 'same classified position at both ends of the window' },
 ];
 
 function matches(s: Situation, f: Filter): boolean {
   if (f === 'all') return true;
-  if (f === 'attack') return s.attack;
-  // `matches_recommendation` is null when the comparison could not be made at
-  // all -- those rows belong to neither bucket and are excluded from both,
-  // rather than being folded into "diverged" as a false.
-  if (f === 'matched') return s.matches_recommendation === true;
-  return s.matches_recommendation === false;
+  // Canonical P2 call, not P1's. The old `s.attack` was the P1 per-lap flag,
+  // which made this chip select rows whose displayed recommendation came from a
+  // different engine than the one that produced the number beside it.
+  if (f === 'attack') return s.recommendation === 'ATTACK';
+  // A null delta is an unresolved window, not a zero: it belongs to neither
+  // bucket rather than being folded into "no change".
+  if (f === 'gained') return (s.observed_position_delta ?? 0) > 0;
+  return s.observed_position_delta === 0;
 }
 
 export function Situations({ raceId, car, rival }:
@@ -128,7 +144,9 @@ export function Situations({ raceId, car, rival }:
     );
   }
 
-  const resolved = list.filter((s) => s.matches_recommendation !== null).length;
+  // Windows with a published position at BOTH ends. Not "rows with a verdict":
+  // there is no verdict any more.
+  const resolved = list.filter((s) => s.observed_position_delta !== null).length;
 
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'grid',
@@ -141,8 +159,17 @@ export function Situations({ raceId, car, rival }:
         <p style={{ color: C.gray, fontSize: 13, lineHeight: 1.6, margin: '6px 0 0',
                     maxWidth: 780 }}>
           Every point in this race where the engine had a call to make. Pick one
-          to see what was knowable at that moment and what the driver actually
-          did next. {list.length} points, {resolved} with an observable outcome.
+          to see what was knowable at that moment, and what physically happened
+          in the window after it. {list.length} points, {resolved} with a
+          published position at both ends of the window.
+        </p>
+        <p style={{ color: C.dim, fontSize: 12, lineHeight: 1.6, margin: '6px 0 0',
+                    maxWidth: 780 }}>
+          Counterfactual: unresolved from historical telemetry. The race never
+          branched onto X-RAY&apos;s call, and no public channel says whether the
+          driver chose to attack — so the outcome column is a change of classified
+          position, not a driver action, and it also moves for pit stops,
+          retirements ahead, penalties, incidents and safety cars.
         </p>
 
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '14px 0 10px' }}>
@@ -177,9 +204,8 @@ export function Situations({ raceId, car, rival }:
                 <th style={{ padding: '9px 12px' }}>lap</th>
                 <th>zone</th>
                 <th>gap</th>
-                <th>X-RAY called</th>
-                <th>driver</th>
-                <th style={{ paddingRight: 12 }}>outcome</th>
+                <th>X-RAY called (P2)</th>
+                <th style={{ paddingRight: 12 }}>observed outcome</th>
               </tr>
             </thead>
             <tbody>
@@ -191,18 +217,17 @@ export function Situations({ raceId, car, rival }:
                       style={{ cursor: 'pointer', borderTop: `1px solid ${C.grid}`,
                                background: on ? 'rgba(255,195,0,0.10)' : 'transparent' }}>
                     <td style={{ padding: '8px 12px', color: C.white }}>{s.lap}</td>
-                    <td style={{ color: C.gray }}>{s.requested_zone ?? '—'}</td>
+                    <td style={{ color: C.gray }}>{s.recommended_zone ?? '—'}</td>
                     <td style={{ color: C.gray }}>
                       {s.gap_s == null ? '—' : `${s.gap_s.toFixed(2)} s`}</td>
-                    <td style={{ color: s.attack ? C.green : C.gray, fontWeight: 700 }}>
-                      {s.attack ? 'ATTACK' : 'HOLD'}</td>
-                    <td style={{ color: C.gray }}>{s.actual_action ?? '—'}</td>
-                    <td style={{ paddingRight: 12,
-                                 color: s.matches_recommendation === true ? C.green
-                                   : s.matches_recommendation === false ? C.amber : C.dim }}>
-                      {s.matches_recommendation === true ? 'matched'
-                        : s.matches_recommendation === false ? 'diverged'
-                          : 'not observable'}</td>
+                    {/* Canonical P2 decision — the only recommendation shown. */}
+                    <td style={{ color: s.recommendation === 'ATTACK' ? C.green : C.gray,
+                                 fontWeight: 700 }}>
+                      {s.recommendation ?? '—'}</td>
+                    {/* Observed outcome, not a verdict: no colour says right or
+                        wrong, because a position delta cannot grade a call. */}
+                    <td style={{ paddingRight: 12, color: C.gray }}>
+                      {s.observed_outcome ?? 'position not published for this window'}</td>
                   </tr>
                 );
               })}
@@ -218,8 +243,9 @@ export function Situations({ raceId, car, rival }:
                                           lineHeight: 1.65 }}>
             <SectionTitle>NO SITUATION SELECTED</SectionTitle>
             Pick a row to replay that moment off-policy: what the engine could see
-            at the cutoff, what it would have called, and what the driver did in
-            the window after.
+            at the cutoff, what it would have called, and what physically
+            happened in the window after. What the driver chose is not in the
+            data, and what the recommendation would have produced is unresolved.
           </div>
         ) : (
           <>
@@ -228,7 +254,17 @@ export function Situations({ raceId, car, rival }:
               <div style={{ color: C.gray, fontSize: 12.5, lineHeight: 1.7 }}>
                 Decision at <b className="num" style={{ color: C.white }}>
                   {current.decision_time_s.toFixed(1)} s</b> session time
-                {current.requested_zone ? `, zone ${current.requested_zone}` : ''}.
+                {current.recommended_zone ? `, zone ${current.recommended_zone}` : ''}.
+                <div style={{ marginTop: 7 }}>
+                  X-RAY called <b style={{ color: current.recommendation === 'ATTACK'
+                                             ? C.green : C.white }}>
+                    {current.recommendation ?? '—'}</b>. Observed outcome:{' '}
+                  <b style={{ color: C.white }}>
+                    {current.observed_outcome ?? 'position not published for this window'}</b>.
+                </div>
+                <div style={{ marginTop: 7, color: C.dim, fontSize: 12 }}>
+                  Counterfactual: unresolved from historical telemetry.
+                </div>
               </div>
               <button
                 onClick={() => { setTime(current.decision_time_s); setView('replay'); }}
